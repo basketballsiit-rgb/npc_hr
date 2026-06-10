@@ -1,0 +1,24 @@
+name: Deploy NPC HR
+
+# สั่งให้ทำงานทุกครั้งที่มีการ Push โค้ดมาที่เส้นทาง main
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: เชื่อมต่อเซิร์ฟเวอร์และอัปเดตระบบ
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SERVER_IP }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        # คำสั่งรันบนเซิร์ฟเวอร์เพื่อทำการอัปเดตระบบและรีสตาร์ต PM2
+        script: |
+          cd /var/www/npc_hr
+          git pull origin main
+          npm install
+          pm2 restart npc_hr || pm2 start backend/server.js --name npc_hr
+          pm2 save

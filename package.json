@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node backend/server.js",
     "dev": "nodemon backend/server.js",
-    "migrate": "node backend/migrate.js"
+    "migrate": "node backend/migrate.js",
+    "autopush": "node backend/autopush.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
