@@ -42,8 +42,8 @@ CREATE TABLE IF NOT EXISTS leave_data (
     approverPosition VARCHAR(100) DEFAULT NULL,
     approvalDate VARCHAR(50) DEFAULT NULL,
     pdfUrl VARCHAR(255) DEFAULT NULL,
-    teacherName VARCHAR(100) NOT NULL,
-    subject VARCHAR(100) NOT NULL,
+    teacherName TEXT,
+    subject TEXT,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
