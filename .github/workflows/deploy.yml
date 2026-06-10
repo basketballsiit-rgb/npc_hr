@@ -17,7 +17,7 @@ jobs:
         key: ${{ secrets.SERVER_SSH_KEY }}
         # คำสั่งรันบนเซิร์ฟเวอร์เพื่อทำการอัปเดตระบบและรีสตาร์ต PM2
         script: |
-          cd /var/www/npc_hr
+          cd /var/www/html/npc_hr
           git pull origin main
           npm install
           pm2 restart npc_hr || pm2 start backend/server.js --name npc_hr
