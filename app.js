@@ -72,9 +72,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const sd = document.getElementById('form-start-date');
   const ed = document.getElementById('form-end-date');
   const lt = document.getElementById('form-leave-type');
-  [sd, ed, lt].forEach(el => el.addEventListener('change', calculateLeaveDays));
+  const handleDateOrTypeChange = async () => {
+    await calculateLeaveDays();
+    await updateLeaveStatsTable();
+  };
+  [sd, ed, lt].forEach(el => el.addEventListener('change', handleDateOrTypeChange));
   document.querySelectorAll('input[name="dayType"]').forEach(el => {
-    el.addEventListener('change', calculateLeaveDays);
+    el.addEventListener('change', handleDateOrTypeChange);
   });
   
   document.getElementById('form-last-start-date').addEventListener('change', calculateLastLeaveDays);
@@ -499,6 +503,9 @@ async function prepareLeaveForm() {
     console.error('Error loading last leave data:', err);
   }
 
+  // Update leave stats table
+  await updateLeaveStatsTable();
+  
   // Handle canvas scaling
   setTimeout(resizeCanvas, 300);
 }
@@ -551,6 +558,53 @@ function calculateLastLeaveDays() {
   if (s && e) {
     const diffTime = Math.abs(new Date(e) - new Date(s));
     document.getElementById('form-last-total-days').value = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  }
+}
+
+// Update Leave Statistics Table in the Form
+async function updateLeaveStatsTable() {
+  if (!currentUser) return;
+  
+  const s = document.getElementById('form-start-date').value || new Date().toISOString().split('T')[0];
+  const t = document.getElementById('form-leave-type').value;
+  const currDays = parseFloat(document.getElementById('form-total-days').value) || 0;
+  
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/leaves/stats/${currentUser.userId}?beforeDate=${s}`);
+    const stats = await res.json();
+    
+    // 1. Sick Leave (ลาป่วย)
+    const prevSickCount = stats["ป่วย"].count;
+    const prevSickDays = stats["ป่วย"].days;
+    const currSickCount = t === 'ลาป่วย' && currDays > 0 ? 1 : 0;
+    const currSickDays = t === 'ลาป่วย' ? currDays : 0;
+    
+    document.getElementById('stats-sick-prev').textContent = `${prevSickCount} ครั้ง / ${prevSickDays.toFixed(1).replace('.0', '')} วัน`;
+    document.getElementById('stats-sick-curr').textContent = `${currSickCount} ครั้ง / ${currSickDays.toFixed(1).replace('.0', '')} วัน`;
+    document.getElementById('stats-sick-total').textContent = `${prevSickCount + currSickCount} ครั้ง / ${(prevSickDays + currSickDays).toFixed(1).replace('.0', '')} วัน`;
+    
+    // 2. Personal Leave (ลากิจส่วนตัว)
+    const prevPersCount = stats["กิจ"].count;
+    const prevPersDays = stats["กิจ"].days;
+    const currPersCount = t === 'ลากิจส่วนตัว' && currDays > 0 ? 1 : 0;
+    const currPersDays = t === 'ลากิจส่วนตัว' ? currDays : 0;
+    
+    document.getElementById('stats-personal-prev').textContent = `${prevPersCount} ครั้ง / ${prevPersDays.toFixed(1).replace('.0', '')} วัน`;
+    document.getElementById('stats-personal-curr').textContent = `${currPersCount} ครั้ง / ${currPersDays.toFixed(1).replace('.0', '')} วัน`;
+    document.getElementById('stats-personal-total').textContent = `${prevPersCount + currPersCount} ครั้ง / ${(prevPersDays + currPersDays).toFixed(1).replace('.0', '')} วัน`;
+    
+    // 3. Maternity Leave (ลาคลอดบุตร)
+    const prevMatCount = stats["คลอด"].count;
+    const prevMatDays = stats["คลอด"].days;
+    const currMatCount = t === 'ลาคลอดบุตร' && currDays > 0 ? 1 : 0;
+    const currMatDays = t === 'ลาคลอดบุตร' ? currDays : 0;
+    
+    document.getElementById('stats-maternity-prev').textContent = `${prevMatCount} ครั้ง / ${prevMatDays.toFixed(1).replace('.0', '')} วัน`;
+    document.getElementById('stats-maternity-curr').textContent = `${currMatCount} ครั้ง / ${currMatDays.toFixed(1).replace('.0', '')} วัน`;
+    document.getElementById('stats-maternity-total').textContent = `${prevMatCount + currMatCount} ครั้ง / ${(prevMatDays + currMatDays).toFixed(1).replace('.0', '')} วัน`;
+    
+  } catch (err) {
+    console.error('Error updating leave stats table:', err);
   }
 }
 

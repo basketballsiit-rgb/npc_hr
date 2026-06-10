@@ -415,6 +415,65 @@ app.get('/api/leaves/last-approved/:userId', async (req, res) => {
   }
 });
 
+// Get Leave Statistics for a User in the Fiscal Year
+app.get('/api/leaves/stats/:userId', async (req, res) => {
+  const { userId } = req.params;
+  const beforeDate = req.query.beforeDate || new Date().toISOString().split('T')[0];
+  
+  try {
+    const d = new Date(beforeDate);
+    if (isNaN(d.getTime())) {
+      return res.status(400).json({ error: 'Invalid beforeDate parameter' });
+    }
+    
+    const year = d.getFullYear();
+    const month = d.getMonth();
+    let startYear;
+    if (month >= 9) { // Oct - Dec (months 10, 11, 12: 0-indexed 9, 10, 11)
+      startYear = year;
+    } else { // Jan - Sep (months 1-9: 0-indexed 0 to 8)
+      startYear = year - 1;
+    }
+    const fiscalStart = `${startYear}-10-01`;
+    
+    // Fetch all approved leaves for the user in the current fiscal year before this date
+    const [rows] = await db.query(
+      `SELECT leaveType, totalDays 
+       FROM leave_data 
+       WHERE userId = ? 
+         AND status = 'อนุมัติ' 
+         AND startDate >= ? 
+         AND startDate < ?`,
+      [userId, fiscalStart, beforeDate]
+    );
+
+    const stats = {
+      "ป่วย": { count: 0, days: 0 },
+      "กิจ": { count: 0, days: 0 },
+      "คลอด": { count: 0, days: 0 }
+    };
+
+    rows.forEach(row => {
+      const type = row.leaveType;
+      const days = parseFloat(row.totalDays) || 0;
+      if (type === 'ลาป่วย') {
+        stats["ป่วย"].count += 1;
+        stats["ป่วย"].days += days;
+      } else if (type === 'ลากิจส่วนตัว') {
+        stats["กิจ"].count += 1;
+        stats["กิจ"].days += days;
+      } else if (type === 'ลาคลอดบุตร') {
+        stats["คลอด"].count += 1;
+        stats["คลอด"].days += days;
+      }
+    });
+
+    res.json(stats);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Get Pending Leaves (Admin)
 app.get('/api/leaves/pending', async (req, res) => {
   try {

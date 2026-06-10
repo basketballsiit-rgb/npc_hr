@@ -216,22 +216,34 @@
 
     <hr style="border: 0; border-top: 1px solid #000000; margin: 30px 0;">
 
-    <div class="bold" style="margin-bottom: 10px;">สถิติการลาในรอบครึ่งปีงบประมาณนี้</div>
+    <div class="bold" style="margin-bottom: 10px;">สถิติการลาในปีงบประมาณนี้</div>
     <table class="doc-last-leave">
       <thead>
         <tr>
           <th>ประเภทการลา</th>
-          <th>ลามาแล้ว (วันทำการ)</th>
-          <th>ลาครั้งนี้ (วันทำการ)</th>
-          <th>รวมเป็น (วันทำการ)</th>
+          <th>ลามาแล้ว (ครั้ง/วัน)</th>
+          <th>ลาครั้งนี้ (ครั้ง/วัน)</th>
+          <th>รวมเป็น (ครั้ง/วัน)</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td id="stat-leave-type">ลาป่วย / ลากิจ / ลาพักผ่อน</td>
-          <td id="stat-last-days">......</td>
-          <td id="stat-current-days">......</td>
-          <td id="stat-total-days">......</td>
+          <td style="text-align: left; font-weight: bold; padding-left: 15px;">ลาป่วย</td>
+          <td id="print-stats-sick-prev">......</td>
+          <td id="print-stats-sick-curr">......</td>
+          <td id="print-stats-sick-total">......</td>
+        </tr>
+        <tr>
+          <td style="text-align: left; font-weight: bold; padding-left: 15px;">ลากิจ</td>
+          <td id="print-stats-personal-prev">......</td>
+          <td id="print-stats-personal-curr">......</td>
+          <td id="print-stats-personal-total">......</td>
+        </tr>
+        <tr>
+          <td style="text-align: left; font-weight: bold; padding-left: 15px;">ลาคลอด</td>
+          <td id="print-stats-maternity-prev">......</td>
+          <td id="print-stats-maternity-curr">......</td>
+          <td id="print-stats-maternity-total">......</td>
         </tr>
       </tbody>
     </table>
@@ -338,11 +350,49 @@
           document.getElementById('user-signature').src = `${API_BASE_URL}${leave.signatureUrl}`;
         }
 
-        // Stats table
-        document.getElementById('stat-leave-type').textContent = leave.leaveType;
-        document.getElementById('stat-last-days').textContent = leave.lastLeaveTotalDays || '0';
-        document.getElementById('stat-current-days').textContent = leave.totalDays;
-        document.getElementById('stat-total-days').textContent = (parseFloat(leave.lastLeaveTotalDays || 0) + parseFloat(leave.totalDays)).toFixed(1).replace('.0', '');
+        // Fetch and populate stats table
+        try {
+          const statsRes = await fetch(`${API_BASE_URL}/api/leaves/stats/${leave.userId}?beforeDate=${leave.startDate}`);
+          if (!statsRes.ok) {
+            throw new Error('ไม่สามารถดึงข้อมูลสถิติการลาได้');
+          }
+          const stats = await statsRes.json();
+
+          const currDays = parseFloat(leave.totalDays) || 0;
+          const t = leave.leaveType;
+
+          // 1. Sick Leave (ลาป่วย)
+          const prevSickCount = stats["ป่วย"].count;
+          const prevSickDays = stats["ป่วย"].days;
+          const currSickCount = t === 'ลาป่วย' && currDays > 0 ? 1 : 0;
+          const currSickDays = t === 'ลาป่วย' ? currDays : 0;
+
+          document.getElementById('print-stats-sick-prev').textContent = `${prevSickCount} ครั้ง / ${prevSickDays.toFixed(1).replace('.0', '')} วัน`;
+          document.getElementById('print-stats-sick-curr').textContent = `${currSickCount} ครั้ง / ${currSickDays.toFixed(1).replace('.0', '')} วัน`;
+          document.getElementById('print-stats-sick-total').textContent = `${prevSickCount + currSickCount} ครั้ง / ${(prevSickDays + currSickDays).toFixed(1).replace('.0', '')} วัน`;
+
+          // 2. Personal Leave (ลากิจ)
+          const prevPersCount = stats["กิจ"].count;
+          const prevPersDays = stats["กิจ"].days;
+          const currPersCount = t === 'ลากิจส่วนตัว' && currDays > 0 ? 1 : 0;
+          const currPersDays = t === 'ลากิจส่วนตัว' ? currDays : 0;
+
+          document.getElementById('print-stats-personal-prev').textContent = `${prevPersCount} ครั้ง / ${prevPersDays.toFixed(1).replace('.0', '')} วัน`;
+          document.getElementById('print-stats-personal-curr').textContent = `${currPersCount} ครั้ง / ${currPersDays.toFixed(1).replace('.0', '')} วัน`;
+          document.getElementById('print-stats-personal-total').textContent = `${prevPersCount + currPersCount} ครั้ง / ${(prevPersDays + currPersDays).toFixed(1).replace('.0', '')} วัน`;
+
+          // 3. Maternity Leave (ลาคลอด)
+          const prevMatCount = stats["คลอด"].count;
+          const prevMatDays = stats["คลอด"].days;
+          const currMatCount = t === 'ลาคลอดบุตร' && currDays > 0 ? 1 : 0;
+          const currMatDays = t === 'ลาคลอดบุตร' ? currDays : 0;
+
+          document.getElementById('print-stats-maternity-prev').textContent = `${prevMatCount} ครั้ง / ${prevMatDays.toFixed(1).replace('.0', '')} วัน`;
+          document.getElementById('print-stats-maternity-curr').textContent = `${currMatCount} ครั้ง / ${currMatDays.toFixed(1).replace('.0', '')} วัน`;
+          document.getElementById('print-stats-maternity-total').textContent = `${prevMatCount + currMatCount} ครั้ง / ${(prevMatDays + currMatDays).toFixed(1).replace('.0', '')} วัน`;
+        } catch (statsErr) {
+          console.error('Error fetching leave stats for print template:', statsErr);
+        }
 
         // Approver commands
         if (leave.status !== 'รอการอนุมัติ') {
