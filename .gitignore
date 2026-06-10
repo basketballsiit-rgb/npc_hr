@@ -1,0 +1,22 @@
+# Dependency directories
+node_modules/
+
+# Environment files
+backend/.env
+
+# Local upload files (Signatures and PDFs)
+backend/public/uploads/signatures/*
+!backend/public/uploads/signatures/.gitkeep
+backend/public/uploads/pdfs/*
+!backend/public/uploads/pdfs/.gitkeep
+
+# Editor & OS files
+.DS_Store
+Thumbs.db
+*.log
+scratch/
+backend/debug_sheet.js
+backend/check_db_count.js
+backend/find_skipped_leaves.js
+backend/find_gids.js
+backend/debug_csv.js

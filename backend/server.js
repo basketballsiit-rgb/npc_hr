@@ -1,0 +1,773 @@
+const express = require('express');
+const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
+const db = require('./db');
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Enable CORS for all requests (crucial for GitHub Pages frontend)
+app.use(cors());
+app.use(express.json({ limit: '10mb' })); // Support base64 image data upload
+
+// Ensure uploads directories exist
+const uploadDir = path.join(__dirname, 'public', 'uploads', 'signatures');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
+
+// --- Helper Functions ---
+
+// Save Base64 signature image as file
+function saveSignature(base64Data, filename) {
+  if (!base64Data) return null;
+  
+  // Format: data:image/png;base64,iVBORw0KGgoAAAANSU...
+  const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+  if (!matches || matches.length !== 3) {
+    throw new Error('Invalid base64 string format');
+  }
+  
+  const buffer = Buffer.from(matches[2], 'base64');
+  const filePath = path.join(uploadDir, `${filename}.png`);
+  fs.writeFileSync(filePath, buffer);
+  return `/uploads/signatures/${filename}.png`;
+}
+
+// Delete locally stored file
+function deleteFile(fileUrl) {
+  if (!fileUrl) return;
+  // Convert /uploads/signatures/sig.png to local path
+  const relativePath = fileUrl.replace('/uploads', 'public/uploads');
+  const filePath = path.join(__dirname, relativePath);
+  if (fs.existsSync(filePath)) {
+    try {
+      fs.unlinkSync(filePath);
+      console.log(`Deleted file: ${filePath}`);
+    } catch (e) {
+      console.error(`Failed to delete file: ${filePath}`, e.message);
+    }
+  }
+}
+
+// Fetch general setting value
+async function getSettingValue(key) {
+  try {
+    const [rows] = await db.query('SELECT settingValue FROM settings WHERE settingKey = ?', [key]);
+    return rows.length > 0 ? rows[0].settingValue : null;
+  } catch (err) {
+    console.error(`Error fetching setting ${key}:`, err.message);
+    return null;
+  }
+}
+
+// LINE Messaging API: Push Text Message
+async function sendLinePushMessage(to, messageText) {
+  if (!to || to.trim() === '') return;
+  const token = process.env.LINE_ACCESS_TOKEN;
+  if (!token || token.includes('YOUR_LINE_CHANNEL_ACCESS_TOKEN')) {
+    console.log('LINE Push skipped: Access token not configured.');
+    return;
+  }
+
+  const url = "https://api.line.me/v2/bot/message/push";
+  const payload = { "to": to, "messages": [{ "type": "text", "text": messageText }] };
+  
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    console.log(`LINE Push Message sent to ${to}. Result:`, result);
+  } catch (e) {
+    console.error("LINE Push Error: " + e.toString());
+  }
+}
+
+// LINE Messaging API: Push Flex Message
+async function sendLineFlexMessage(to, flexContent, altText) {
+  if (!to || to.trim() === '') return;
+  const token = process.env.LINE_ACCESS_TOKEN;
+  if (!token || token.includes('YOUR_LINE_CHANNEL_ACCESS_TOKEN')) {
+    console.log('LINE Flex skipped: Access token not configured.');
+    return;
+  }
+
+  const url = "https://api.line.me/v2/bot/message/push";
+  const payload = {
+    "to": to,
+    "messages": [{ "type": "flex", "altText": altText, "contents": flexContent }]
+  };
+  
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    console.log(`LINE Flex Message sent to ${to}. Result:`, result);
+  } catch (e) {
+    console.error("LINE Flex Error: " + e.toString());
+  }
+}
+
+// --- API ROUTES ---
+
+// 1. Authentication Routes
+
+// Register new user
+app.post('/api/auth/register', async (req, res) => {
+  const { fullName, position, username, password, lineUserId } = req.body;
+  if (!fullName || !position || !username || !password) {
+    return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
+  }
+
+  try {
+    const [exists] = await db.query('SELECT userId FROM users WHERE username = ?', [username]);
+    if (exists.length > 0) {
+      return res.json({ success: false, message: 'ชื่อผู้ใช้งานนี้มีอยู่แล้วในระบบ' });
+    }
+
+    const [totalUsers] = await db.query('SELECT COUNT(*) as count FROM users');
+    const isFirstUser = totalUsers[0].count === 0;
+
+    const userId = crypto.randomUUID();
+    const role = isFirstUser ? 'admin' : 'user';
+    const status = isFirstUser ? 'approved' : 'pending';
+
+    const hashedPassword = bcrypt.hashSync(password, 10);
+    await db.query(
+      'INSERT INTO users (userId, fullName, position, username, password, role, status, lineUserId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [userId, fullName, position, username, hashedPassword, role, status, lineUserId || null]
+    );
+
+    const message = isFirstUser
+      ? 'ลงทะเบียนบัญชีแอดมินแรกสำเร็จ! สามารถเข้าใช้งานได้ทันที'
+      : 'ลงทะเบียนสำเร็จ! กรุณารอผู้ดูแลระบบอนุมัติการใช้งาน';
+
+    res.json({ success: true, message });
+  } catch (error) {
+    console.error('Registration error:', error.message);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดภายในระบบ: ' + error.message });
+  }
+});
+
+// Login User
+app.post('/api/auth/login', async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ success: false, message: 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน' });
+  }
+
+  try {
+    const [rows] = await db.query('SELECT * FROM users WHERE username = ?', [username]);
+    if (rows.length === 0) {
+      return res.json({ success: false, message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' });
+    }
+
+    const user = rows[0];
+    const passwordMatch = bcrypt.compareSync(password, user.password);
+    
+    if (!passwordMatch) {
+      return res.json({ success: false, message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' });
+    }
+
+    if (user.status !== 'approved') {
+      return res.json({ success: false, message: 'บัญชีของคุณยังไม่ได้รับการอนุมัติการใช้งาน' });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        userId: user.userId,
+        fullName: user.fullName,
+        position: user.position,
+        username: user.username,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error.message);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดภายในระบบ: ' + error.message });
+  }
+});
+
+// 2. User Management (Admin Only)
+app.get('/api/users', async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT userId, fullName, position, username, role, status, lineUserId, createdAt FROM users ORDER BY createdAt DESC');
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/users/:userId', async (req, res) => {
+  const { userId } = req.params;
+  const { fullName, position, password, role } = req.body;
+  try {
+    if (password && password.trim() !== '') {
+      const hashedPassword = bcrypt.hashSync(password, 10);
+      await db.query(
+        'UPDATE users SET fullName = ?, position = ?, password = ?, role = ? WHERE userId = ?',
+        [fullName, position, hashedPassword, role, userId]
+      );
+    } else {
+      await db.query(
+        'UPDATE users SET fullName = ?, position = ?, role = ? WHERE userId = ?',
+        [fullName, position, role, userId]
+      );
+    }
+    res.json({ success: true, message: 'อัปเดตข้อมูลสำเร็จ' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.delete('/api/users/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    await db.query('DELETE FROM users WHERE userId = ?', [userId]);
+    res.json({ success: true, message: 'ลบผู้ใช้สำเร็จ' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/users/approve/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    await db.query("UPDATE users SET status = 'approved' WHERE userId = ?", [userId]);
+    res.json({ success: true, message: 'อนุมัติผู้ใช้สำเร็จ' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Import users from Excel
+app.post('/api/users/import', async (req, res) => {
+  const usersArray = req.body;
+  if (!Array.isArray(usersArray)) {
+    return res.status(400).json({ success: false, message: 'ข้อมูลไม่ถูกต้อง' });
+  }
+
+  try {
+    const [existingRows] = await db.query('SELECT username FROM users');
+    const existingUsers = existingRows.map(r => r.username);
+    
+    let addedCount = 0;
+    let skippedCount = 0;
+
+    for (const u of usersArray) {
+      if (u.username && !existingUsers.includes(u.username)) {
+        const userId = crypto.randomUUID();
+        const hashedPassword = bcrypt.hashSync(String(u.password || '123456'), 10);
+        await db.query(
+          'INSERT INTO users (userId, fullName, position, username, password, role, status, lineUserId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [userId, u.fullName || '', u.position || '', u.username, hashedPassword, 'user', 'approved', '']
+        );
+        addedCount++;
+      } else {
+        skippedCount++;
+      }
+    }
+    res.json({ success: true, message: `นำเข้าสำเร็จ! เพิ่ม ${addedCount}, ข้าม ${skippedCount}` });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 3. Leave Requests Routes
+
+// Submit Leave Request
+app.post('/api/leaves', async (req, res) => {
+  const leaveData = req.body;
+  try {
+    const leaveId = crypto.randomUUID();
+    const signatureUrl = saveSignature(leaveData.signatureDataUrl, `sig_${leaveId}`);
+    
+    const requestDate = leaveData.requestDate || new Date().toISOString().split('T')[0];
+    
+    await db.query(
+      `INSERT INTO leave_data (
+        leaveId, userId, fullName, position, schoolName, requestDate, leaveType, reason,
+        startDate, endDate, totalDays, lastLeaveType, lastLeaveStartDate, lastLeaveEndDate,
+        lastLeaveTotalDays, contactAddress, contactPhone, signatureUrl, status,
+        teacherName, subject
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        leaveId,
+        leaveData.currentUser.userId,
+        leaveData.currentUser.fullName,
+        leaveData.currentUser.position,
+        leaveData.schoolName,
+        requestDate,
+        leaveData.leaveType,
+        leaveData.reason,
+        leaveData.startDate,
+        leaveData.endDate,
+        leaveData.totalDays,
+        leaveData.lastLeaveType || '',
+        leaveData.lastLeaveStartDate || null,
+        leaveData.lastLeaveEndDate || null,
+        leaveData.lastLeaveTotalDays || 0,
+        leaveData.contactAddress,
+        leaveData.contactPhone,
+        signatureUrl,
+        'รอการอนุมัติ',
+        leaveData.teacherName,
+        leaveData.subject
+      ]
+    );
+
+    // Notify LINE Admin Group if configured
+    const adminGroupId = await getSettingValue('adminGroupId');
+    if (adminGroupId) {
+      const flexMessage = {
+        "type": "bubble",
+        "header": { "type": "box", "layout": "vertical", "contents": [{ "type": "text", "text": "🔔 มีคำขอลาใหม่", "weight": "bold", "size": "lg", "color": "#1DB446" }] },
+        "body": {
+          "type": "box", "layout": "vertical", "contents": [
+            { "type": "box", "layout": "baseline", "margin": "md", "contents": [{ "type": "text", "text": "ผู้ขอ:", "color": "#aaaaaa", "size": "sm", "flex": 2 }, { "type": "text", "text": leaveData.currentUser.fullName, "wrap": true, "color": "#666666", "size": "sm", "flex": 5 }] },
+            { "type": "box", "layout": "baseline", "margin": "md", "contents": [{ "type": "text", "text": "ประเภท:", "color": "#aaaaaa", "size": "sm", "flex": 2 }, { "type": "text", "text": leaveData.leaveType, "wrap": true, "color": "#666666", "size": "sm", "flex": 5 }] },
+            { "type": "box", "layout": "baseline", "margin": "md", "contents": [{ "type": "text", "text": "วันที่:", "color": "#aaaaaa", "size": "sm", "flex": 2 }, { "type": "text", "text": `${leaveData.startDate} ถึง ${leaveData.endDate}`, "wrap": true, "color": "#666666", "size": "sm", "flex": 5 }] },
+            { "type": "box", "layout": "baseline", "margin": "md", "contents": [{ "type": "text", "text": "รวม:", "color": "#aaaaaa", "size": "sm", "flex": 2 }, { "type": "text", "text": `${leaveData.totalDays} วัน`, "wrap": true, "color": "#666666", "size": "sm", "flex": 5 }] }
+          ]
+        },
+        "footer": {
+          "type": "box", "layout": "vertical", "contents": [
+            { "type": "button", "style": "primary", "color": "#2E3A59", "action": { "type": "uri", "label": "ตรวจสอบ / อนุมัติ", "uri": `${leaveData.frontendUrl || 'https://nipon.github.io/npc_eleve/'}` } }
+          ]
+        }
+      };
+      await sendLineFlexMessage(adminGroupId, flexMessage, "มีคำขอลาใหม่รออนุมัติ");
+    }
+
+    res.json({ success: true, message: 'ยื่นใบลาสำเร็จ' });
+  } catch (error) {
+    console.error('Submit leave error:', error.message);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาด: ' + error.message });
+  }
+});
+
+// Get Leave History
+app.post('/api/leaves/history', async (req, res) => {
+  const { role, userId, filterUserId, filterStartDate, filterEndDate } = req.body;
+  try {
+    let query = 'SELECT * FROM leave_data WHERE 1=1';
+    const params = [];
+
+    if (role !== 'admin') {
+      query += ' AND userId = ?';
+      params.push(userId);
+    } else if (filterUserId && filterUserId !== 'all') {
+      query += ' AND userId = ?';
+      params.push(filterUserId);
+    }
+
+    if (filterStartDate) {
+      query += ' AND startDate >= ?';
+      params.push(filterStartDate);
+    }
+    if (filterEndDate) {
+      query += ' AND startDate <= ?';
+      params.push(filterEndDate);
+    }
+
+    query += ' ORDER BY createdAt DESC';
+    const [rows] = await db.query(query, params);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get Last Approved Leave for a User
+app.get('/api/leaves/last-approved/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const [rows] = await db.query(
+      "SELECT leaveType, startDate, endDate, totalDays FROM leave_data WHERE userId = ? AND status = 'อนุมัติ' ORDER BY startDate DESC LIMIT 1",
+      [userId]
+    );
+    if (rows.length > 0) {
+      res.json(rows[0]);
+    } else {
+      res.json(null);
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get Pending Leaves (Admin)
+app.get('/api/leaves/pending', async (req, res) => {
+  try {
+    const [rows] = await db.query("SELECT * FROM leave_data WHERE status = 'รอการอนุมัติ' ORDER BY createdAt ASC");
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get Specific Leave Request
+app.get('/api/leaves/:leaveId', async (req, res) => {
+  const { leaveId } = req.params;
+  try {
+    const [rows] = await db.query("SELECT * FROM leave_data WHERE leaveId = ?", [leaveId]);
+    if (rows.length > 0) {
+      res.json(rows[0]);
+    } else {
+      res.status(404).json({ message: 'ไม่พบใบลา' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Process/Approve Leave Request
+app.post('/api/leaves/approve', async (req, res) => {
+  const { leaveId, status, comment, adminSignature, adminUser, frontendUrl } = req.body;
+  try {
+    const [leaveRows] = await db.query('SELECT * FROM leave_data WHERE leaveId = ?', [leaveId]);
+    if (leaveRows.length === 0) {
+      return res.json({ success: false, message: 'ไม่พบข้อมูลใบลา' });
+    }
+
+    const leave = leaveRows[0];
+    const adminSignatureUrl = saveSignature(adminSignature, `adminsig_${leaveId}`);
+    const approvalDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+    
+    // In our system, the pdfUrl is a printable template served by the frontend.
+    // e.g. https://nipon.github.io/npc_eleve/print_template.html?leaveId=xxxx
+    const finalFrontendUrl = frontendUrl || 'https://nipon.github.io/npc_eleve/';
+    const pdfPrintUrl = `${finalFrontendUrl}print_template.html?leaveId=${leaveId}`;
+
+    await db.query(
+      `UPDATE leave_data SET 
+        status = ?, 
+        approverComment = ?, 
+        approverSignatureUrl = ?, 
+        approverName = ?, 
+        approverPosition = ?, 
+        approvalDate = ?,
+        pdfUrl = ?
+      WHERE leaveId = ?`,
+      [status, comment || '', adminSignatureUrl, adminUser.fullName, adminUser.position, approvalDate, pdfPrintUrl, leaveId]
+    );
+
+    // Notify user via LINE bot
+    const [userRows] = await db.query('SELECT lineUserId FROM users WHERE userId = ?', [leave.userId]);
+    if (userRows.length > 0 && userRows[0].lineUserId) {
+      const lineUserId = userRows[0].lineUserId;
+      const emoji = status === 'อนุมัติ' ? '✅' : '❌';
+      let msg = `${emoji} ผลการพิจารณาใบลา\nประเภท: ${leave.leaveType}\nผลลัพธ์: ${status}\nโดย: ${adminUser.fullName}`;
+      if (status === 'อนุมัติ') {
+        msg += `\n\n📄 พิมพ์เอกสารใบลาได้ที่นี่: ${pdfPrintUrl}`;
+      } else if (comment) {
+        msg += `\nเหตุผล: ${comment}`;
+      }
+      await sendLinePushMessage(lineUserId, msg);
+    }
+
+    res.json({ success: true, message: `ดำเนินการ '${status}' เรียบร้อย`, pdfUrl: pdfPrintUrl });
+  } catch (error) {
+    console.error('Approve error:', error.message);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาด: ' + error.message });
+  }
+});
+
+// Cancel Leave Request (by User)
+app.post('/api/leaves/cancel', async (req, res) => {
+  const { leaveId, userId } = req.body;
+  try {
+    const [rows] = await db.query('SELECT * FROM leave_data WHERE leaveId = ?', [leaveId]);
+    if (rows.length === 0) {
+      return res.json({ success: false, message: 'ไม่พบข้อมูลใบลา' });
+    }
+
+    const leave = rows[0];
+    if (String(leave.userId) !== String(userId)) {
+      return res.json({ success: false, message: 'คุณไม่มีสิทธิ์ยกเลิกใบลาของคนอื่น' });
+    }
+
+    if (leave.status !== 'รอการอนุมัติ') {
+      return res.json({ success: false, message: 'ไม่สามารถยกเลิกได้ เนื่องจากสถานะถูกเปลี่ยนไปแล้ว' });
+    }
+
+    await db.query("UPDATE leave_data SET status = 'ยกเลิกโดยผู้ใช้' WHERE leaveId = ?", [leaveId]);
+
+    // Notify LINE Admin
+    const adminGroupId = await getSettingValue('adminGroupId');
+    if (adminGroupId) {
+      await sendLinePushMessage(adminGroupId, `⚠️ มีการยกเลิกใบลา\n👤 ${leave.fullName}\n❌ ยกเลิกการลา: ${leave.leaveType}`);
+    }
+
+    res.json({ success: true, message: 'ยกเลิกรายการสำเร็จ' });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// Delete Leave History (Admin)
+app.delete('/api/leaves/:leaveId', async (req, res) => {
+  const { leaveId } = req.params;
+  try {
+    const [rows] = await db.query('SELECT signatureUrl, approverSignatureUrl FROM leave_data WHERE leaveId = ?', [leaveId]);
+    if (rows.length === 0) {
+      return res.json({ success: false, message: 'ไม่พบรายการที่ต้องการลบ' });
+    }
+
+    const leave = rows[0];
+    // Delete files locally
+    deleteFile(leave.signatureUrl);
+    deleteFile(leave.approverSignatureUrl);
+
+    // Delete row
+    await db.query('DELETE FROM leave_data WHERE leaveId = ?', [leaveId]);
+    res.json({ success: true, message: 'ลบข้อมูลสำเร็จ' });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// 4. Dashboard Stats Route
+app.get('/api/dashboard', async (req, res) => {
+  try {
+    const [[{ totalStaff }]] = await db.query('SELECT COUNT(*) as totalStaff FROM users WHERE role = "user" AND status = "approved"');
+    
+    const [statusCounts] = await db.query(
+      `SELECT 
+        SUM(CASE WHEN status = 'อนุมัติ' THEN 1 ELSE 0 END) as approved,
+        SUM(CASE WHEN status = 'รอการอนุมัติ' THEN 1 ELSE 0 END) as pending,
+        SUM(CASE WHEN status = 'ไม่อนุมัติ' THEN 1 ELSE 0 END) as rejected
+       FROM leave_data`
+    );
+
+    const [leaveTypes] = await db.query(
+      'SELECT leaveType, COUNT(*) as count FROM leave_data GROUP BY leaveType'
+    );
+
+    // Monthly stats for current year
+    const [monthlyStats] = await db.query(
+      `SELECT MONTH(startDate) as month, COUNT(*) as count 
+       FROM leave_data 
+       WHERE YEAR(startDate) = YEAR(CURDATE())
+       GROUP BY MONTH(startDate)`
+    );
+
+    const monthlyCounts = Array(12).fill(0);
+    monthlyStats.forEach(item => {
+      if (item.month >= 1 && item.month <= 12) {
+        monthlyCounts[item.month - 1] = item.count;
+      }
+    });
+
+    const [recentLeaves] = await db.query(
+      'SELECT fullName, leaveType, startDate, endDate, totalDays, status, pdfUrl FROM leave_data ORDER BY createdAt DESC LIMIT 10'
+    );
+
+    res.json({
+      stats: {
+        totalStaff: totalStaff || 0,
+        approved: statusCounts[0].approved || 0,
+        pending: statusCounts[0].pending || 0,
+        rejected: statusCounts[0].rejected || 0
+      },
+      charts: {
+        leaveTypeData: {
+          labels: leaveTypes.map(lt => lt.leaveType),
+          data: leaveTypes.map(lt => lt.count)
+        },
+        monthlyLeaveData: {
+          labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
+          data: monthlyCounts
+        }
+      },
+      recentLeaves
+    });
+  } catch (error) {
+    console.error('Dashboard query error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 5. Settings Routes
+app.get('/api/settings', async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT * FROM settings');
+    const settingsObj = {};
+    rows.forEach(r => settingsObj[r.settingKey] = r.settingValue);
+    res.json(settingsObj);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/settings', async (req, res) => {
+  const settingsData = req.body; // Key-Value pair object
+  try {
+    for (const [key, val] of Object.entries(settingsData)) {
+      await db.query(
+        'INSERT INTO settings (settingKey, settingValue) VALUES (?, ?) ON DUPLICATE KEY UPDATE settingValue = ?',
+        [key, String(val), String(val)]
+      );
+    }
+    res.json({ success: true, message: 'บันทึกการตั้งค่าสำเร็จ' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 6. Holidays Routes
+app.get('/api/holidays', async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT holidayDate, description FROM holidays ORDER BY holidayDate ASC');
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/holidays', async (req, res) => {
+  const { holidayDate, description } = req.body;
+  try {
+    await db.query(
+      'INSERT INTO holidays (holidayDate, description) VALUES (?, ?) ON DUPLICATE KEY UPDATE description = ?',
+      [holidayDate, description, description]
+    );
+    res.json({ success: true, message: 'บันทึกวันหยุดสำเร็จ' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.delete('/api/holidays/:holidayDate', async (req, res) => {
+  const { holidayDate } = req.params;
+  try {
+    await db.query('DELETE FROM holidays WHERE holidayDate = ?', [holidayDate]);
+    res.json({ success: true, message: 'ลบวันหยุดสำเร็จ' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Get Leave Summary Report
+app.post('/api/reports/summary', async (req, res) => {
+  const { startDate, endDate } = req.body;
+  try {
+    let query = `
+      SELECT 
+        userId, fullName, position,
+        COUNT(CASE WHEN status = 'อนุมัติ' THEN 1 END) as totalLeaves,
+        SUM(CASE WHEN status = 'อนุมัติ' THEN totalDays ELSE 0 END) as totalDays
+      FROM leave_data
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (startDate) {
+      query += ' AND startDate >= ?';
+      params.push(startDate);
+    }
+    if (endDate) {
+      query += ' AND startDate <= ?';
+      params.push(endDate);
+    }
+
+    query += ' GROUP BY userId, fullName, position';
+    const [rows] = await db.query(query, params);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get All Leave Report Data for Excel export
+app.get('/api/reports/all', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      'SELECT fullName, position, requestDate, leaveType, startDate, endDate, totalDays, status, pdfUrl FROM leave_data ORDER BY createdAt DESC'
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Calculate official leave days (excluding weekends & holidays)
+app.post('/api/leaves/calculate-days', async (req, res) => {
+  const { startDate, endDate, leaveType, isHalfDay } = req.body;
+  
+  if (isHalfDay) return res.json({ days: 0.5 });
+  if (!startDate || !endDate) return res.json({ days: 0 });
+
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  start.setHours(0,0,0,0);
+  end.setHours(0,0,0,0);
+
+  if (end < start) return res.json({ days: 0 });
+
+  const workDayTypes = ['ลาป่วย', 'ลากิจส่วนตัว', 'ลาพักผ่อน', 'ลาไปช่วยเหลือภริยาที่คลอดบุตร'];
+  let count = 0;
+
+  if (workDayTypes.includes(leaveType)) {
+    try {
+      const [holidaysRows] = await db.query('SELECT holidayDate FROM holidays');
+      const holidaysList = holidaysRows.map(row => {
+        const d = new Date(row.holidayDate);
+        return d.toISOString().split('T')[0];
+      });
+
+      let loopDate = new Date(start);
+      while (loopDate <= end) {
+        const dayOfWeek = loopDate.getDay();
+        const dateString = loopDate.toISOString().split('T')[0];
+        
+        // Exclude Sunday (0), Saturday (6) and holidays
+        if (dayOfWeek !== 0 && dayOfWeek !== 6 && !holidaysList.includes(dateString)) {
+          count++;
+        }
+        loopDate.setDate(loopDate.getDate() + 1);
+      }
+    } catch (e) {
+      console.error('Holiday calculation error:', e);
+      // Fallback: exclude weekends only
+      let loopDate = new Date(start);
+      while (loopDate <= end) {
+        const dayOfWeek = loopDate.getDay();
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+          count++;
+        }
+        loopDate.setDate(loopDate.getDate() + 1);
+      }
+    }
+  } else {
+    // Other leaves calculate all calendar days
+    const diffTime = Math.abs(end - start);
+    count = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  }
+
+  res.json({ days: count });
+});
+
+// Start Server
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ใบลา - วิทยาลัยสารพัดช่างน่าน</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background: #ffffff;
+      color: #000000;
+      margin: 0;
+      padding: 0;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    
+    .a4-page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      padding: 25mm 20mm 20mm 25mm; /* Standard TH margins: Top 2.5cm, Bottom 2cm, Left 2.5cm, Right 2cm */
+      box-sizing: border-box;
+      position: relative;
+      background: #ffffff;
+    }
+
+    .header-title {
+      text-align: center;
+      font-weight: bold;
+      font-size: 20px;
+      margin-bottom: 30px;
+    }
+
+    .doc-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      margin-bottom: 25px;
+    }
+
+    .doc-meta div {
+      width: 320px;
+      text-align: left;
+    }
+
+    .doc-subject {
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+
+    .doc-salutation {
+      margin-bottom: 20px;
+    }
+
+    .doc-body {
+      text-indent: 2.5cm;
+      text-align: justify;
+      margin-bottom: 20px;
+      line-height: 1.8;
+    }
+
+    .doc-last-leave {
+      border: 1px solid #000000;
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 25px;
+    }
+
+    .doc-last-leave th, .doc-last-leave td {
+      border: 1px solid #000000;
+      padding: 8px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .doc-footer {
+      margin-top: 30px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+
+    .footer-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      line-height: 1.8;
+    }
+
+    .sig-image {
+      max-height: 50px;
+      max-width: 150px;
+      object-fit: contain;
+      margin: 5px 0;
+    }
+
+    .sig-placeholder {
+      height: 40px;
+      margin: 5px 0;
+    }
+
+    .underline-dotted {
+      border-bottom: 1px dotted #000;
+      padding: 0 4px;
+      display: inline-block;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    .bold {
+      font-weight: bold;
+    }
+
+    /* Print settings */
+    @media print {
+      body {
+        background: #ffffff;
+      }
+      .a4-page {
+        width: 100%;
+        height: auto;
+        padding: 0;
+        margin: 0;
+        box-shadow: none;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+
+    .no-print-bar {
+      background: #f1f5f9;
+      padding: 16px;
+      text-align: center;
+      border-bottom: 1px solid #cbd5e1;
+    }
+
+    .btn-print {
+      background: #4f46e5;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      font-family: inherit;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .btn-print:hover {
+      background: #4338ca;
+    }
+
+    .loader {
+      text-align: center;
+      padding: 50px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="no-print-bar no-print">
+    <button class="btn-print" onclick="window.print()">🖨️ สั่งพิมพ์เอกสาร / บันทึกเป็น PDF</button>
+  </div>
+
+  <div id="loading-spinner" class="loader">
+    กำลังโหลดข้อมูลใบลา...
+  </div>
+
+  <div id="print-content" class="a4-page hidden">
+    <div class="header-title">ใบลา<span id="leave-type-title">......</span></div>
+    
+    <div class="doc-meta">
+      <div>เขียนที่ <span id="school-name" class="underline-dotted" style="width: 200px;">วิทยาลัยสารพัดช่างน่าน</span></div>
+      <div style="margin-top: 8px;">วันที่ <span id="request-day" class="underline-dotted" style="width: 40px; text-align: center;"></span> เดือน <span id="request-month" class="underline-dotted" style="width: 100px; text-align: center;"></span> พ.ศ. <span id="request-year" class="underline-dotted" style="width: 60px; text-align: center;"></span></div>
+    </div>
+
+    <div class="doc-subject">เรื่อง <span id="leave-subject">......</span></div>
+    
+    <div class="doc-salutation">เรียน ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน</div>
+
+    <div class="doc-body">
+      ข้าพเจ้า <span id="user-name" class="bold">......</span> ตำแหน่ง <span id="user-position">......</span>
+      สังกัด <span id="user-school">วิทยาลัยสารพัดช่างน่าน</span> มีความประสงค์ขอลา <span id="leave-type" class="bold">......</span>
+      เนื่องจาก <span id="leave-reason">......</span>
+      ตั้งแต่วันที่ <span id="start-date-full">......</span> ถึงวันที่ <span id="end-date-full">......</span>
+      มีกำหนด <span id="total-days" class="bold">......</span> วัน
+    </div>
+
+    <div class="doc-body" style="text-indent: 0; margin-bottom: 25px;">
+      ในระหว่างลา ข้าพเจ้าสามารถติดต่อได้ที่ <span id="contact-address">......</span> 
+      หมายเลขโทรศัพท์ <span id="contact-phone">......</span>
+      ในการนี้ได้มอบหมายงานให้ <span id="teacher-name">......</span> เป็นผู้รับผิดชอบงานแทน ในรายวิชา <span id="subject-name">......</span>
+    </div>
+
+    <div class="doc-footer" style="margin-bottom: 25px; grid-template-columns: 1fr 1fr;">
+      <div class="footer-section">
+        <div class="sig-placeholder"></div>
+        <div>(ลงชื่อ) ....................................................... ผู้รับมอบหมายงานแทน</div>
+        <div>( <span id="teacher-name-confirm">.......................................................</span> )</div>
+      </div>
+      <div class="footer-section">
+        <img id="user-signature" class="sig-image" src="" alt="ลายเซ็นผู้ขอลา">
+        <div>(ลงชื่อ) ....................................................... ผู้ขอลา</div>
+        <div>( <span id="user-name-confirm">......</span> )</div>
+      </div>
+    </div>
+
+    <hr style="border: 0; border-top: 1px solid #000000; margin: 30px 0;">
+
+    <div class="bold" style="margin-bottom: 10px;">สถิติการลาในรอบครึ่งปีงบประมาณนี้</div>
+    <table class="doc-last-leave">
+      <thead>
+        <tr>
+          <th>ประเภทการลา</th>
+          <th>ลามาแล้ว (วันทำการ)</th>
+          <th>ลาครั้งนี้ (วันทำการ)</th>
+          <th>รวมเป็น (วันทำการ)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td id="stat-leave-type">ลาป่วย / ลากิจ / ลาพักผ่อน</td>
+          <td id="stat-last-days">......</td>
+          <td id="stat-current-days">......</td>
+          <td id="stat-total-days">......</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="doc-footer" style="margin-top: 40px;">
+      <div class="footer-section">
+        <div class="bold">ความเห็นของหัวหน้างาน / ผู้บังคับบัญชา</div>
+        <div style="margin-top: 10px;">....................................................................................</div>
+        <div>....................................................................................</div>
+        <div style="margin-top: 20px;">(ลงชื่อ) .......................................................</div>
+        <div>( ....................................................... )</div>
+        <div>ตำแหน่ง .......................................................</div>
+      </div>
+      
+      <div class="footer-section">
+        <div class="bold">คำสั่ง / การอนุมัติ</div>
+        <div style="margin-top: 10px; font-weight: 500;">
+          คำสั่ง: <span id="approval-status" class="bold">..................</span>
+        </div>
+        <div id="approval-comment-area" style="font-size: 14px; color: #333;"></div>
+        
+        <img id="approver-signature" class="sig-image" src="" alt="ลายเซ็นผู้อนุมัติ" style="display:none;">
+        <div id="approver-sig-line" style="margin-top: 20px;">(ลงชื่อ) ....................................................... ผู้อนุมัติ</div>
+        <div>( <span id="approver-name">.......................................................</span> )</div>
+        <div>ตำแหน่ง <span id="approver-position">.......................................................</span></div>
+        <div style="font-size: 14px;">อนุมัติเมื่อวันที่: <span id="approval-date">......</span></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Configuration API BASE URL
+    // Automatically detect host to make it run both on localhost and production server
+    const API_BASE_URL = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
+      ? 'http://localhost:5000'
+      : 'https://service.npc.ac.th/npc_eleve_backend'; // Replace with your production Node.js API domain
+
+    function formatDateThai(dateStr) {
+      if (!dateStr) return '......';
+      const months = [
+        'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+      ];
+      try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
+      } catch (e) {
+        return dateStr;
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const leaveId = urlParams.get('leaveId');
+      
+      if (!leaveId) {
+        document.getElementById('loading-spinner').innerHTML = '❌ ไม่พบรหัสใบลา (leaveId) ในลิงก์';
+        return;
+      }
+
+      try {
+        // Fetch leave data from Node.js backend
+        const response = await fetch(`${API_BASE_URL}/api/leaves/${leaveId}`);
+        if (!response.ok) {
+          throw new Error('ไม่สามารถดึงข้อมูลใบลาได้');
+        }
+        
+        const leave = await response.json();
+        
+        // Populate DOM elements
+        document.getElementById('leave-type-title').textContent = leave.leaveType;
+        document.getElementById('leave-subject').textContent = `ขอ${leave.leaveType}`;
+        
+        // Parse request date
+        const reqDate = new Date(leave.requestDate);
+        if (!isNaN(reqDate.getTime())) {
+          const months = [
+            'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+            'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+          ];
+          document.getElementById('request-day').textContent = reqDate.getDate();
+          document.getElementById('request-month').textContent = months[reqDate.getMonth()];
+          document.getElementById('request-year').textContent = reqDate.getFullYear() + 543;
+        }
+
+        document.getElementById('user-name').textContent = leave.fullName;
+        document.getElementById('user-name-confirm').textContent = leave.fullName;
+        document.getElementById('user-position').textContent = leave.position;
+        document.getElementById('leave-type').textContent = leave.leaveType;
+        document.getElementById('leave-reason').textContent = leave.reason;
+        document.getElementById('start-date-full').textContent = formatDateThai(leave.startDate);
+        document.getElementById('end-date-full').textContent = formatDateThai(leave.endDate);
+        document.getElementById('total-days').textContent = leave.totalDays;
+        
+        document.getElementById('contact-address').textContent = leave.contactAddress;
+        document.getElementById('contact-phone').textContent = leave.contactPhone;
+        document.getElementById('teacher-name').textContent = leave.teacherName;
+        document.getElementById('teacher-name-confirm').textContent = leave.teacherName;
+        document.getElementById('subject-name').textContent = leave.subject;
+        
+        // Load signature image
+        if (leave.signatureUrl) {
+          document.getElementById('user-signature').src = `${API_BASE_URL}${leave.signatureUrl}`;
+        }
+
+        // Stats table
+        document.getElementById('stat-leave-type').textContent = leave.leaveType;
+        document.getElementById('stat-last-days').textContent = leave.lastLeaveTotalDays || '0';
+        document.getElementById('stat-current-days').textContent = leave.totalDays;
+        document.getElementById('stat-total-days').textContent = (parseFloat(leave.lastLeaveTotalDays || 0) + parseFloat(leave.totalDays)).toFixed(1).replace('.0', '');
+
+        // Approver commands
+        if (leave.status !== 'รอการอนุมัติ') {
+          document.getElementById('approval-status').textContent = leave.status;
+          
+          if (leave.status === 'ไม่อนุมัติ' && leave.approverComment) {
+            document.getElementById('approval-comment-area').textContent = `หมายเหตุ: ${leave.approverComment}`;
+          }
+          
+          if (leave.approverSignatureUrl) {
+            const appSigImg = document.getElementById('approver-signature');
+            appSigImg.src = `${API_BASE_URL}${leave.approverSignatureUrl}`;
+            appSigImg.style.display = 'block';
+          }
+          
+          document.getElementById('approver-name').textContent = leave.approverName || '.......................................................';
+          document.getElementById('approver-position').textContent = leave.approverPosition || '.......................................................';
+          document.getElementById('approval-date').textContent = leave.approvalDate || '......';
+        }
+
+        // Hide loader and show content
+        document.getElementById('loading-spinner').classList.add('hidden');
+        document.getElementById('print-content').classList.remove('hidden');
+
+        // Auto print if parameter auto=true is present
+        if (urlParams.get('auto') === 'true') {
+          setTimeout(() => {
+            window.print();
+          }, 800);
+        }
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById('loading-spinner').innerHTML = `❌ เกิดข้อผิดพลาดในการโหลดใบลา: ${err.message}`;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบบริหารจัดการการลา - วิทยาลัยสารพัดช่างน่าน</title>
+  
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- External Libraries (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Navigation Header -->
+    <header class="header">
+      <nav class="nav-container">
+        <div class="logo-area">
+          <div class="logo-icon">
+            <img src="https://img2.pic.in.th/pic/Logo-.641ef5fae2216b71.png" alt="Logo" onerror="this.style.display='none'">
+          </div>
+          <a href="#" id="home-link" class="logo-text">ระบบบริหารจัดการการลา</a>
+        </div>
+        
+        <!-- Desktop Menu Links -->
+        <div id="nav-menu" class="nav-menu">
+          <!-- Populated dynamically by app.js -->
+        </div>
+        
+        <!-- Auth Actions / User Menu -->
+        <div class="auth-area">
+          <div id="auth-buttons" class="auth-area">
+            <button id="login-btn" class="btn btn-login">เข้าสู่ระบบ</button>
+            <button id="register-btn" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.875rem;">ลงทะเบียน</button>
+          </div>
+          <div id="user-menu" class="hidden">
+            <!-- Populated dynamically after login by app.js -->
+          </div>
+          <button id="mobile-menu-btn" class="btn btn-outline btn-sm" style="display:none; padding:8px; border-radius:10px;">
+            <svg style="width:24px; height:24px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </nav>
+      
+      <!-- Mobile Dropdown Menu -->
+      <div id="mobile-menu" class="hidden" style="background:#ffffff; border-bottom:1px solid var(--neutral-200); box-shadow:var(--shadow-md);">
+        <div id="mobile-nav-links" style="padding: 8px 16px; display:flex; flex-direction:column; gap:4px;">
+          <!-- Populated dynamically by app.js -->
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Panel -->
+    <main class="main-content">
+      
+      <!-- 1. Dashboard Page -->
+      <div id="dashboard-page" class="page">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
+          <h1 style="font-size:1.8rem; font-weight:700; color:var(--neutral-800);">แดชบอร์ดข้อมูลภาพรวม</h1>
+          <span style="font-size:0.8rem; font-weight:600; color:var(--primary); background:var(--primary-light); padding:4px 12px; border-radius:999px;">อัปเดตแบบเรียลไทม์</span>
+        </div>
+        
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+          <div class="glass-card border-accent stat-card">
+            <div class="stat-icon primary">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <div class="stat-info">
+              <p>บุคลากรทั้งหมด</p>
+              <div id="stat-total-staff" class="stat-value">0</div>
+            </div>
+          </div>
+          
+          <div class="glass-card stat-card border-success">
+            <div class="stat-icon success">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div class="stat-info">
+              <p>อนุมัติแล้ว</p>
+              <div id="stat-approved" class="stat-value">0</div>
+            </div>
+          </div>
+
+          <div class="glass-card stat-card border-warning">
+            <div class="stat-icon warning">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div class="stat-info">
+              <p>รออนุมัติ</p>
+              <div id="stat-pending" class="stat-value">0</div>
+            </div>
+          </div>
+
+          <div class="glass-card stat-card border-danger">
+            <div class="stat-icon danger">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
+            </div>
+            <div class="stat-info">
+              <p>ไม่อนุมัติ</p>
+              <div id="stat-rejected" class="stat-value">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+          <div class="glass-card chart-card">
+            <h3>สัดส่วนประเภทการลาของบุคลากร</h3>
+            <div style="position:relative; flex-grow:1; min-height:220px;">
+              <canvas id="leaveTypeChart"></canvas>
+            </div>
+          </div>
+          <div class="glass-card chart-card">
+            <h3>สถิติจำนวนการลาสะสมรายเดือน (ปีปัจจุบัน)</h3>
+            <div style="position:relative; flex-grow:1; min-height:220px;">
+              <canvas id="monthlyLeaveChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Table Card -->
+        <div class="glass-card">
+          <h3 style="font-size:1.1rem; font-weight:600; color:var(--neutral-700); margin-bottom:20px;">รายการยื่นใบลาล่าสุด</h3>
+          <div class="table-container">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>ผู้ขอใบลา</th>
+                  <th>ประเภท</th>
+                  <th>ช่วงวันหยุดที่ขอลา</th>
+                  <th style="text-align: center;">จำนวนวัน</th>
+                  <th>สถานะ</th>
+                  <th>ดาวน์โหลด</th>
+                </tr>
+              </thead>
+              <tbody id="recent-leaves-table">
+                <!-- Loaded dynamically by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Leave Request Form Page -->
+      <div id="leave-form-page" class="page hidden" style="max-width: 900px; margin: 0 auto;">
+        <h1 style="font-size:1.8rem; font-weight:700; color:var(--neutral-800); text-align:center; margin-bottom:32px;">แบบฟอร์มขออนุญาตลา</h1>
+        
+        <form id="leave-request-form" class="glass-card border-accent" style="display:flex; flex-direction:column; gap:28px;">
+          
+          <!-- Section 1: General Info -->
+          <div>
+            <h3 style="font-size:1.1rem; font-weight:700; color:var(--primary); display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+              <span style="font-size:1.3rem;">📌</span> ข้อมูลทั่วไปของผู้ขอลา
+            </h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">ชื่อสถานศึกษา</label>
+                <input type="text" id="form-school-name" class="form-input" readonly>
+              </div>
+              <div class="form-group">
+                <label class="form-label">วันที่ยื่นขอลา</label>
+                <input type="date" id="form-request-date" class="form-input">
+              </div>
+            </div>
+            <div class="form-row" style="margin-top:-8px;">
+              <div class="form-group">
+                <label class="form-label">ชื่อผู้ลา</label>
+                <input type="text" id="form-user-name" class="form-input" readonly>
+              </div>
+              <div class="form-group">
+                <label class="form-label">ตำแหน่ง</label>
+                <input type="text" id="form-user-position" class="form-input" readonly>
+              </div>
+            </div>
+          </div>
+          
+          <hr style="border: 0; border-top: 1px solid var(--neutral-200);">
+
+          <!-- Section 2: Leave Details -->
+          <div>
+            <h3 style="font-size:1.1rem; font-weight:700; color:var(--primary); display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+              <span style="font-size:1.3rem;">📝</span> รายละเอียดการขอลา
+            </h3>
+            
+            <div class="form-group">
+              <label class="form-label">ประเภทการลา</label>
+              <select id="form-leave-type" required class="form-input">
+                <option value="">-- กรุณาเลือกประเภท --</option>
+                <option>ลาป่วย</option>
+                <option>ลาคลอดบุตร</option>
+                <option>ลาไปช่วยเหลือภริยาที่คลอดบุตร</option>
+                <option>ลากิจส่วนตัว</option>
+                <option>ลาพักผ่อน</option>
+                <option>ลาอุปสมบทหรือไปประกอบพิธีฮัจญ์</option>
+                <option>ลาเข้ารับการตรวจเลือกหรือเข้ารับการเตรียมพล</option>
+                <option>ลาไปศึกษา ฝึกอบรม ปฏิบัติการวิจัย หรือดูงาน</option>
+                <option>ลาไปปฏิบัติงานในองค์การระหว่างประเทศ</option>
+                <option>ลาติดตามคู่สมรส</option>
+                <option>ลาไปฟื้นฟูสมรรถภาพด้านอาชีพ</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">เหตุผลการลา</label>
+              <input type="text" id="form-reason" required class="form-input" placeholder="ระบุเหตุผลความจำเป็น...">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">รูปแบบเวลาการลา</label>
+              <div class="radio-container">
+                <label class="radio-label">
+                  <input type="radio" name="dayType" value="full" checked>
+                  <span>ลาเต็มวัน</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="dayType" value="half_morning">
+                  <span>ลาครึ่งวันเช้า</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="dayType" value="half_afternoon">
+                  <span>ลาครึ่งวันบ่าย</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">ตั้งแต่วันที่</label>
+                <input type="date" id="form-start-date" required class="form-input">
+              </div>
+              <div class="form-group">
+                <label class="form-label">ถึงวันที่</label>
+                <input type="date" id="form-end-date" required class="form-input">
+              </div>
+              <div class="form-group">
+                <label class="form-label">รวมจำนวน (วันทำการ)</label>
+                <input type="text" id="form-total-days" readonly class="form-input" style="font-weight:700; text-align:center; background:var(--primary-light); border-color:var(--primary); color:var(--primary);">
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-top:-8px;">
+              <div class="form-group">
+                <label class="form-label">ผู้รับมอบหมายหน้าที่แทน</label>
+                <input type="text" id="form-teacher-name" required class="form-input" placeholder="ระบุชื่อครูรับมอบงานแทน">
+              </div>
+              <div class="form-group">
+                <label class="form-label">ในรายวิชาที่สอนแทน</label>
+                <input type="text" id="form-subject" required class="form-input" placeholder="ระบุวิชาที่ฝากสอนแทน">
+              </div>
+            </div>
+          </div>
+
+          <hr style="border: 0; border-top: 1px solid var(--neutral-200);">
+
+          <!-- Section 3: Last Leave History (Auto Loaded) -->
+          <div style="background:var(--neutral-50); border:1px solid var(--neutral-200); padding:20px; border-radius:12px;">
+            <h4 style="font-size:0.95rem; font-weight:700; color:var(--neutral-600); margin-bottom:12px;">📜 ข้อมูลการลาครั้งล่าสุดของข้าพเจ้า (ประมวลผลอัตโนมัติ)</h4>
+            <div class="form-group">
+              <label class="form-label" style="color:var(--neutral-500);">ลาประเภทล่าสุด</label>
+              <select id="form-last-leave-type" class="form-input" disabled style="background:#fff;">
+                <option value="ไม่ได้ลาในรอบครึ่งปีก่อน">ไม่ได้ลาในรอบครึ่งปีก่อน</option>
+                <option value="ได้ ลาป่วย">ได้ ลาป่วย</option>
+                <option value="ได้ ลาคลอดบุตร">ได้ ลาคลอดบุตร</option>
+                <option value="ได้ ลาไปช่วยเหลือภริยาที่คลอดบุตร">ได้ ลาไปช่วยเหลือภริยาที่คลอดบุตร</option>
+                <option value="ได้ ลากิจส่วนตัว">ได้ ลากิจส่วนตัว</option>
+                <option value="ได้ ลาพักผ่อน">ได้ ลาพักผ่อน</option>
+                <option value="ได้ ลาอุปสมบทหรือไปประกอบพิธีฮัจญ์">ได้ ลาอุปสมบทหรือไปประกอบพิธีฮัจญ์</option>
+                <option value="ได้ ลาเข้ารับการตรวจเลือกหรือเข้ารับการเตรียมพล">ได้ ลาเข้ารับการตรวจเลือกหรือเข้ารับการเตรียมพล</option>
+                <option value="ได้ ลาไปศึกษา ฝึกอบรม ปฏิบัติการวิจัย หรือดูงาน">ได้ ลาไปศึกษา ฝึกอบรม ปฏิบัติการวิจัย หรือดูงาน</option>
+                <option value="ได้ ลาไปปฏิบัติงานในองค์การระหว่างประเทศ">ได้ ลาไปปฏิบัติงานในองค์การระหว่างประเทศ</option>
+                <option value="ได้ ลาติดตามคู่สมรส">ได้ ลาติดตามคู่สมรส</option>
+                <option value="ได้ ลาไปฟื้นฟูสมรรถภาพด้านอาชีพ">ได้ ลาไปฟื้นฟูสมรรถภาพด้านอาชีพ</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" style="color:var(--neutral-500);">ตั้งแต่วันที่</label>
+                <input type="date" id="form-last-start-date" class="form-input" readonly>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="color:var(--neutral-500);">ถึงวันที่</label>
+                <input type="date" id="form-last-end-date" class="form-input" readonly>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="color:var(--neutral-500);">รวมจำนวน (วัน)</label>
+                <input type="number" id="form-last-total-days" class="form-input" readonly>
+              </div>
+            </div>
+          </div>
+
+          <hr style="border: 0; border-top: 1px solid var(--neutral-200);">
+
+          <!-- Section 4: Address during leave & phone -->
+          <div>
+            <h3 style="font-size:1.1rem; font-weight:700; color:var(--primary); display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+              <span style="font-size:1.3rem;">📞</span> ข้อมูลติดต่อระหว่างการลา
+            </h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">ที่อยู่สำหรับการติดต่อระหว่างลา</label>
+                <input type="text" id="form-contact-address" required class="form-input" placeholder="บ้านเลขที่ ตำบล อำเภอ จังหวัด...">
+              </div>
+              <div class="form-group">
+                <label class="form-label">เบอร์โทรศัพท์ติดต่อที่สะดวก</label>
+                <input type="tel" id="form-contact-phone" required class="form-input" placeholder="เช่น 089xxxxxxx">
+              </div>
+            </div>
+          </div>
+
+          <hr style="border: 0; border-top: 1px solid var(--neutral-200);">
+
+          <!-- Section 5: Signature Drawing Pad -->
+          <div>
+            <label class="form-label">ลงชื่อผู้ลา (วาดด้วยนิ้วมือ/เมาส์ หรืออัปโหลดไฟล์รูปภาพ)</label>
+            <div class="signature-row">
+              <div class="signature-box">
+                <canvas id="signature-pad" class="signature-canvas"></canvas>
+                <div style="width:100%; text-align:right; margin-top:8px;">
+                  <button type="button" id="clear-signature" style="color:var(--secondary); background:none; border:none; cursor:pointer; font-weight:bold; font-size:12px;">ล้างลายมือชื่อ</button>
+                </div>
+              </div>
+              <div id="upload-zone" class="upload-zone">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                <p style="font-weight:600; font-size:0.875rem;">ลากไฟล์รูปภาพลายเซ็นมาวางที่นี่</p>
+                <p style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">หรือคลิกเพื่ออัปโหลดไฟล์ภาพ</p>
+                <input type="file" id="upload-signature" class="hidden" accept="image/*">
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 12px;">
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding:14px; font-size:1.1rem; border-radius:14px;">📤 ยืนยันการส่งใบลา</button>
+          </div>
+
+        </form>
+      </div>
+
+      <!-- 3. Leave History Page -->
+      <div id="history-page" class="page hidden">
+        <h1 style="font-size:1.8rem; font-weight:700; color:var(--neutral-800); margin-bottom:24px;">ประวัติบันทึกการลา</h1>
+        
+        <div class="glass-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:24px;">
+            <h3 id="history-title" style="font-size:1.1rem; font-weight:600;">ประวัติการลา</h3>
+            
+            <!-- Filters (Admin Only) -->
+            <div id="history-filters" class="hidden" style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; background:var(--neutral-100); padding:16px; border-radius:12px; border:1px solid var(--neutral-200);">
+              <div>
+                <label class="form-label" style="font-size:12px;">บุคลากร</label>
+                <select id="filter-user" class="form-input" style="padding:6px 12px; font-size:13px; min-width:180px;">
+                  <option value="all">ทั้งหมดทุกคน</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label" style="font-size:12px;">จากวันที่</label>
+                <input type="date" id="filter-start-date" class="form-input" style="padding:6px 12px; font-size:13px;">
+              </div>
+              <div>
+                <label class="form-label" style="font-size:12px;">ถึงวันที่</label>
+                <input type="date" id="filter-end-date" class="form-input" style="padding:6px 12px; font-size:13px;">
+              </div>
+              <button id="filter-btn" class="btn btn-primary btn-sm" style="height:38px; padding:0 20px;">ค้นหา</button>
+            </div>
+          </div>
+          
+          <div class="table-container">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th style="width: 140px;">วันที่ยื่นคำขอ</th>
+                  <th id="history-table-user-header" class="hidden">ผู้ลา</th>
+                  <th>ประเภทการลา</th>
+                  <th>ช่วงวันที่ลา</th>
+                  <th style="width: 140px;">สถานะ</th>
+                  <th style="width: 250px;">การดำเนินการ</th>
+                </tr>
+              </thead>
+              <tbody id="history-table-body">
+                <!-- Loaded dynamically by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Approval Page (Admin Only) -->
+      <div id="approval-page" class="page hidden">
+        <h1 style="font-size:1.8rem; font-weight:700; color:var(--neutral-800); margin-bottom:24px;">รายการคำขอลาที่รออนุมัติ</h1>
+        
+        <div class="glass-card" style="background:#fffbeb; border-left: 5px solid var(--warning); border-radius:var(--radius-md);">
+          <h3 style="font-size:1.1rem; font-weight:700; color:#b45309; display:flex; align-items:center; gap:8px; margin-bottom:20px;">
+            <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--warning); animation: pulse 1.5s infinite;"></span>
+            คำขออนุมัติทั้งหมดที่ยังไม่ได้พิจารณา
+          </h3>
+          
+          <div class="table-container">
+            <table class="custom-table">
+              <thead style="background:#fffbeb;">
+                <tr>
+                  <th>ผู้ยื่นขอลา</th>
+                  <th>ตำแหน่ง</th>
+                  <th>ประเภท</th>
+                  <th>วันที่ขอลา</th>
+                  <th>ดำเนินการ</th>
+                </tr>
+              </thead>
+              <tbody id="approval-table-body">
+                <!-- Loaded dynamically by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Report Page (Admin Only) -->
+      <div id="report-page" class="page hidden">
+        <h1 style="font-size:1.8rem; font-weight:700; color:var(--neutral-800); margin-bottom:24px;">รายงานสรุปข้อมูลการลา</h1>
+        
+        <!-- Summary by range -->
+        <div class="glass-card" style="margin-bottom: 32px;">
+          <h3 style="font-size:1.1rem; font-weight:600; margin-bottom:16px;">จัดพิมพ์รายงานสรุปสถิติจำนวนวันลาสะสม</h3>
+          <div class="form-row" style="align-items: flex-end;">
+            <div class="form-group">
+              <label class="form-label">ตั้งแต่วันที่</label>
+              <input type="date" id="print-start-date" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">ถึงวันที่</label>
+              <input type="date" id="print-end-date" class="form-input">
+            </div>
+            <div class="form-group">
+              <button id="print-report-btn" class="btn btn-outline" style="width:100%; height:46px;">🖨️ เปิดรายงานสรุปเพื่อจัดพิมพ์</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Excel export card -->
+        <div class="glass-card">
+          <div style="display:flex; justify-content:between; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+            <h3 style="font-size:1.1rem; font-weight:600;">ส่งออกประวัติคำขอลาเป็นไฟล์ Excel</h3>
+            <button id="export-excel-btn" class="btn btn-primary" style="background:#10b981; box-shadow: 0 4px 14px rgba(16,185,129,0.35);">📊 ดาวน์โหลดไฟล์ Excel (.xlsx)</button>
+          </div>
+          
+          <div class="table-container">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>ผู้ขอลา</th>
+                  <th>ประเภท</th>
+                  <th>วันที่ขอลา</th>
+                  <th style="text-align: center;">รวม (วัน)</th>
+                  <th>สถานะ</th>
+                  <th>ลิงก์ไฟล์</th>
+                </tr>
+              </thead>
+              <tbody id="report-table-body">
+                <!-- Loaded dynamically by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. User Management Page (Admin Only) -->
+      <div id="user-management-page" class="page hidden">
+        <h1 style="font-size:1.8rem; font-weight:700; color:var(--neutral-800); margin-bottom:24px;">จัดการรายชื่อบุคลากรและสิทธิ์</h1>
+        
+        <div class="glass-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:24px;">
+            <h3 style="font-size:1.1rem; font-weight:600;">บัญชีรายชื่อบุคลากรทั้งหมด</h3>
+            <div>
+              <label for="import-excel-input" class="btn btn-primary" style="padding: 10px 20px; font-size:0.9rem;">📂 นำเข้ารายชื่อบุคลากรจาก Excel</label>
+              <input type="file" id="import-excel-input" class="hidden" accept=".xlsx, .xls">
+            </div>
+          </div>
+          
+          <div style="background:var(--primary-light); color:var(--primary); padding:14px 20px; border-radius:12px; font-size:0.875rem; margin-bottom:20px; font-weight:500;">
+            💡 คำแนะนำในการนำเข้า Excel: คอลัมน์ที่จำเป็นต้องระบุ ได้แก่ <strong>fullName</strong> (ชื่อ-นามสกุล), <strong>position</strong> (ตำแหน่ง), <strong>username</strong> (ชื่อผู้ใช้), <strong>password</strong> (รหัสผ่านเริ่มต้น)
+          </div>
+
+          <div class="table-container">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>ชื่อ-นามสกุล</th>
+                  <th>ตำแหน่ง</th>
+                  <th>Username</th>
+                  <th>สิทธิ์ผู้ใช้</th>
+                  <th>สถานะบัญชี</th>
+                  <th>เครื่องมือ</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body">
+                <!-- Loaded dynamically by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p class="footer-text">© 2026 ระบบบริหารจัดการข้อมูลการลา วิทยาลัยสารพัดช่างน่าน</p>
+      <p class="footer-author">พัฒนาเป็นเว็บแอปพลิเคชันโดย นายนิพนธ์ ร่องพืช</p>
+    </footer>
+
+  </div>
+
+  <!-- Click handler inputs trigger -->
+  <script>
+    document.getElementById('upload-zone').addEventListener('click', () => {
+      document.getElementById('upload-signature').click();
+    });
+  </script>
+
+  <!-- Load Custom JS logic -->
+  <script src="app.js"></script>
+</body>
+</html>

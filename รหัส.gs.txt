@@ -1,0 +1,660 @@
+// ================================================================= //
+//               ระบบบริหารจัดการการลา วิทยาลัยสารพัดช่างน่าน             //
+//      Backend Logic (Google Apps Script) + LINE Messaging API        //
+//      Update: Final Version (Support Delete History by Admin)        //
+// ================================================================= //
+
+// --- 1. การตั้งค่า (CONFIG) ---
+const CONFIG = {
+  // ⚠️ 1. ใส่ Channel Access Token ของคุณที่นี่
+  LINE_ACCESS_TOKEN: '2WUXzJGaSlBJxHdyi+e0Kx9twDVIVfHVz0lEAkM0/laNo6mvFvOnEaJheAlEUr8pHcEF2PNGPFlikIubaTMAqNTYV3GXjVYNd5JxQ+ASvwyHyzkuRq4YGDlv/cuqYfImxgooXYaZ5TIWYW2rwOFC7AdB04t89/1O/w1cDnyilFU=', 
+  
+  // ⚠️ 2. ใส่ URL เว็บแอปของคุณ (ที่ลงท้ายด้วย /exec) เพื่อให้ปุ่มกดวิ่งไปหา
+  WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbx6TkFJzlJTbnXGdopBpOclMPC6Mjy4BmiCMaJ9NU7ouAmTzcAGi_1TXHFAYiBV2Pk5DA/exec',
+
+  // ID ของไฟล์และโฟลเดอร์ใน Google Drive
+  SLIDE_TEMPLATE_ID: '1hhZN5tNAAxtz-4P0HL2dYqyDO8VeYxh4FeE2ZopfWPM', // ID สไลด์ต้นแบบ
+  PDF_OUTPUT_FOLDER_ID: '1mFPQ01VdfxgHZVrewfaIs8LAMyJDnKQU',         // ID โฟลเดอร์เก็บ PDF
+  SIGNATURE_FOLDER_NAME: 'Signatures',                               // ชื่อโฟลเดอร์เก็บลายเซ็น
+
+  // ชื่อ Sheet
+  SHEET: {
+    USERS: 'Users',
+    LEAVE: 'LeaveData',
+    SETTINGS: 'Settings',
+    HOLIDAYS: 'Holidays'
+  }
+};
+
+const SPREADSHEET = SpreadsheetApp.getActiveSpreadsheet();
+
+// --- 2. ฟังก์ชันหลัก (Core) ---
+
+function doGet(e) {
+  checkAndSetupInitialFiles();
+  const html = HtmlService.createTemplateFromFile('index').evaluate();
+  html.setTitle('ระบบบริหารจัดการการลา วิทยาลัยสารพัดช่างน่าน');
+  html.setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  html.addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  return html;
+}
+
+function doPost(e) {
+  return ContentService.createTextOutput("OK");
+}
+
+function getWebAppUrl() {
+  return ScriptApp.getService().getUrl();
+}
+
+// --- 3. การจัดการไฟล์และตั้งค่า ---
+
+function checkAndSetupInitialFiles() {
+  const sheets = [CONFIG.SHEET.USERS, CONFIG.SHEET.LEAVE, CONFIG.SHEET.SETTINGS, CONFIG.SHEET.HOLIDAYS];
+  sheets.forEach(name => {
+    if (!SPREADSHEET.getSheetByName(name)) SPREADSHEET.insertSheet(name);
+  });
+
+  const usersSheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.USERS);
+  if (usersSheet.getLastRow() < 1) {
+    usersSheet.appendRow(['userId', 'fullName', 'position', 'username', 'password', 'role', 'status', 'lineUserId']);
+  }
+  
+  const leaveDataSheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.LEAVE);
+  if (leaveDataSheet.getLastRow() < 1) {
+    leaveDataSheet.appendRow([
+        'leaveId', 'userId', 'fullName', 'position', 'schoolName', 'requestDate', 'leaveType', 'reason', 
+        'startDate', 'endDate', 'totalDays', 'lastLeaveType', 'lastLeaveStartDate', 'lastLeaveEndDate', 
+        'lastLeaveTotalDays', 'contactAddress', 'contactPhone', 'signatureUrl', 'status', 
+        'approverComment', 'approverSignatureUrl', 'approverName', 'approverPosition', 'approvalDate', 'pdfUrl','teacherName','subject'
+    ]);
+  }
+
+  const settingsSheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.SETTINGS);
+  if (settingsSheet.getLastRow() < 1) {
+    settingsSheet.appendRow(['key', 'value']);
+    settingsSheet.appendRow(['schoolName', 'วิทยาลัยสารพัดช่างน่าน']);
+    settingsSheet.appendRow(['adminGroupId', '']);
+  }
+}
+
+function getSettings() {
+    const sheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.SETTINGS);
+    const data = sheet.getDataRange().getValues();
+    const settings = {};
+    data.slice(1).forEach(row => settings[row[0]] = row[1]);
+    return settings;
+}
+
+function getSettingValue(key) {
+  const sheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.SETTINGS);
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === key) return data[i][1];
+  }
+  return null;
+}
+
+// --- 4. ระบบสมาชิก (User Management) ---
+
+function registerUser(userData) {
+  try {
+    const usersSheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.USERS);
+    const usersData = usersSheet.getDataRange().getValues();
+    
+    const userExists = usersData.some(row => row[3] === userData.username);
+    if (userExists) return { success: false, message: 'ชื่อผู้ใช้งานนี้มีอยู่แล้วในระบบ' };
+
+    const userId = Utilities.getUuid();
+    let role = 'user';
+    let status = 'pending';
+    if (usersData.length <= 1) {
+      role = 'admin';
+      status = 'approved';
+    }
+
+    usersSheet.appendRow([
+        userId, 
+        userData.fullName, 
+        userData.position, 
+        userData.username, 
+        userData.password, 
+        role, 
+        status, 
+        userData.lineUserId || '' 
+    ]);
+
+    return { success: true, message: 'ลงทะเบียนสำเร็จ! กรุณารอผู้ดูแลระบบอนุมัติการใช้งาน' };
+  } catch (error) {
+    return { success: false, message: 'เกิดข้อผิดพลาด: ' + error.message };
+  }
+}
+
+function loginUser(credentials) {
+  try {
+    const usersSheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.USERS);
+    const usersData = usersSheet.getDataRange().getValues();
+    const userRow = usersData.find(row => row[3] === credentials.username && row[4] === credentials.password);
+    if (userRow) {
+      if (userRow[6] === 'approved') {
+        return { 
+          success: true, 
+          user: {
+            userId: userRow[0], fullName: userRow[1], position: userRow[2], username: userRow[3], role: userRow[5]
+          } 
+        };
+      } else return { success: false, message: 'บัญชีของคุณยังไม่ได้รับการอนุมัติ' };
+    } else return { success: false, message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' };
+  } catch (error) {
+    return { success: false, message: 'เกิดข้อผิดพลาด: ' + error.message };
+  }
+}
+
+function getUsersForManagement() {
+    const sheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.USERS);
+    if (sheet.getLastRow() <= 1) return [];
+    return sheet.getDataRange().getValues().slice(1).map(row => ({
+        userId: row[0], fullName: row[1], position: row[2], username: row[3], role: row[5], status: row[6], lineUserId: row[7]
+    }));
+}
+
+function updateUser(userData) {
+    const sheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.USERS);
+    const data = sheet.getDataRange().getValues();
+    const rowIndex = data.findIndex(row => row[0] === userData.userId);
+    if (rowIndex > 0) {
+        const r = rowIndex + 1;
+        if (userData.password) sheet.getRange(r, 5).setValue(userData.password);
+        sheet.getRange(r, 2).setValue(userData.fullName);
+        sheet.getRange(r, 3).setValue(userData.position);
+        sheet.getRange(r, 6).setValue(userData.role);
+        return { success: true, message: 'อัปเดตข้อมูลสำเร็จ' };
+    }
+    return { success: false, message: 'ไม่พบผู้ใช้' };
+}
+
+function deleteUser(userId) {
+    const sheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.USERS);
+    const data = sheet.getDataRange().getValues();
+    const rowIndex = data.findIndex(row => row[0] === userId);
+    if (rowIndex > 0) {
+        sheet.deleteRow(rowIndex + 1);
+        return { success: true, message: 'ลบผู้ใช้สำเร็จ' };
+    }
+    return { success: false, message: 'ไม่พบผู้ใช้' };
+}
+
+function approveUser(userId) {
+    const sheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.USERS);
+    const data = sheet.getDataRange().getValues();
+    const rowIndex = data.findIndex(row => row[0] === userId);
+    if (rowIndex > 0) {
+        sheet.getRange(rowIndex + 1, 7).setValue('approved');
+        return { success: true, message: 'อนุมัติผู้ใช้สำเร็จ' };
+    }
+    return { success: false, message: 'ไม่พบผู้ใช้' };
+}
+
+function importUsers(usersArray) {
+    try {
+        const sheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.USERS);
+        const existingUsers = sheet.getDataRange().getValues().map(row => row[3]);
+        let addedCount = 0, skippedCount = 0;
+        usersArray.forEach(user => {
+            if (user.username && !existingUsers.includes(user.username)) {
+                sheet.appendRow([Utilities.getUuid(), user.fullName || '', user.position || '', user.username, user.password || '123456', 'user', 'approved', '']);
+                addedCount++;
+            } else skippedCount++;
+        });
+        return { success: true, message: `นำเข้าสำเร็จ! เพิ่ม ${addedCount}, ข้าม ${skippedCount}` };
+    } catch (error) {
+        return { success: false, message: 'Error: ' + error.message };
+    }
+}
+
+// --- 5. การคำนวณวันลา ---
+function calculateOfficialDays(startStr, endStr, leaveType, isHalfDay) {
+  if (isHalfDay) return 0.5;
+  if (!startStr || !endStr) return 0;
+
+  const startDate = new Date(startStr);
+  const endDate = new Date(endStr);
+  startDate.setHours(0,0,0,0); endDate.setHours(0,0,0,0);
+  if (endDate < startDate) return 0;
+
+  const workDayTypes = ['ลาป่วย', 'ลากิจส่วนตัว', 'ลาพักผ่อน', 'ลาไปช่วยเหลือภริยาที่คลอดบุตร'];
+  let count = 0;
+  if (workDayTypes.includes(leaveType)) {
+    const holidays = getHolidaysList(); 
+    let loopDate = new Date(startDate);
+    while (loopDate <= endDate) {
+      const dayOfWeek = loopDate.getDay();
+      const dateString = Utilities.formatDate(loopDate, "GMT+7", "yyyy-MM-dd");
+      if (dayOfWeek !== 0 && dayOfWeek !== 6 && !holidays.includes(dateString)) {
+        count++;
+      }
+      loopDate.setDate(loopDate.getDate() + 1);
+    }
+  } else {
+    const diffTime = Math.abs(endDate - startDate);
+    count = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  }
+  return count;
+}
+
+function getHolidaysList() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(CONFIG.SHEET.HOLIDAYS);
+  if (!sheet || sheet.getLastRow() <= 1) return [];
+  const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues(); 
+  return data.map(row => formatDateToYyyyMmDd(row[0])).filter(d => d !== '');
+}
+
+function getLastApprovedLeave(userId) {
+  const sheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.LEAVE);
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return null;
+  const data = sheet.getRange(2, 1, lastRow - 1, 19).getValues(); 
+  for (let i = data.length - 1; i >= 0; i--) {
+    if (data[i][1] === userId && data[i][18] === 'อนุมัติ') {
+      return {
+        leaveType: data[i][6], startDate: formatDateToYyyyMmDd(data[i][8]), 
+        endDate: formatDateToYyyyMmDd(data[i][9]), totalDays: data[i][10]               
+      };
+    }
+  }
+  return null;
+}
+
+// --- 6. ระบบแจ้งเตือน LINE Messaging API ---
+
+function sendLinePushMessage(to, messageText) {
+  if (!to || to.trim() === '') return;
+  if (!CONFIG.LINE_ACCESS_TOKEN || CONFIG.LINE_ACCESS_TOKEN.includes('ใส่_Channel')) return;
+
+  const url = "https://api.line.me/v2/bot/message/push";
+  const payload = { "to": to, "messages": [{ "type": "text", "text": messageText }] };
+  const options = {
+    "method": "post",
+    "headers": { "Authorization": "Bearer " + CONFIG.LINE_ACCESS_TOKEN, "Content-Type": "application/json" },
+    "payload": JSON.stringify(payload),
+    "muteHttpExceptions": true
+  };
+  try { UrlFetchApp.fetch(url, options); } catch (e) { console.error("Push Error: " + e.toString()); }
+}
+
+function sendLineFlexMessage(to, flexContent, altText) {
+  if (!to || to.trim() === '') return;
+  
+  const url = "https://api.line.me/v2/bot/message/push";
+  const payload = {
+    "to": to,
+    "messages": [ { "type": "flex", "altText": altText, "contents": flexContent } ]
+  };
+  const options = {
+    "method": "post",
+    "headers": { "Authorization": "Bearer " + CONFIG.LINE_ACCESS_TOKEN, "Content-Type": "application/json" },
+    "payload": JSON.stringify(payload),
+    "muteHttpExceptions": true
+  };
+  try { UrlFetchApp.fetch(url, options); } catch (e) { console.error("Flex Error: " + e.toString()); }
+}
+
+// --- 7. การจัดการใบลา ---
+
+function submitLeaveRequest(leaveData) {
+    try {
+        const leaveSheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.LEAVE);
+        const leaveId = Utilities.getUuid();
+        const signatureUrl = uploadBase64ImageToDrive(leaveData.signatureDataUrl, `sig_${leaveId}`);
+        
+        leaveSheet.appendRow([
+            leaveId, leaveData.currentUser.userId, leaveData.currentUser.fullName,
+            leaveData.currentUser.position, leaveData.schoolName, leaveData.requestDate, 
+            leaveData.leaveType, leaveData.reason, leaveData.startDate, leaveData.endDate,   
+            "'" + leaveData.totalDays, 
+            leaveData.lastLeaveType || '', leaveData.lastLeaveStartDate || '', 
+            leaveData.lastLeaveEndDate || '', 
+            "'" + (leaveData.lastLeaveTotalDays || 0), 
+            leaveData.contactAddress, leaveData.contactPhone, signatureUrl, 'รอการอนุมัติ', 
+            '', '', '', '', '', '', leaveData.teacherName, leaveData.subject
+        ]);
+
+        const adminGroupId = getSettingValue('adminGroupId');
+        if (adminGroupId) {
+            const flexMessage = {
+              "type": "bubble",
+              "header": { "type": "box", "layout": "vertical", "contents": [{ "type": "text", "text": "🔔 มีคำขอลาใหม่", "weight": "bold", "size": "lg", "color": "#1DB446" }] },
+              "body": {
+                "type": "box", "layout": "vertical", "contents": [
+                  { "type": "box", "layout": "baseline", "margin": "md", "contents": [{ "type": "text", "text": "ผู้ขอ:", "color": "#aaaaaa", "size": "sm", "flex": 2 }, { "type": "text", "text": leaveData.currentUser.fullName, "wrap": true, "color": "#666666", "size": "sm", "flex": 5 }] },
+                  { "type": "box", "layout": "baseline", "margin": "md", "contents": [{ "type": "text", "text": "ประเภท:", "color": "#aaaaaa", "size": "sm", "flex": 2 }, { "type": "text", "text": leaveData.leaveType, "wrap": true, "color": "#666666", "size": "sm", "flex": 5 }] },
+                  { "type": "box", "layout": "baseline", "margin": "md", "contents": [{ "type": "text", "text": "วันที่:", "color": "#aaaaaa", "size": "sm", "flex": 2 }, { "type": "text", "text": `${formatDateToYyyyMmDd(leaveData.startDate)} - ${formatDateToYyyyMmDd(leaveData.endDate)}`, "wrap": true, "color": "#666666", "size": "sm", "flex": 5 }] },
+                  { "type": "box", "layout": "baseline", "margin": "md", "contents": [{ "type": "text", "text": "รวม:", "color": "#aaaaaa", "size": "sm", "flex": 2 }, { "type": "text", "text": `${leaveData.totalDays} วัน`, "wrap": true, "color": "#666666", "size": "sm", "flex": 5 }] }
+                ]
+              },
+              "footer": {
+                "type": "box", "layout": "vertical", "contents": [
+                  { "type": "button", "style": "primary", "color": "#2E3A59", "action": { "type": "uri", "label": "ตรวจสอบ / อนุมัติ", "uri": CONFIG.WEB_APP_URL } }
+                ]
+              }
+            };
+            sendLineFlexMessage(adminGroupId, flexMessage, "มีคำขอลาใหม่รออนุมัติ");
+        }
+
+        return { success: true, message: 'ยื่นใบลาสำเร็จ' };
+    } catch (error) {
+        return { success: false, message: 'Error: ' + error.message };
+    }
+}
+
+function processLeaveRequest(approvalData) {
+    try {
+        const leaveSheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.LEAVE);
+        const data = leaveSheet.getDataRange().getValues();
+        const rowIndex = data.findIndex(row => row[0] === approvalData.leaveId);
+        if (rowIndex === -1) return { success: false, message: 'ไม่พบข้อมูลใบลา' };
+        
+        const leaveRowData = data[rowIndex];
+        const adminSignatureUrl = uploadBase64ImageToDrive(approvalData.adminSignature, `adminsig_${approvalData.leaveId}`);
+        const approvalDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+        
+        leaveSheet.getRange(rowIndex + 1, 19, 1, 6).setValues([[
+            approvalData.status, approvalData.comment || '', adminSignatureUrl, 
+            approvalData.adminUser.fullName, approvalData.adminUser.position, approvalDate
+        ]]);
+
+        const pdfUrl = generatePdf(leaveRowData, approvalData, adminSignatureUrl, approvalDate);
+        leaveSheet.getRange(rowIndex + 1, 25).setValue(pdfUrl);
+
+        const requestorUserId = leaveRowData[1];
+        const requestorLineId = getUserLineIdBySystemId(requestorUserId);
+        
+        if (requestorLineId) {
+            let emoji = approvalData.status === 'อนุมัติ' ? '✅' : '❌';
+            let msg = `${emoji} ผลการพิจารณา\nเรื่อง: ${leaveRowData[6]}\nผล: ${approvalData.status}\nโดย: ${approvalData.adminUser.fullName}`;
+            if(pdfUrl && approvalData.status === 'อนุมัติ') msg += `\n\n📄 ดาวน์โหลด: ${pdfUrl}`;
+            sendLinePushMessage(requestorLineId, msg);
+        }
+
+        return { success: true, message: `ดำเนินการ '${approvalData.status}' เรียบร้อย`, pdfUrl: pdfUrl };
+    } catch (e) {
+        return { success: false, message: 'Error: ' + e.message };
+    }
+}
+
+function cancelLeaveRequest(leaveId, userId) {
+    try {
+        const sheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.LEAVE);
+        const data = sheet.getDataRange().getValues();
+        const rowIndex = data.findIndex(row => String(row[0]) === String(leaveId));
+
+        if (rowIndex > 0) {
+            const ownerId = String(data[rowIndex][1]);
+            const requestUserId = String(userId);
+
+            if (ownerId !== requestUserId) return { success: false, message: 'คุณไม่มีสิทธิ์ยกเลิกใบลาของคนอื่น' };
+
+            const currentStatus = data[rowIndex][18];
+            if (currentStatus !== 'รอการอนุมัติ') return { success: false, message: 'ไม่สามารถยกเลิกได้ สถานะเปลี่ยนไปแล้ว' };
+
+            sheet.getRange(rowIndex + 1, 19).setValue('ยกเลิกโดยผู้ใช้');
+
+            const adminGroupId = getSettingValue('adminGroupId');
+            if (adminGroupId) {
+                const userName = data[rowIndex][2];
+                const leaveType = data[rowIndex][6];
+                sendLinePushMessage(adminGroupId, `⚠️ มีการยกเลิกใบลา\n👤 ${userName}\n❌ ยกเลิก: ${leaveType}`);
+            }
+
+            return { success: true, message: 'ยกเลิกรายการสำเร็จ' };
+        }
+        return { success: false, message: 'ไม่พบข้อมูลใบลา' };
+    } catch (e) {
+        return { success: false, message: 'เกิดข้อผิดพลาด: ' + e.toString() };
+    }
+}
+
+// --- NEW: ฟังก์ชันลบประวัติ (สำหรับ Admin) ---
+function deleteLeaveHistory(leaveId) {
+  try {
+    const sheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.LEAVE);
+    const data = sheet.getDataRange().getValues();
+    
+    // ค้นหาแถวจากล่างขึ้นบน
+    for (let i = data.length - 1; i >= 1; i--) {
+      if (String(data[i][0]) === String(leaveId)) {
+        // ลบไฟล์ใน Drive (Optional)
+        try {
+           if(data[i][17]) DriveApp.getFileById(data[i][17]).setTrashed(true); // Signature
+           if(data[i][20]) DriveApp.getFileById(data[i][20]).setTrashed(true); // Admin Sig
+           if(data[i][24]) {
+              const pid = data[i][24].match(/[-\w]{25,}/);
+              if(pid) DriveApp.getFileById(pid[0]).setTrashed(true); // PDF
+           }
+        } catch(e) {}
+
+        // ลบแถว
+        sheet.deleteRow(i + 1);
+        return { success: true, message: 'ลบข้อมูลสำเร็จ' };
+      }
+    }
+    return { success: false, message: 'ไม่พบรายการที่ต้องการลบ' };
+  } catch (e) {
+    return { success: false, message: 'Error: ' + e.toString() };
+  }
+}
+
+function getUserLineIdBySystemId(userId) {
+  const sheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.USERS);
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === userId) return data[i][7];
+  }
+  return null;
+}
+
+// --- 8. Dashboard & History ---
+function getDashboardData() {
+  try {
+    const usersSheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.USERS);
+    const leaveSheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.LEAVE);
+    const totalStaff = usersSheet.getLastRow() - 1;
+    const leaveData = leaveSheet.getLastRow() > 1 ? leaveSheet.getDataRange().getValues().slice(1) : [];
+    let approved=0, pending=0, rejected=0;
+    const leaveTypeCounts = {};
+    const monthlyLeaveCounts = Array(12).fill(0);
+    
+    leaveData.forEach(row => {
+      const status = row[18];
+      if (status === 'อนุมัติ') approved++;
+      else if (status === 'รอการอนุมัติ') pending++;
+      else if (status === 'ไม่อนุมัติ') rejected++;
+
+      if (row[6]) leaveTypeCounts[row[6]] = (leaveTypeCounts[row[6]] || 0) + 1;
+      
+      const dateStr = formatDateToYyyyMmDd(row[8]);
+      if (dateStr) monthlyLeaveCounts[parseInt(dateStr.substring(5, 7), 10) - 1]++;
+    });
+
+    const recentLeaves = leaveData.slice(-10).reverse().map(row => ({
+      fullName: row[2], leaveType: row[6], startDate: formatDateToYyyyMmDd(row[8]), 
+      endDate: formatDateToYyyyMmDd(row[9]), totalDays: row[10], status: row[18], pdfUrl: row[24]
+    }));
+    return {
+      stats: { totalStaff: totalStaff > 0 ? totalStaff : 0, approved, pending, rejected },
+      charts: {
+        leaveTypeData: { labels: Object.keys(leaveTypeCounts), data: Object.values(leaveTypeCounts) },
+        monthlyLeaveData: { labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'], data: monthlyLeaveCounts }
+      },
+      recentLeaves
+    };
+  } catch (e) { return null; }
+}
+
+function getLeaveHistory(filters) {
+  try {
+    const sheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.LEAVE);
+    if (sheet.getLastRow() <= 1) return [];
+    const allData = sheet.getDataRange().getValues().slice(1);
+    let filtered = filters.role === 'admin' ? allData : allData.filter(row => row[1] === filters.userId);
+
+    if (filters.filterUserId && filters.filterUserId !== 'all') filtered = filtered.filter(row => row[1] === filters.filterUserId);
+    if (filters.filterStartDate) {
+        const sd = new Date(filters.filterStartDate); sd.setHours(0,0,0,0);
+        filtered = filtered.filter(row => new Date(row[8]) >= sd);
+    }
+    if (filters.filterEndDate) {
+        const ed = new Date(filters.filterEndDate);
+        ed.setHours(23,59,59,999);
+        filtered = filtered.filter(row => new Date(row[8]) <= ed);
+    }
+    
+    return filtered.reverse().map(row => ({
+        leaveId: row[0], requestDate: formatDateToYyyyMmDd(row[5]), leaveType: row[6],
+        startDate: formatDateToYyyyMmDd(row[8]), endDate: formatDateToYyyyMmDd(row[9]),
+        totalDays: row[10], status: row[18], pdfUrl: row[24], fullName: row[2] 
+    }));
+  } catch (e) { return null; }
+}
+
+function getPendingLeaves() {
+  try {
+    const sheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.LEAVE);
+    if (sheet.getLastRow() <= 1) return [];
+    return sheet.getDataRange().getValues().slice(1)
+        .filter(row => row[18] === 'รอการอนุมัติ')
+        .map(row => ({
+            leaveId: row[0], fullName: row[2], position: row[3], leaveType: row[6],
+            startDate: formatDateToYyyyMmDd(row[8]), endDate: formatDateToYyyyMmDd(row[9]),
+            totalDays: row[10], reason: row[7]
+        }));
+  } catch (e) { return null; }
+}
+
+function getAllLeaveReportData() {
+  try {
+    const sheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.LEAVE);
+    if (sheet.getLastRow() <= 1) return [];
+    return sheet.getDataRange().getValues().slice(1).map(row => ({
+        leaveId: row[0], fullName: row[2], position: row[3], requestDate: formatDateToYyyyMmDd(row[5]),
+        leaveType: row[6], startDate: formatDateToYyyyMmDd(row[8]), endDate: formatDateToYyyyMmDd(row[9]),
+        totalDays: row[10], status: row[18], pdfUrl: row[24]
+    }));
+  } catch(e) { return null; }
+}
+
+function getLeaveSummaryReport(startDate, endDate) {
+  try {
+    const sheet = SPREADSHEET.getSheetByName(CONFIG.SHEET.LEAVE);
+    if (sheet.getLastRow() <= 1) return [];
+    const allData = sheet.getDataRange().getValues().slice(1);
+    const summary = {};
+    const fs = startDate ? new Date(startDate) : null; if(fs) fs.setHours(0,0,0,0);
+    const fe = endDate ? new Date(endDate) : null; if(fe) fe.setHours(23,59,59,999);
+    
+    allData.forEach(row => {
+      if (row[18] === 'อนุมัติ') {
+        const d = new Date(row[8]);
+        if ((!fs || d >= fs) && (!fe || d <= fe)) {
+          const uid = row[1];
+          if (!summary[uid]) summary[uid] = { fullName: row[2], position: row[3], totalLeaves: 0, totalDays: 0 };
+          summary[uid].totalLeaves++;
+          summary[uid].totalDays += (parseFloat(row[10]) || 0);
+        }
+      }
+    });
+    return Object.values(summary);
+  } catch (e) { return null; }
+}
+
+// --- 9. Utility Functions ---
+function uploadBase64ImageToDrive(dataUrl, fileName) {
+    const [meta, data] = dataUrl.split(',');
+    const mimeType = meta.match(/:(.*?);/)[1];
+    const blob = Utilities.newBlob(Utilities.base64Decode(data), mimeType, `${fileName}.png`);
+    let folder, folders = DriveApp.getFoldersByName(CONFIG.SIGNATURE_FOLDER_NAME);
+    if (folders.hasNext()) folder = folders.next();
+    else folder = DriveApp.createFolder(CONFIG.SIGNATURE_FOLDER_NAME);
+    const file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    return file.getId();
+}
+
+function formatDateToYyyyMmDd(dateValue) {
+  if (!dateValue) return '';
+  let d = (dateValue instanceof Date) ? dateValue : new Date(dateValue);
+  if (isNaN(d.getTime())) return '';
+  return Utilities.formatDate(d, "GMT+7", "yyyy-MM-dd");
+}
+
+function formatDateForPdf(dateValue) {
+  if (!dateValue) return '......';
+  try {
+    const d = new Date(dateValue);
+    return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric'});
+  } catch (e) { return String(dateValue); }
+}
+
+function generatePdf(leaveInfo, approvalData, adminSignatureUrl, approvalDate) {
+    const outputFolder = DriveApp.getFolderById(CONFIG.PDF_OUTPUT_FOLDER_ID);
+    const templateFile = DriveApp.getFileById(CONFIG.SLIDE_TEMPLATE_ID);
+    const newFileName = 'ใบลา_' + leaveInfo[2];
+    const newPresentationFile = templateFile.makeCopy(newFileName, outputFolder);
+    const presentation = SlidesApp.openById(newPresentationFile.getId());
+    const slide = presentation.getSlides()[0];
+    
+    const finalComment = (approvalData.status === 'อนุมัติ') ? 'อนุมัติ' : `ไม่อนุมัติ เนื่องจาก ${approvalData.comment}`;
+    const replacements = {
+        '{{ชื่อโรงเรียน}}': leaveInfo[4], '{{วันที่ยื่นคำขอ}}': formatDateForPdf(leaveInfo[5]),
+        '{{ประเภทการลา}}': leaveInfo[6], '{{ชื่อ-นามสกุล}}': leaveInfo[2], '{{ตำแหน่ง}}': leaveInfo[3], 
+        '{{เหตุผลการลา}}': leaveInfo[7], '{{วันที่ลา}}': formatDateForPdf(leaveInfo[8]), 
+        '{{วันสิ้นสุดการลา}}': formatDateForPdf(leaveInfo[9]), '{{จำนวนวันลา}}': leaveInfo[10], 
+        '{{ชื่อครู}}': leaveInfo[25], '{{ชื่อวิชา}}': leaveInfo[26],
+        '{{ประเภทการลารอบก่อน}}': leaveInfo[11], '{{วันที่ลารอบก่อน}}': formatDateForPdf(leaveInfo[12]), 
+        '{{วันสิ้นสุดการลารอบก่อน}}': formatDateForPdf(leaveInfo[13]), '{{จำนวนการลารอบก่อน}}': leaveInfo[14], 
+        '{{ที่ติดต่อระหว่างลา}}': leaveInfo[15], '{{หมายเลขโทรศัพท์}}': leaveInfo[16], 
+        '{{ความเห็นผู้บังคับบัญชา}}': finalComment, '{{ชื่อ-นามสกุลผู้อนุมัติ}}': approvalData.adminUser.fullName, 
+        '{{ตำแหน่งผู้อนุมัติ}}': approvalData.adminUser.position, '{{วันที่อนุมัติ}}': approvalDate
+    };
+
+    for (const k in replacements) slide.replaceAllText(k, replacements[k] || '......');
+    insertSignature(slide, '{{ลายเซ็นครู}}', leaveInfo[17]);
+    insertSignature(slide, '{{ลายเซ็นผู้อนุมัติ}}', adminSignatureUrl);
+
+    presentation.saveAndClose();
+    const pdfBlob = newPresentationFile.getAs(MimeType.PDF);
+    const pdfFile = outputFolder.createFile(pdfBlob).setName(newFileName + '.pdf');
+    pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    newPresentationFile.setTrashed(true);
+    return pdfFile.getUrl();
+}
+
+function insertSignature(slide, placeholder, imageFileId) {
+  try {
+    const shape = findShapeByText(slide, placeholder);
+    if (shape && imageFileId) {
+      const imageFile = DriveApp.getFileById(imageFileId);
+      shape.replaceWithImage(imageFile.getBlob());
+    } else if (shape) shape.getText().setText('');
+  } catch (e) { 
+    const shape = findShapeByText(slide, placeholder);
+    if(shape) try{ shape.getText().setText(''); }catch(err){} 
+  }
+}
+
+function findShapeByText(slide, text) {
+    const shapes = slide.getShapes();
+    for (let i = 0; i < shapes.length; i++) {
+        try { if (shapes[i].getText().asString().includes(text)) return shapes[i];
+        } catch(e) {}
+    }
+    return null;
+}
+
+// ฟังก์ชันขอสิทธิ์ (กด Run ครั้งเดียวตอนแรก)
+function forceAuth() {
+  UrlFetchApp.fetch("https://www.google.com");
+  DriveApp.getFiles();
+  try { SlidesApp.create("T"); } catch(e) {}
+}
