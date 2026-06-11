@@ -70,6 +70,67 @@ CREATE TABLE IF NOT EXISTS attendance (
     UNIQUE KEY unique_user_date (userId, attendanceDate)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 6. Table for Travel Requests (ขออนุญาตเดินทางไปราชการ)
+CREATE TABLE IF NOT EXISTS travel_data (
+    travelId VARCHAR(50) PRIMARY KEY,
+    userId VARCHAR(50) NOT NULL,
+    fullName VARCHAR(100) NOT NULL,
+    subject VARCHAR(255) NOT NULL,
+    destination VARCHAR(255) NOT NULL,
+    startDate DATE NOT NULL,
+    endDate DATE NOT NULL,
+    totalDays DECIMAL(5, 2) NOT NULL,
+    budget DECIMAL(10, 2) DEFAULT 0.00,
+    vehicleType VARCHAR(100) NOT NULL,
+    status VARCHAR(50) DEFAULT 'รอการอนุมัติ',
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 7. Table for Travel Reports (รายงานการเดินทางไปราชการ)
+CREATE TABLE IF NOT EXISTS travel_reports (
+    reportId VARCHAR(50) PRIMARY KEY,
+    travelId VARCHAR(50) NOT NULL,
+    userId VARCHAR(50) NOT NULL,
+    fullName VARCHAR(100) NOT NULL,
+    reportDetail TEXT NOT NULL,
+    benefits TEXT NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 8. Table for Training Records (บันทึกการอบรม)
+CREATE TABLE IF NOT EXISTS training_data (
+    trainingId VARCHAR(50) PRIMARY KEY,
+    userId VARCHAR(50) NOT NULL,
+    fullName VARCHAR(100) NOT NULL,
+    courseName VARCHAR(255) NOT NULL,
+    organizer VARCHAR(255) NOT NULL,
+    startDate DATE NOT NULL,
+    endDate DATE NOT NULL,
+    hours DECIMAL(5, 2) NOT NULL,
+    location VARCHAR(255) NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 9. Table for College Activities (กิจกรรมวิทยาลัย)
+CREATE TABLE IF NOT EXISTS activities (
+    activityId VARCHAR(50) PRIMARY KEY,
+    activityName VARCHAR(255) NOT NULL,
+    activityDate DATE NOT NULL,
+    location VARCHAR(255) NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 10. Table for Activity Participants (การเข้าร่วมกิจกรรม)
+CREATE TABLE IF NOT EXISTS activity_participants (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    activityId VARCHAR(50) NOT NULL,
+    userId VARCHAR(50) NOT NULL,
+    fullName VARCHAR(100) NOT NULL,
+    position VARCHAR(100) NOT NULL,
+    registeredAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_user_activity (activityId, userId)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Insert default settings
 INSERT INTO settings (settingKey, settingValue) VALUES
 ('schoolName', 'วิทยาลัยสารพัดช่างน่าน')

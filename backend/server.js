@@ -1009,9 +1009,221 @@ app.post('/api/attendance', async (req, res) => {
   }
 });
 
+// --- 1. Travel Permission APIs ---
+app.post('/api/travel', async (req, res) => {
+  const { userId, fullName, subject, destination, startDate, endDate, totalDays, budget, vehicleType } = req.body;
+  if (!userId || !fullName || !subject || !destination || !startDate || !endDate || !totalDays || !vehicleType) {
+    return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
+  }
+
+  const travelId = require('crypto').randomUUID();
+  try {
+    await db.query(
+      `INSERT INTO travel_data (travelId, userId, fullName, subject, destination, startDate, endDate, totalDays, budget, vehicleType, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'รอการอนุมัติ')`,
+      [travelId, userId, fullName, subject, destination, startDate, endDate, totalDays, budget || 0, vehicleType]
+    );
+    res.json({ success: true, message: 'ยื่นคำขอไปราชการสำเร็จ' });
+  } catch (err) {
+    console.error('Error submitting travel:', err.message);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาด: ' + err.message });
+  }
+});
+
+app.get('/api/travel', async (req, res) => {
+  const { userId } = req.query;
+  try {
+    let rows;
+    if (userId) {
+      [rows] = await db.query('SELECT * FROM travel_data WHERE userId = ? ORDER BY createdAt DESC', [userId]);
+    } else {
+      [rows] = await db.query('SELECT * FROM travel_data ORDER BY createdAt DESC');
+    }
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching travel data:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/travel/approve', async (req, res) => {
+  const { travelId, status } = req.body; // status: 'อนุมัติ' or 'ไม่อนุมัติ'
+  if (!travelId || !status) {
+    return res.status(400).json({ success: false, message: 'ข้อมูลไม่ครบถ้วน' });
+  }
+  try {
+    await db.query('UPDATE travel_data SET status = ? WHERE travelId = ?', [status, travelId]);
+    res.json({ success: true, message: `ดำเนินการ '${status}' เรียบร้อย` });
+  } catch (err) {
+    console.error('Error approving travel:', err.message);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาด: ' + err.message });
+  }
+});
+
+// --- 2. Travel Report APIs ---
+app.post('/api/travel-report', async (req, res) => {
+  const { travelId, userId, fullName, reportDetail, benefits } = req.body;
+  if (!travelId || !userId || !fullName || !reportDetail || !benefits) {
+    return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
+  }
+
+  const reportId = require('crypto').randomUUID();
+  try {
+    await db.query(
+      `INSERT INTO travel_reports (reportId, travelId, userId, fullName, reportDetail, benefits)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [reportId, travelId, userId, fullName, reportDetail, benefits]
+    );
+    res.json({ success: true, message: 'ส่งรายงานสรุปผลไปราชการสำเร็จ' });
+  } catch (err) {
+    console.error('Error submitting travel report:', err.message);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาด: ' + err.message });
+  }
+});
+
+app.get('/api/travel-report', async (req, res) => {
+  const { userId } = req.query;
+  try {
+    let rows;
+    if (userId) {
+      [rows] = await db.query(
+        `SELECT r.*, t.subject, t.destination, t.startDate, t.endDate 
+         FROM travel_reports r 
+         JOIN travel_data t ON r.travelId = t.travelId 
+         WHERE r.userId = ? ORDER BY r.createdAt DESC`,
+        [userId]
+      );
+    } else {
+      [rows] = await db.query(
+        `SELECT r.*, t.subject, t.destination, t.startDate, t.endDate 
+         FROM travel_reports r 
+         JOIN travel_data t ON r.travelId = t.travelId 
+         ORDER BY r.createdAt DESC`
+      );
+    }
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching travel reports:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- 3. Training Record APIs ---
+app.post('/api/training', async (req, res) => {
+  const { userId, fullName, courseName, organizer, startDate, endDate, hours, location } = req.body;
+  if (!userId || !fullName || !courseName || !organizer || !startDate || !endDate || !hours || !location) {
+    return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
+  }
+
+  const trainingId = require('crypto').randomUUID();
+  try {
+    await db.query(
+      `INSERT INTO training_data (trainingId, userId, fullName, courseName, organizer, startDate, endDate, hours, location)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [trainingId, userId, fullName, courseName, organizer, startDate, endDate, hours, location]
+    );
+    res.json({ success: true, message: 'บันทึกประวัติการอบรมสำเร็จ' });
+  } catch (err) {
+    console.error('Error submitting training record:', err.message);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาด: ' + err.message });
+  }
+});
+
+app.get('/api/training', async (req, res) => {
+  const { userId } = req.query;
+  try {
+    let rows;
+    if (userId) {
+      [rows] = await db.query('SELECT * FROM training_data WHERE userId = ? ORDER BY createdAt DESC', [userId]);
+    } else {
+      [rows] = await db.query('SELECT * FROM training_data ORDER BY createdAt DESC');
+    }
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching training records:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- 4. College Activities APIs ---
+app.get('/api/activities', async (req, res) => {
+  const { userId } = req.query;
+  try {
+    const [acts] = await db.query('SELECT * FROM activities ORDER BY activityDate DESC');
+    
+    // If userId provided, check which activities they have registered for
+    let registrations = [];
+    if (userId) {
+      const [regs] = await db.query('SELECT activityId FROM activity_participants WHERE userId = ?', [userId]);
+      registrations = regs.map(r => r.activityId);
+    }
+
+    const result = acts.map(act => ({
+      ...act,
+      isRegistered: registrations.includes(act.activityId)
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error('Error fetching activities:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/activities', async (req, res) => {
+  const { activityName, activityDate, location } = req.body;
+  if (!activityName || !activityDate || !location) {
+    return res.status(400).json({ success: false, message: 'ข้อมูลไม่ครบถ้วน' });
+  }
+
+  const activityId = require('crypto').randomUUID();
+  try {
+    await db.query(
+      'INSERT INTO activities (activityId, activityName, activityDate, location) VALUES (?, ?, ?, ?)',
+      [activityId, activityName, activityDate, location]
+    );
+    res.json({ success: true, message: 'สร้างกิจกรรมใหม่สำเร็จ' });
+  } catch (err) {
+    console.error('Error creating activity:', err.message);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาด: ' + err.message });
+  }
+});
+
+app.post('/api/activities/register', async (req, res) => {
+  const { activityId, userId, fullName, position } = req.body;
+  if (!activityId || !userId || !fullName || !position) {
+    return res.status(400).json({ success: false, message: 'ข้อมูลไม่ครบถ้วน' });
+  }
+  try {
+    await db.query(
+      'INSERT INTO activity_participants (activityId, userId, fullName, position) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE registeredAt = CURRENT_TIMESTAMP',
+      [activityId, userId, fullName, position]
+    );
+    res.json({ success: true, message: 'ยืนยันการเข้าร่วมกิจกรรมสำเร็จ' });
+  } catch (err) {
+    console.error('Error registering for activity:', err.message);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาด: ' + err.message });
+  }
+});
+
+app.get('/api/activities/participants/:activityId', async (req, res) => {
+  const { activityId } = req.params;
+  try {
+    const [rows] = await db.query(
+      'SELECT fullName, position, registeredAt FROM activity_participants WHERE activityId = ? ORDER BY registeredAt ASC',
+      [activityId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching activity participants:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Initialize database tables
 (async () => {
   try {
+    // 1. attendance
     await db.query(`
       CREATE TABLE IF NOT EXISTS attendance (
         attendanceId INT AUTO_INCREMENT PRIMARY KEY,
@@ -1023,9 +1235,81 @@ app.post('/api/attendance', async (req, res) => {
         UNIQUE KEY unique_user_date (userId, attendanceDate)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
-    console.log('✅ attendance table verified/created successfully.');
+
+    // 2. travel_data
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS travel_data (
+        travelId VARCHAR(50) PRIMARY KEY,
+        userId VARCHAR(50) NOT NULL,
+        fullName VARCHAR(100) NOT NULL,
+        subject VARCHAR(255) NOT NULL,
+        destination VARCHAR(255) NOT NULL,
+        startDate DATE NOT NULL,
+        endDate DATE NOT NULL,
+        totalDays DECIMAL(5, 2) NOT NULL,
+        budget DECIMAL(10, 2) DEFAULT 0.00,
+        vehicleType VARCHAR(100) NOT NULL,
+        status VARCHAR(50) DEFAULT 'รอการอนุมัติ',
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // 3. travel_reports
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS travel_reports (
+        reportId VARCHAR(50) PRIMARY KEY,
+        travelId VARCHAR(50) NOT NULL,
+        userId VARCHAR(50) NOT NULL,
+        fullName VARCHAR(100) NOT NULL,
+        reportDetail TEXT NOT NULL,
+        benefits TEXT NOT NULL,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // 4. training_data
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS training_data (
+        trainingId VARCHAR(50) PRIMARY KEY,
+        userId VARCHAR(50) NOT NULL,
+        fullName VARCHAR(100) NOT NULL,
+        courseName VARCHAR(255) NOT NULL,
+        organizer VARCHAR(255) NOT NULL,
+        startDate DATE NOT NULL,
+        endDate DATE NOT NULL,
+        hours DECIMAL(5, 2) NOT NULL,
+        location VARCHAR(255) NOT NULL,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // 5. activities
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS activities (
+        activityId VARCHAR(50) PRIMARY KEY,
+        activityName VARCHAR(255) NOT NULL,
+        activityDate DATE NOT NULL,
+        location VARCHAR(255) NOT NULL,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // 6. activity_participants
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS activity_participants (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        activityId VARCHAR(50) NOT NULL,
+        userId VARCHAR(50) NOT NULL,
+        fullName VARCHAR(100) NOT NULL,
+        position VARCHAR(100) NOT NULL,
+        registeredAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_user_activity (activityId, userId)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    console.log('✅ All portal database tables verified/created successfully.');
   } catch (err) {
-    console.error('Error creating attendance table:', err.message);
+    console.error('Error creating portal tables:', err.message);
   }
 })();
 

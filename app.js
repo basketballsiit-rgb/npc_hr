@@ -43,6 +43,40 @@ function showPage(pageId) {
   document.getElementById('mobile-menu').classList.add('hidden');
 }
 
+let redirectAfterLogin = null;
+function enterModule(pageId, adminOnly) {
+  if (!currentUser) {
+    redirectAfterLogin = { pageId, adminOnly };
+    showLoginModal();
+    return;
+  }
+  
+  if (adminOnly && currentUser.role !== 'admin') {
+    Swal.fire('ปฏิเสธการเข้าถึง', 'เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถเข้าใช้งานหน้านี้ได้', 'warning');
+    return;
+  }
+  
+  showPage(pageId);
+  
+  // Call the appropriate page initializer function
+  if (pageId === 'dashboard-page') {
+    loadDashboardData();
+  } else if (pageId === 'attendance-page') {
+    initAttendancePage();
+  } else if (pageId === 'travel-page') {
+    initTravelPage();
+  } else if (pageId === 'travel-report-page') {
+    initTravelReportPage();
+  } else if (pageId === 'training-page') {
+    initTrainingPage();
+  } else if (pageId === 'activity-page') {
+    initActivityPage();
+  }
+}
+
+window.showPage = showPage;
+window.enterModule = enterModule;
+
 // Initialize on Load
 document.addEventListener('DOMContentLoaded', async () => {
   // Mobile menu button
@@ -55,8 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Home logo link
   document.getElementById('home-link').addEventListener('click', (e) => {
     e.preventDefault();
-    showPage('dashboard-page');
-    if (currentUser) loadDashboardData();
+    showPage('portal-page');
   });
 
   // Authentication buttons
@@ -68,6 +101,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('export-excel-btn').addEventListener('click', handleExportExcel);
   document.getElementById('import-excel-input').addEventListener('change', handleImportExcel);
   document.getElementById('print-report-btn').addEventListener('click', handlePrintReport);
+  
+  // New Forms submit & events
+  const travelForm = document.getElementById('travel-request-form');
+  if (travelForm) travelForm.addEventListener('submit', handleTravelSubmit);
+  
+  const travelReportForm = document.getElementById('travel-report-form');
+  if (travelReportForm) travelReportForm.addEventListener('submit', handleTravelReportSubmit);
+  
+  const trainingForm = document.getElementById('training-form');
+  if (trainingForm) trainingForm.addEventListener('submit', handleTrainingSubmit);
+  
+  const activityForm = document.getElementById('activity-create-form');
+  if (activityForm) activityForm.addEventListener('submit', handleActivityCreate);
+  
+  // Date calculation events for travel
+  const tSd = document.getElementById('travel-start-date');
+  const tEd = document.getElementById('travel-end-date');
+  if (tSd) tSd.addEventListener('change', calculateTravelDays);
+  if (tEd) tEd.addEventListener('change', calculateTravelDays);
   
   // Automatic date calculations
   const sd = document.getElementById('form-start-date');
@@ -203,8 +255,13 @@ function showLoginModal() {
             timer: 1500
           });
           
-          showPage('dashboard-page');
-          loadDashboardData();
+          if (typeof redirectAfterLogin === 'object' && redirectAfterLogin !== null) {
+            const { pageId, adminOnly } = redirectAfterLogin;
+            redirectAfterLogin = null;
+            enterModule(pageId, adminOnly);
+          } else {
+            showPage('portal-page');
+          }
         } else {
           showError(data.message);
         }
@@ -299,8 +356,7 @@ function handleLogout() {
     showConfirmButton: false,
     timer: 1500
   });
-  showPage('dashboard-page');
-  loadDashboardData();
+  showPage('portal-page');
 }
 
 function updateUIAfterLogin() {
@@ -338,12 +394,25 @@ function updateUIAfterLogin() {
 
   document.getElementById('logout-btn').onclick = handleLogout;
   
+  // Update welcome message
+  const welcomeEl = document.getElementById('portal-user-welcome');
+  if (welcomeEl) {
+    welcomeEl.innerHTML = `👤 สวัสดีคุณ <strong>${currentUser.fullName}</strong> (${currentUser.role === 'admin' ? 'ผู้ดูแลระบบ' : 'บุคลากร'}) | ยินดีต้อนรับเข้าสู่ระบบ`;
+  }
+  
   buildNavigation();
 }
 
 function updateUIAfterLogout() {
   document.getElementById('auth-buttons').classList.remove('hidden');
   document.getElementById('user-menu').classList.add('hidden');
+  
+  // Update welcome message
+  const welcomeEl = document.getElementById('portal-user-welcome');
+  if (welcomeEl) {
+    welcomeEl.innerHTML = `👤 ยินดีต้อนรับผู้เยี่ยมชม | กรุณาเข้าสู่ระบบเพื่อใช้งานระบบบริหารงานบุคคล`;
+  }
+
   buildNavigation();
 }
 
@@ -354,18 +423,22 @@ function buildNavigation() {
   mobileNav.innerHTML = '';
 
   let menuItems = [
-    { text: 'แดชบอร์ด', page: 'dashboard-page', action: loadDashboardData }
+    { text: 'หน้าหลักพอร์ทัล', page: 'portal-page', action: () => showPage('portal-page') }
   ];
 
   if (currentUser) {
-    menuItems.push({ text: 'บันทึกการลา', page: 'leave-form-page', action: prepareLeaveForm });
-    menuItems.push({ text: 'ประวัติการลา', page: 'history-page', action: loadHistory });
-    
+    // Add Portal Links
+    menuItems.push({ text: 'ระบบการยื่นลา', page: 'dashboard-page', action: loadDashboardData });
+    menuItems.push({ text: 'ระบบขอไปราชการ', page: 'travel-page', action: initTravelPage });
+    menuItems.push({ text: 'ระบบรายงานราชการ', page: 'travel-report-page', action: initTravelReportPage });
+    menuItems.push({ text: 'ระบบบันทึกอบรม', page: 'training-page', action: initTrainingPage });
+    menuItems.push({ text: 'ระบบเข้าร่วมกิจกรรม', page: 'activity-page', action: initActivityPage });
+
     if (currentUser.role === 'admin') {
       menuItems.push(
         { text: 'เช็คชื่อปฏิบัติงาน', page: 'attendance-page', action: initAttendancePage },
-        { text: 'พิจารณาอนุมัติ', page: 'approval-page', action: loadApprovalPage },
-        { text: 'รายงานสรุป', page: 'report-page', action: loadReportPage },
+        { text: 'พิจารณาอนุมัติการลา', page: 'approval-page', action: loadApprovalPage },
+        { text: 'รายงานสรุปการลา', page: 'report-page', action: loadReportPage },
         { text: 'จัดการผู้ใช้งาน', page: 'user-management-page', action: loadUserManagementPage }
       );
     }
@@ -401,19 +474,21 @@ function buildNavigation() {
   // Populate Dropdown items if user logged in
   if (currentUser) {
     const dropdownItems = document.getElementById('user-dropdown-items');
-    dropdownItems.innerHTML = '';
-    
-    // Add same navigation items into user dropdown for convenience
-    menuItems.slice(1).forEach(item => {
-      const dropLink = document.createElement('button');
-      dropLink.className = 'user-dropdown-item';
-      dropLink.textContent = item.text;
-      dropLink.onclick = () => {
-        showPage(item.page);
-        if (item.action) item.action();
-      };
-      dropdownItems.appendChild(dropLink);
-    });
+    if (dropdownItems) {
+      dropdownItems.innerHTML = '';
+      
+      // Add same navigation items into user dropdown for convenience
+      menuItems.slice(1).forEach(item => {
+        const dropLink = document.createElement('button');
+        dropLink.className = 'user-dropdown-item';
+        dropLink.textContent = item.text;
+        dropLink.onclick = () => {
+          showPage(item.page);
+          if (item.action) item.action();
+        };
+        dropdownItems.appendChild(dropLink);
+      });
+    }
   }
 }
 
@@ -1632,3 +1707,548 @@ async function saveAttendanceData() {
     Swal.fire('ข้อผิดพลาด', err.message, 'error');
   }
 }
+
+// ==========================================
+// --- Travel Request & Report Controllers ---
+// ==========================================
+
+function calculateTravelDays() {
+  const start = document.getElementById('travel-start-date').value;
+  const end = document.getElementById('travel-end-date').value;
+  const daysInput = document.getElementById('travel-total-days');
+  if (start && end) {
+    const sDate = new Date(start);
+    const eDate = new Date(end);
+    if (eDate >= sDate) {
+      const diffTime = Math.abs(eDate - sDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      daysInput.value = diffDays;
+    } else {
+      daysInput.value = 0;
+    }
+  } else {
+    daysInput.value = '';
+  }
+}
+
+async function initTravelPage() {
+  if (!currentUser) return;
+  document.getElementById('travel-request-form').reset();
+  document.getElementById('travel-total-days').value = '';
+  await loadTravelHistory();
+}
+
+async function loadTravelHistory() {
+  const listTitle = document.getElementById('travel-list-title');
+  if (!listTitle) return;
+  
+  if (currentUser.role === 'admin') {
+    listTitle.textContent = '📋 รายการคำขอไปราชการทั้งหมด (แอดมิน)';
+  } else {
+    listTitle.textContent = '📋 ประวัติการยื่นคำขอไปราชการของคุณ';
+  }
+  
+  try {
+    const url = currentUser.role === 'admin' 
+      ? `${API_BASE_URL}/api/travel`
+      : `${API_BASE_URL}/api/travel?userId=${currentUser.userId}`;
+      
+    const res = await fetch(url);
+    const travels = await res.json();
+    
+    const tbody = document.getElementById('travel-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    if (travels.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding:16px; color:var(--neutral-400);">ไม่มีรายการคำขอไปราชการ</td></tr>`;
+      return;
+    }
+    
+    travels.forEach(t => {
+      let actionHtml = '-';
+      if (currentUser.role === 'admin' && t.status === 'รอการอนุมัติ') {
+        actionHtml = `
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-primary btn-sm" onclick="approveTravel('${t.travelId}', 'อนุมัติ')" style="padding:4px 8px; font-size:11px;">อนุมัติ</button>
+            <button class="btn btn-danger btn-sm" onclick="approveTravel('${t.travelId}', 'ไม่อนุมัติ')" style="padding:4px 8px; font-size:11px; background:#ef4444; border-color:#ef4444; color:white;">ปฏิเสธ</button>
+          </div>
+        `;
+      }
+      
+      const budgetText = parseFloat(t.budget) > 0 ? ` (งบ ${parseFloat(t.budget).toLocaleString()} บ.)` : '';
+      
+      tbody.innerHTML += `
+        <tr>
+          <td>
+            <div style="font-weight:600; color:var(--neutral-800);">${t.subject}</div>
+            <div style="font-size:11px; color:var(--neutral-500);">📍 ${t.destination}${budgetText}</div>
+            ${currentUser.role === 'admin' ? `<div style="font-size:11px; color:#0369a1; font-weight:500;">ผู้ขอ: ${t.fullName}</div>` : ''}
+          </td>
+          <td>
+            <div style="font-weight:500;">${formatDate(t.startDate)}</div>
+            <div style="font-size:11px; color:var(--neutral-500);">ถึง ${formatDate(t.endDate)}</div>
+          </td>
+          <td style="text-align:center; font-weight:bold;">${parseFloat(t.totalDays)}</td>
+          <td>${renderBadge(t.status)}</td>
+          <td>${actionHtml}</td>
+        </tr>
+      `;
+    });
+  } catch (err) {
+    console.error('Error loading travel history:', err);
+  }
+}
+
+async function approveTravel(travelId, status) {
+  const confirmText = status === 'อนุมัติ' ? 'อนุมัติคำขอไปราชการนี้?' : 'ปฏิเสธคำขอไปราชการนี้?';
+  const result = await Swal.fire({
+    title: 'ยืนยันการดำเนินการ',
+    text: confirmText,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'ยืนยัน',
+    cancelButtonText: 'ยกเลิก'
+  });
+  
+  if (result.isConfirmed) {
+    showLoading('กำลังบันทึกข้อมูล...');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/travel/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ travelId, status })
+      });
+      const data = await res.json();
+      if (data.success) {
+        Swal.fire('สำเร็จ', data.message, 'success');
+        loadTravelHistory();
+      } else {
+        showError(data.message);
+      }
+    } catch (err) {
+      showError('เกิดข้อผิดพลาด: ' + err.message);
+    }
+  }
+}
+
+async function handleTravelSubmit(e) {
+  e.preventDefault();
+  const subject = document.getElementById('travel-subject').value;
+  const destination = document.getElementById('travel-destination').value;
+  const startDate = document.getElementById('travel-start-date').value;
+  const endDate = document.getElementById('travel-end-date').value;
+  const totalDays = parseFloat(document.getElementById('travel-total-days').value);
+  const budget = parseFloat(document.getElementById('travel-budget').value) || 0;
+  const vehicleType = document.getElementById('travel-vehicle').value;
+  
+  if (totalDays <= 0) {
+    Swal.fire('ข้อผิดพลาด', 'วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด', 'error');
+    return;
+  }
+  
+  showLoading('กำลังยื่นคำขอไปราชการ...');
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/travel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: currentUser.userId,
+        fullName: currentUser.fullName,
+        subject,
+        destination,
+        startDate,
+        endDate,
+        totalDays,
+        budget,
+        vehicleType
+      })
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      Swal.fire('สำเร็จ', 'ยื่นคำขอไปราชการเรียบร้อยแล้ว', 'success');
+      initTravelPage();
+    } else {
+      showError(data.message);
+    }
+  } catch (err) {
+    showError('เกิดข้อผิดพลาด: ' + err.message);
+  }
+}
+
+async function initTravelReportPage() {
+  if (!currentUser) return;
+  document.getElementById('travel-report-form').reset();
+  await loadApprovedTravelsDropdown();
+  await loadTravelReportsHistory();
+}
+
+async function loadApprovedTravelsDropdown() {
+  const select = document.getElementById('report-travel-select');
+  if (!select) return;
+  select.innerHTML = '<option value="">-- กรุณาเลือกรายการ --</option>';
+  
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/travel?userId=${currentUser.userId}`);
+    const travels = await res.json();
+    const approved = travels.filter(t => t.status === 'อนุมัติ');
+    
+    if (approved.length === 0) {
+      select.innerHTML = '<option value="">-- ไม่มีประวัติเดินทางที่อนุมัติ --</option>';
+      return;
+    }
+    
+    approved.forEach(t => {
+      const option = document.createElement('option');
+      option.value = t.travelId;
+      option.textContent = `${t.subject} ณ ${t.destination} (${formatDate(t.startDate)} - ${formatDate(t.endDate)})`;
+      select.appendChild(option);
+    });
+  } catch (err) {
+    console.error('Error loading approved travels for dropdown:', err);
+  }
+}
+
+async function loadTravelReportsHistory() {
+  try {
+    const url = currentUser.role === 'admin'
+      ? `${API_BASE_URL}/api/travel-report`
+      : `${API_BASE_URL}/api/travel-report?userId=${currentUser.userId}`;
+      
+    const res = await fetch(url);
+    const reports = await res.json();
+    
+    const tbody = document.getElementById('travel-report-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    if (reports.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="3" class="text-center" style="padding:16px; color:var(--neutral-400);">ไม่มีประวัติรายงานราชการ</td></tr>`;
+      return;
+    }
+    
+    reports.forEach(r => {
+      tbody.innerHTML += `
+        <tr>
+          <td>
+            <div style="font-weight:600; color:var(--neutral-800);">${r.subject}</div>
+            <div style="font-size:11px; color:var(--neutral-500);">📍 ${r.destination} (${formatDate(r.startDate)} - ${formatDate(r.endDate)})</div>
+            ${currentUser.role === 'admin' ? `<div style="font-size:11px; color:#0369a1; font-weight:500;">ผู้เขียน: ${r.fullName}</div>` : ''}
+          </td>
+          <td>
+            <div style="font-weight:500; color:var(--neutral-700);">📝 รายละเอียดภารกิจ:</div>
+            <div style="font-size:12px; margin-bottom:4px; white-space:pre-line;">${r.reportDetail}</div>
+            <div style="font-weight:500; color:var(--neutral-700);">💡 ประโยชน์ได้รับ:</div>
+            <div style="font-size:12px; white-space:pre-line;">${r.benefits}</div>
+          </td>
+          <td>
+            <div style="font-size:11px; color:var(--neutral-500);">${formatDate(r.createdAt)}</div>
+          </td>
+        </tr>
+      `;
+    });
+  } catch (err) {
+    console.error('Error loading travel reports:', err);
+  }
+}
+
+async function handleTravelReportSubmit(e) {
+  e.preventDefault();
+  const travelId = document.getElementById('report-travel-select').value;
+  const reportDetail = document.getElementById('report-detail').value;
+  const benefits = document.getElementById('report-benefits').value;
+  
+  if (!travelId) {
+    Swal.fire('ข้อผิดพลาด', 'กรุณาเลือกรายการที่ไปราชการ', 'error');
+    return;
+  }
+  
+  showLoading('กำลังบันทึกรายงาน...');
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/travel-report`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        travelId,
+        userId: currentUser.userId,
+        fullName: currentUser.fullName,
+        reportDetail,
+        benefits
+      })
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      Swal.fire('สำเร็จ', 'ส่งรายงานผลไปราชการเรียบร้อยแล้ว', 'success');
+      initTravelReportPage();
+    } else {
+      showError(data.message);
+    }
+  } catch (err) {
+    showError('เกิดข้อผิดพลาด: ' + err.message);
+  }
+}
+
+// ==========================================
+// --- Training Record Controllers ---
+// ==========================================
+
+async function initTrainingPage() {
+  if (!currentUser) return;
+  document.getElementById('training-form').reset();
+  await loadTrainingHistory();
+}
+
+async function loadTrainingHistory() {
+  try {
+    const url = currentUser.role === 'admin'
+      ? `${API_BASE_URL}/api/training`
+      : `${API_BASE_URL}/api/training?userId=${currentUser.userId}`;
+      
+    const res = await fetch(url);
+    const trainings = await res.json();
+    
+    const tbody = document.getElementById('training-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    let totalHours = 0;
+    
+    if (trainings.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="3" class="text-center" style="padding:16px; color:var(--neutral-400);">ไม่มีประวัติการบันทึกอบรม</td></tr>`;
+      const hrsEl = document.getElementById('training-total-hours');
+      if (hrsEl) hrsEl.textContent = `ชั่วโมงสะสม: 0 ชม.`;
+      return;
+    }
+    
+    trainings.forEach(t => {
+      const hrs = parseFloat(t.hours) || 0;
+      totalHours += hrs;
+      
+      tbody.innerHTML += `
+        <tr>
+          <td>
+            <div style="font-weight:600; color:var(--neutral-800);">${t.courseName}</div>
+            <div style="font-size:11px; color:var(--neutral-500);">🏢 จัดโดย: ${t.organizer} | 📍 ${t.location}</div>
+            ${currentUser.role === 'admin' ? `<div style="font-size:11px; color:#4f46e5; font-weight:500;">ผู้บันทึก: ${t.fullName}</div>` : ''}
+          </td>
+          <td>
+            <div style="font-size:12px; font-weight:500;">${formatDate(t.startDate)}</div>
+            <div style="font-size:11px; color:var(--neutral-500);">ถึง ${formatDate(t.endDate)}</div>
+          </td>
+          <td style="text-align:center; font-weight:bold; color:#4f46e5;">${hrs} ชม.</td>
+        </tr>
+      `;
+    });
+    
+    const hrsEl = document.getElementById('training-total-hours');
+    if (hrsEl) hrsEl.textContent = `ชั่วโมงสะสม: ${totalHours} ชม.`;
+  } catch (err) {
+    console.error('Error loading training history:', err);
+  }
+}
+
+async function handleTrainingSubmit(e) {
+  e.preventDefault();
+  const courseName = document.getElementById('training-course').value;
+  const organizer = document.getElementById('training-organizer').value;
+  const startDate = document.getElementById('training-start-date').value;
+  const endDate = document.getElementById('training-end-date').value;
+  const location = document.getElementById('training-location').value;
+  const hours = parseFloat(document.getElementById('training-hours').value);
+  
+  if (hours <= 0) {
+    Swal.fire('ข้อผิดพลาด', 'ชั่วโมงอบรมต้องมากกว่า 0', 'error');
+    return;
+  }
+  
+  showLoading('กำลังบันทึกประวัติการอบรม...');
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/training`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: currentUser.userId,
+        fullName: currentUser.fullName,
+        courseName,
+        organizer,
+        startDate,
+        endDate,
+        hours,
+        location
+      })
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      Swal.fire('สำเร็จ', 'บันทึกประวัติการอบรมเรียบร้อยแล้ว', 'success');
+      initTrainingPage();
+    } else {
+      showError(data.message);
+    }
+  } catch (err) {
+    showError('เกิดข้อผิดพลาด: ' + err.message);
+  }
+}
+
+// ==========================================
+// --- Activity Board Controllers ---
+// ==========================================
+
+async function initActivityPage() {
+  if (!currentUser) return;
+  
+  const adminCard = document.getElementById('activity-admin-card');
+  const userCard = document.getElementById('activity-user-card');
+  
+  if (adminCard && userCard) {
+    if (currentUser.role === 'admin') {
+      adminCard.style.display = 'block';
+      userCard.style.display = 'none';
+      const f = document.getElementById('activity-create-form');
+      if (f) f.reset();
+    } else {
+      adminCard.style.display = 'none';
+      userCard.style.display = 'block';
+    }
+  }
+  
+  await loadActivitiesBoard();
+}
+
+async function loadActivitiesBoard() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/activities?userId=${currentUser.userId}`);
+    const acts = await res.json();
+    
+    const board = document.getElementById('activities-board-container');
+    if (!board) return;
+    board.innerHTML = '';
+    
+    if (acts.length === 0) {
+      board.innerHTML = `<div style="text-align:center; padding:32px; color:var(--neutral-400);">ยังไม่มีประกาศกิจกรรมใด ๆ ในระบบ</div>`;
+      return;
+    }
+    
+    acts.forEach(act => {
+      let regButtonHtml = '';
+      if (act.isRegistered) {
+        regButtonHtml = `<span style="background:#e6f4ea; color:#137333; padding:6px 16px; border-radius:99px; font-size:0.85rem; font-weight:700; border:1px solid #137333;">✓ เข้าร่วมแล้ว</span>`;
+      } else {
+        regButtonHtml = `<button class="btn btn-primary btn-sm" onclick="registerActivity('${act.activityId}')" style="padding:6px 16px; font-size:0.85rem;">🙋 ยืนยันการเข้าร่วม</button>`;
+      }
+      
+      let viewParticipantsHtml = `<button class="btn btn-outline btn-sm" onclick="viewParticipants('${act.activityId}', '${act.activityName}')" style="padding:6px 12px; font-size:0.8rem; border-radius:99px;">👥 ดูผู้เข้าร่วม</button>`;
+      
+      board.innerHTML += `
+        <div class="glass-card" style="border-left: 6px solid #0d9488; padding:16px 20px; display:flex; flex-direction:column; gap:12px; transition: var(--transition); border-top:none; border-right:none; border-bottom:none; margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:start; flex-wrap:wrap; gap:8px;">
+            <div>
+              <h4 style="font-size:1.05rem; font-weight:700; color:var(--neutral-800); margin:0;">${act.activityName}</h4>
+              <p style="font-size:0.85rem; color:var(--neutral-500); margin:4px 0 0 0;">📅 ${formatDate(act.activityDate)} | 📍 ${act.location}</p>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              ${regButtonHtml}
+              ${viewParticipantsHtml}
+            </div>
+          </div>
+        </div>
+      `;
+    });
+  } catch (err) {
+    console.error('Error loading activities board:', err);
+  }
+}
+
+async function registerActivity(activityId) {
+  showLoading('กำลังดำเนินการ...');
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/activities/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        activityId,
+        userId: currentUser.userId,
+        fullName: currentUser.fullName,
+        position: currentUser.position
+      })
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      Swal.fire('สำเร็จ', 'ยืนยันการเข้าร่วมกิจกรรมวิทยาลัยเรียบร้อยแล้ว', 'success');
+      loadActivitiesBoard();
+    } else {
+      showError(data.message);
+    }
+  } catch (err) {
+    showError('เกิดข้อผิดพลาด: ' + err.message);
+  }
+}
+
+async function viewParticipants(activityId, activityName) {
+  showLoading('กำลังดึงรายชื่อผู้เข้าร่วม...');
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/activities/participants/${activityId}`);
+    const participants = await res.json();
+    
+    const titleEl = document.getElementById('participants-modal-title');
+    const tbody = document.getElementById('participants-table-body');
+    
+    if (titleEl) titleEl.textContent = `ผู้ร่วมงาน: ${activityName}`;
+    if (tbody) {
+      tbody.innerHTML = '';
+      if (participants.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="text-center" style="padding:16px; color:var(--neutral-400);">ยังไม่มีผู้ลงชื่อเข้าร่วม</td></tr>`;
+      } else {
+        participants.forEach(p => {
+          tbody.innerHTML += `
+            <tr>
+              <td style="font-weight:500;">${p.fullName}</td>
+              <td>${p.position}</td>
+              <td style="font-size:11px; color:var(--neutral-500);">${formatDate(p.registeredAt, true)}</td>
+            </tr>
+          `;
+        });
+      }
+    }
+    
+    const modal = document.getElementById('modal-participants');
+    if (modal) modal.classList.remove('hidden');
+    Swal.close();
+  } catch (err) {
+    showError('เกิดข้อผิดพลาด: ' + err.message);
+  }
+}
+
+async function handleActivityCreate(e) {
+  e.preventDefault();
+  const activityName = document.getElementById('act-name').value;
+  const activityDate = document.getElementById('act-date').value;
+  const location = document.getElementById('act-location').value;
+  
+  showLoading('กำลังสร้างกิจกรรม...');
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/activities`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activityName, activityDate, location })
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      Swal.fire('สำเร็จ', 'ประกาศกิจกรรมใหม่เรียบร้อยแล้ว', 'success');
+      initActivityPage();
+    } else {
+      showError(data.message);
+    }
+  } catch (err) {
+    showError('เกิดข้อผิดพลาด: ' + err.message);
+  }
+}
+
+// Bind callbacks globally
+window.approveTravel = approveTravel;
+window.registerActivity = registerActivity;
+window.viewParticipants = viewParticipants;
