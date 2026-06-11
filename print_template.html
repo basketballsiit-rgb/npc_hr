@@ -314,7 +314,7 @@
   <script>
     // Configuration API BASE URL
     const API_BASE_URL = !window.location.origin.includes('service.npc.ac.th')
-      ? `http://${window.location.hostname}:5000`
+      ? `http://${window.location.hostname || 'localhost'}:5000`
       : 'https://service.npc.ac.th/npc_eleve_backend';
 
     function formatDateThai(dateStr) {
