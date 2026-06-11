@@ -350,6 +350,11 @@
         
         const leave = await response.json();
         
+        // Update document title for PDF file saving name
+        if (leave.fullName) {
+          document.title = `ใบลา_${leave.fullName}`;
+        }
+
         // Populate DOM elements
         document.getElementById('doc-request-date-thai').textContent = formatDateThai(leave.requestDate);
         document.getElementById('leave-subject').textContent = `ขออนุญาต${leave.leaveType}`;
