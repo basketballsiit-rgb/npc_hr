@@ -1,8 +1,8 @@
 // ================================================================= */
 //                     FRONTEND CONTROLLER (Vanilla JS)              */
-//*  Filename: app.js
-    Description: Frontend Controller for ระบบบริหารงานบุคลากร วิทยาลัยสารพัดช่างน่าน             */
+//                     ระบบบริหารงานบุคลากร วิทยาลัยสารพัดช่างน่าน             */
 // ================================================================= */
+
 
 // Automatically detect backend API domain
 const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
