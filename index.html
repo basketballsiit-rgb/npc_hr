@@ -22,15 +22,15 @@
     <header class="header">
       <nav class="nav-container">
         <div class="logo-area">
+          <button id="sidebar-toggle-btn" class="btn-toggle">
+            <svg style="width: 24px; height: 24px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
           <div class="logo-icon">
             <img src="https://img2.pic.in.th/pic/Logo-.641ef5fae2216b71.png" alt="Logo" onerror="this.style.display='none'">
           </div>
           <a href="#" id="home-link" class="logo-text">ระบบบริหารงานบุคลากร</a>
-        </div>
-        
-        <!-- Desktop Menu Links -->
-        <div id="nav-menu" class="nav-menu">
-          <!-- Populated dynamically by app.js -->
         </div>
         
         <!-- Auth Actions / User Menu -->
@@ -42,24 +42,22 @@
           <div id="user-menu" class="hidden">
             <!-- Populated dynamically after login by app.js -->
           </div>
-          <button id="mobile-menu-btn" class="btn btn-outline btn-sm" style="display:none; padding:8px; border-radius:10px;">
-            <svg style="width:24px; height:24px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
         </div>
       </nav>
-      
-      <!-- Mobile Dropdown Menu -->
-      <div id="mobile-menu" class="hidden" style="background:#ffffff; border-bottom:1px solid var(--neutral-200); box-shadow:var(--shadow-md);">
-        <div id="mobile-nav-links" style="padding: 8px 16px; display:flex; flex-direction:column; gap:4px;">
-          <!-- Populated dynamically by app.js -->
-        </div>
-      </div>
     </header>
 
-    <!-- Main Content Panel -->
-    <main class="main-content">
+    <!-- App Body (Sidebar + Content Container) -->
+    <div class="app-body">
+      <!-- Left Sidebar -->
+      <aside id="sidebar" class="sidebar">
+        <div id="nav-menu" class="nav-menu">
+          <!-- Populated dynamically by app.js -->
+        </div>
+      </aside>
+
+      <!-- Main Content Panel & Footer Container -->
+      <div class="main-container" style="display:flex; flex-direction:column; flex-grow:1; min-width:0;">
+        <main class="main-content">
 
       <!-- 0. Unified Portal Home Page -->
       <div id="portal-page" class="page">
@@ -1000,15 +998,17 @@
         </div>
       </div>
 
-    </main>
+        </main>
 
-    <!-- Footer -->
-    <footer class="footer">
-      <p class="footer-text">© 2026 ระบบบริหารงานบุคลากร วิทยาลัยสารพัดช่างน่าน</p>
-      <p class="footer-author">พัฒนาเป็นเว็บแอปพลิเคชันโดย นายนิพนธ์ ร่องพืช</p>
-    </footer>
+        <!-- Footer -->
+        <footer class="footer">
+          <p class="footer-text">© 2026 ระบบบริหารงานบุคลากร วิทยาลัยสารพัดช่างน่าน</p>
+          <p class="footer-author">พัฒนาเป็นเว็บแอปพลิเคชันโดย นายนิพนธ์ ร่องพืช</p>
+        </footer>
+      </div> <!-- Close main-container -->
+    </div> <!-- Close app-body -->
 
-  </div>
+  </div> <!-- Close app-container -->
 
   <!-- Click handler inputs trigger -->
   <script>

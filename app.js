@@ -40,7 +40,8 @@ function showPage(pageId) {
   window.scrollTo(0, 0);
   
   // Close mobile menu if open
-  document.getElementById('mobile-menu').classList.add('hidden');
+  const mobileMenu = document.getElementById('mobile-menu');
+  if (mobileMenu) mobileMenu.classList.add('hidden');
 }
 
 let redirectAfterLogin = null;
@@ -79,12 +80,25 @@ window.enterModule = enterModule;
 
 // Initialize on Load
 document.addEventListener('DOMContentLoaded', async () => {
-  // Mobile menu button
-  const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-  const mobileMenu = document.getElementById('mobile-menu');
-  mobileMenuBtn.addEventListener('click', () => {
-    mobileMenu.classList.toggle('hidden');
-  });
+  // Sidebar toggle button
+  const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+  const appContainer = document.querySelector('.app-container');
+  if (sidebarToggleBtn && appContainer) {
+    sidebarToggleBtn.addEventListener('click', () => {
+      appContainer.classList.toggle('sidebar-collapsed');
+      appContainer.classList.toggle('sidebar-active');
+    });
+  }
+
+  // Close sidebar on mobile when clicking on main content
+  const mainContent = document.querySelector('.main-content');
+  if (mainContent && appContainer) {
+    mainContent.addEventListener('click', () => {
+      if (appContainer.classList.contains('sidebar-active')) {
+        appContainer.classList.remove('sidebar-active');
+      }
+    });
+  }
 
   // Home logo link
   document.getElementById('home-link').addEventListener('click', (e) => {
@@ -419,56 +433,64 @@ function updateUIAfterLogout() {
 function buildNavigation() {
   const navMenu = document.getElementById('nav-menu');
   const mobileNav = document.getElementById('mobile-nav-links');
-  navMenu.innerHTML = '';
-  mobileNav.innerHTML = '';
+  if (navMenu) navMenu.innerHTML = '';
+  if (mobileNav) mobileNav.innerHTML = '';
 
   let menuItems = [
-    { text: 'หน้าหลักพอร์ทัล', page: 'portal-page', action: () => showPage('portal-page') }
+    { text: 'หน้าหลักพอร์ทัล', icon: '🏠', page: 'portal-page', action: () => showPage('portal-page') }
   ];
 
   if (currentUser) {
     // Add Portal Links
-    menuItems.push({ text: 'ระบบการยื่นลา', page: 'dashboard-page', action: loadDashboardData });
-    menuItems.push({ text: 'ระบบขอไปราชการ', page: 'travel-page', action: initTravelPage });
-    menuItems.push({ text: 'ระบบรายงานราชการ', page: 'travel-report-page', action: initTravelReportPage });
-    menuItems.push({ text: 'ระบบบันทึกอบรม', page: 'training-page', action: initTrainingPage });
-    menuItems.push({ text: 'ระบบเข้าร่วมกิจกรรม', page: 'activity-page', action: initActivityPage });
+    menuItems.push({ text: 'ระบบการยื่นลา', icon: '📅', page: 'dashboard-page', action: loadDashboardData });
+    menuItems.push({ text: 'ระบบขอไปราชการ', icon: '✈️', page: 'travel-page', action: initTravelPage });
+    menuItems.push({ text: 'ระบบรายงานราชการ', icon: '📝', page: 'travel-report-page', action: initTravelReportPage });
+    menuItems.push({ text: 'ระบบบันทึกอบรม', icon: '🎓', page: 'training-page', action: initTrainingPage });
+    menuItems.push({ text: 'ระบบเข้าร่วมกิจกรรม', icon: '👥', page: 'activity-page', action: initActivityPage });
 
     if (currentUser.role === 'admin') {
       menuItems.push(
-        { text: 'เช็คชื่อปฏิบัติงาน', page: 'attendance-page', action: initAttendancePage },
-        { text: 'พิจารณาอนุมัติการลา', page: 'approval-page', action: loadApprovalPage },
-        { text: 'รายงานสรุปการลา', page: 'report-page', action: loadReportPage },
-        { text: 'จัดการผู้ใช้งาน', page: 'user-management-page', action: loadUserManagementPage }
+        { text: 'เช็คชื่อปฏิบัติงาน', icon: '⏱️', page: 'attendance-page', action: initAttendancePage },
+        { text: 'พิจารณาอนุมัติการลา', icon: '⚖️', page: 'approval-page', action: loadApprovalPage },
+        { text: 'รายงานสรุปการลา', icon: '📊', page: 'report-page', action: loadReportPage },
+        { text: 'จัดการผู้ใช้งาน', icon: '⚙️', page: 'user-management-page', action: loadUserManagementPage }
       );
     }
   }
 
   menuItems.forEach(item => {
-    // Desktop Nav
+    // Desktop Nav (Sidebar)
     const dLink = document.createElement('a');
-    dLink.textContent = item.text;
+    dLink.innerHTML = `<span style="font-size: 1.15rem; width: 24px; text-align: center;">${item.icon}</span> <span>${item.text}</span>`;
     dLink.className = 'nav-link';
     dLink.setAttribute('data-page', item.page);
     dLink.onclick = (e) => {
       e.preventDefault();
       showPage(item.page);
       if (item.action) item.action();
+      
+      // Auto close sidebar on mobile screen size after click
+      const appContainer = document.querySelector('.app-container');
+      if (appContainer) appContainer.classList.remove('sidebar-active');
     };
-    navMenu.appendChild(dLink);
+    if (navMenu) navMenu.appendChild(dLink);
 
-    // Mobile Nav
-    const mLink = document.createElement('a');
-    mLink.textContent = item.text;
-    mLink.className = 'nav-link';
-    mLink.style.display = 'block';
-    mLink.style.padding = '12px 16px';
-    mLink.onclick = (e) => {
-      e.preventDefault();
-      showPage(item.page);
-      if (item.action) item.action();
-    };
-    mobileNav.appendChild(mLink);
+    // Mobile Nav fallback if present
+    if (mobileNav) {
+      const mLink = document.createElement('a');
+      mLink.innerHTML = `<span style="font-size: 1.15rem; width: 24px; text-align: center;">${item.icon}</span> <span>${item.text}</span>`;
+      mLink.className = 'nav-link';
+      mLink.style.display = 'flex';
+      mLink.style.alignItems = 'center';
+      mLink.style.gap = '12px';
+      mLink.style.padding = '12px 16px';
+      mLink.onclick = (e) => {
+        e.preventDefault();
+        showPage(item.page);
+        if (item.action) item.action();
+      };
+      mobileNav.appendChild(mLink);
+    }
   });
 
   // Populate Dropdown items if user logged in
@@ -481,7 +503,7 @@ function buildNavigation() {
       menuItems.slice(1).forEach(item => {
         const dropLink = document.createElement('button');
         dropLink.className = 'user-dropdown-item';
-        dropLink.textContent = item.text;
+        dropLink.innerHTML = `<span style="margin-right: 8px;">${item.icon}</span> ${item.text}`;
         dropLink.onclick = () => {
           showPage(item.page);
           if (item.action) item.action();
