@@ -45,7 +45,7 @@ function showPage(pageId) {
 }
 
 let redirectAfterLogin = null;
-function enterModule(pageId, adminOnly) {
+async function enterModule(pageId, adminOnly) {
   if (!currentUser) {
     redirectAfterLogin = { pageId, adminOnly };
     showLoginModal();
@@ -58,14 +58,36 @@ function enterModule(pageId, adminOnly) {
   }
 
   if (pageId === 'activity-page') {
+    // Check if we already have aprStaffId in the session
+    if (!currentUser.aprStaffId) {
+      showLoading('กำลังเข้าสู่ระบบกิจกรรม...');
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/get-apr-id?username=${currentUser.username}`);
+        const data = await res.json();
+        if (data.success && data.aprStaffId) {
+          currentUser.aprStaffId = data.aprStaffId;
+          sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+        }
+      } catch (e) {
+        console.error('Failed to fetch APR staff ID dynamically:', e);
+      }
+      Swal.close();
+    }
+
     const srsUser = {
-      id: currentUser.userId,
+      id: currentUser.aprStaffId || currentUser.userId,
       staff_code: currentUser.username,
       full_name: currentUser.fullName,
       role: currentUser.role
     };
     localStorage.setItem('srs_user', JSON.stringify(srsUser));
-    window.location.href = 'https://service.npc.ac.th/APR';
+
+    // Environment-aware redirection URL
+    const targetUrl = window.location.origin.includes('localhost') 
+      ? 'http://localhost/APR' 
+      : 'https://service.npc.ac.th/APR';
+    
+    window.location.href = targetUrl;
     return;
   }
   

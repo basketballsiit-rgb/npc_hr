@@ -191,6 +191,24 @@ app.post('/api/auth/login', async (req, res) => {
       return res.json({ success: false, message: 'บัญชีของคุณยังไม่ได้รับการอนุมัติการใช้งาน' });
     }
 
+    // --- Look up APR staff ID from APR database or srs_db database ---
+    let aprStaffId = null;
+    try {
+      const [staffRows] = await db.query('SELECT id FROM APR.staffs WHERE staff_code = ? AND is_active = 1', [username]);
+      if (staffRows.length > 0) {
+        aprStaffId = staffRows[0].id;
+      }
+    } catch (err) {
+      try {
+        const [staffRows] = await db.query('SELECT id FROM srs_db.staffs WHERE staff_code = ? AND is_active = 1', [username]);
+        if (staffRows.length > 0) {
+          aprStaffId = staffRows[0].id;
+        }
+      } catch (err2) {
+        console.error('Failed to look up staff ID in APR or srs_db:', err2.message);
+      }
+    }
+
     res.json({
       success: true,
       user: {
@@ -198,13 +216,41 @@ app.post('/api/auth/login', async (req, res) => {
         fullName: user.fullName,
         position: user.position,
         username: user.username,
-        role: user.role
+        role: user.role,
+        aprStaffId: aprStaffId
       }
     });
   } catch (error) {
     console.error('Login error:', error.message);
     res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดภายในระบบ: ' + error.message });
   }
+});
+
+// Endpoint to fetch APR staff ID dynamically (fallback for users logged in prior to updates)
+app.get('/api/auth/get-apr-id', async (req, res) => {
+  const { username } = req.query;
+  if (!username) {
+    return res.status(400).json({ success: false, message: 'กรุณาระบุ username' });
+  }
+
+  let aprStaffId = null;
+  try {
+    const [staffRows] = await db.query('SELECT id FROM APR.staffs WHERE staff_code = ? AND is_active = 1', [username]);
+    if (staffRows.length > 0) {
+      aprStaffId = staffRows[0].id;
+    }
+  } catch (err) {
+    try {
+      const [staffRows] = await db.query('SELECT id FROM srs_db.staffs WHERE staff_code = ? AND is_active = 1', [username]);
+      if (staffRows.length > 0) {
+        aprStaffId = staffRows[0].id;
+      }
+    } catch (err2) {
+      console.error('Failed to look up staff ID in APR or srs_db:', err2.message);
+    }
+  }
+
+  res.json({ success: true, aprStaffId });
 });
 
 // 2. User Management (Admin Only)
