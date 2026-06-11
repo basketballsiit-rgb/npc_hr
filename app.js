@@ -482,7 +482,6 @@ function buildNavigation() {
     menuItems.push({ text: 'ระบบขอไปราชการ', icon: '✈️', page: 'travel-page', action: initTravelPage });
     menuItems.push({ text: 'ระบบรายงานราชการ', icon: '📝', page: 'travel-report-page', action: initTravelReportPage });
     menuItems.push({ text: 'ระบบบันทึกอบรม', icon: '🎓', page: 'training-page', action: initTrainingPage });
-    menuItems.push({ text: 'ระบบเข้าร่วมกิจกรรม', icon: '👥', page: 'activity-page', action: initActivityPage });
 
     if (currentUser.role === 'admin') {
       menuItems.push(
