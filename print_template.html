@@ -332,6 +332,19 @@
       }
     }
 
+    function getSignatureSrc(sigUrl) {
+      if (!sigUrl) return '';
+      const str = String(sigUrl).trim();
+      if (str.startsWith('http://') || str.startsWith('https://')) {
+        return str;
+      }
+      if (str.startsWith('/uploads/')) {
+        return `${API_BASE_URL}${str}`;
+      }
+      // Otherwise, it is a Google Drive file ID
+      return `https://lh3.googleusercontent.com/d/${str}`;
+    }
+
     window.addEventListener('DOMContentLoaded', async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const leaveId = urlParams.get('leaveId');
@@ -396,7 +409,7 @@
 
         // Load signature image
         if (leave.signatureUrl) {
-          document.getElementById('user-signature').src = `${API_BASE_URL}${leave.signatureUrl}`;
+          document.getElementById('user-signature').src = getSignatureSrc(leave.signatureUrl);
         }
 
         // Fetch and populate stats table
@@ -447,7 +460,7 @@
         if (leave.status !== 'รอการอนุมัติ') {
           if (leave.approverSignatureUrl) {
             const appSigImg = document.getElementById('approver-signature');
-            appSigImg.src = `${API_BASE_URL}${leave.approverSignatureUrl}`;
+            appSigImg.src = getSignatureSrc(leave.approverSignatureUrl);
             appSigImg.style.display = 'block';
           }
           
