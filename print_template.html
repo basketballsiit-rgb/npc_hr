@@ -9,20 +9,20 @@
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: 'Sarabun', sans-serif;
+      font-family: 'TH Sarabun PSK', 'TH Sarabun New', 'Sarabun', sans-serif;
       background: #ffffff;
       color: #000000;
       margin: 0;
       padding: 0;
-      font-size: 16px;
-      line-height: 1.6;
+      font-size: 16pt; /* Official Thai government font size */
+      line-height: 1.25; /* TH Sarabun has high built-in line spacing */
     }
     
     .a4-page {
       width: 210mm;
       min-height: 297mm;
       margin: 0 auto;
-      padding: 10mm 15mm 10mm 15mm; /* Reduced paddings to prevent overflow */
+      padding: 20mm 15mm 15mm 20mm; /* Official Saraban margins */
       box-sizing: border-box;
       position: relative;
       background: #ffffff;
@@ -31,49 +31,49 @@
     .header-title {
       text-align: center;
       font-weight: bold;
-      font-size: 19px; /* Reduced header font-size */
-      margin-bottom: 8px;
+      font-size: 20pt; /* Large title font-size */
+      margin-bottom: 15px;
     }
 
     .doc-meta {
       text-align: right;
-      margin-bottom: 8px;
-      line-height: 1.35;
-      font-size: 13.5px;
+      margin-bottom: 15px;
+      line-height: 1.25;
+      font-size: 16pt;
     }
 
     .doc-subject {
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       font-weight: bold;
-      font-size: 14px;
+      font-size: 16pt;
     }
 
     .doc-salutation {
-      margin-bottom: 6px;
-      font-size: 14px;
+      margin-bottom: 8px;
+      font-size: 16pt;
     }
 
     .doc-body {
       text-indent: 2.5cm;
       text-align: justify;
-      margin-bottom: 8px;
-      line-height: 1.55; /* Compressed line-height */
-      font-size: 14px;   /* Reduced base font-size */
+      margin-bottom: 12px;
+      line-height: 1.35;
+      font-size: 16pt;
     }
 
     .doc-last-leave {
       border: 1px solid #000000;
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
 
     .doc-last-leave th, .doc-last-leave td {
       border: 1px solid #000000;
-      padding: 3px; /* Reduced cell padding */
+      padding: 3px;
       text-align: center;
-      font-size: 11px; /* Reduced table font-size slightly more */
-      white-space: nowrap; /* Prevent text wrapping inside cells */
+      font-size: 13pt; /* Legible table text */
+      white-space: nowrap; /* Prevent cell content wrapping */
     }
 
     .sig-image {
@@ -109,13 +109,15 @@
       }
       body {
         background: #ffffff;
-        font-size: 13.5px;
+        font-family: 'TH Sarabun PSK', 'TH Sarabun New', 'Sarabun', sans-serif;
+        font-size: 16pt;
+        line-height: 1.25;
         margin: 0;
       }
       .a4-page {
         width: 100%;
         height: auto;
-        padding: 15mm 15mm 10mm 15mm !important; /* Margin for print content */
+        padding: 20mm 15mm 15mm 20mm !important;
         margin: 0;
         box-shadow: none;
       }
@@ -123,8 +125,8 @@
         display: none !important;
       }
       .doc-body {
-        font-size: 13px !important; /* Slightly smaller body font size for printing */
-        line-height: 1.45 !important;
+        font-size: 16pt !important;
+        line-height: 1.35 !important;
       }
       .doc-last-leave, .sig-image, table, tr, td {
         page-break-inside: avoid; /* Prevent browser from breaking key blocks */
@@ -186,41 +188,41 @@
     <div class="doc-salutation">เรียน ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน</div>
 
     <!-- Main Body Paragraph (structured exactly as File 2) -->
-    <div class="doc-body" style="line-height: 1.55; font-size: 14px;">
-      <div style="text-indent: 2.5cm; margin-bottom: 2px;">
+    <div class="doc-body" style="line-height: 1.35; font-size: 16pt;">
+      <div style="text-indent: 2.5cm; margin-bottom: 3px;">
         ข้าพเจ้า <span id="user-name">......</span> ตำแหน่ง <span id="user-position">......</span> สังกัด วิทยาลัยสารพัดช่างน่าน
       </div>
-      <div style="margin-bottom: 2px;">
+      <div style="margin-bottom: 3px;">
         ขอ<span id="leave-type">......</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;เนื่องจาก <span id="leave-reason">......</span>
       </div>
-      <div style="margin-bottom: 2px;">
+      <div style="margin-bottom: 3px;">
         ตั้งแต่วันที่ <span id="start-date-full">......</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ถึงวันที่ <span id="end-date-full">......</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;มีกำหนด <span id="total-days">......</span> วัน
       </div>
-      <div style="margin-bottom: 2px;">
+      <div style="margin-bottom: 3px;">
         และในการลาครั้งนี้ ข้าพเจ้าได้มอบหมายงาน / การสอนให้กับ <span id="teacher-name">......</span>
       </div>
-      <div style="margin-bottom: 2px;">
+      <div style="margin-bottom: 3px;">
         ผู้รับผิดชอบ/สอนแทนในวิชา <span id="subject-name">......</span>
       </div>
-      <div style="text-indent: 2.5cm; margin-bottom: 2px;">
+      <div style="text-indent: 2.5cm; margin-bottom: 3px;">
         ข้าพเจ้าได้ลา <span id="last-leave-type">......</span> ครั้งสุดท้าย
       </div>
-      <div style="margin-bottom: 2px;">
+      <div style="margin-bottom: 3px;">
         ตั้งแต่วันที่ <span id="last-leave-start">....................................</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ถึง วันที่ <span id="last-leave-end">....................................</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;มีกำหนด <span id="last-leave-days">......</span> วัน
       </div>
-      <div style="margin-bottom: 2px;">
+      <div style="margin-bottom: 3px;">
         ในระหว่างลาครั้งนี้จะติดต่อข้าพเจ้าได้ที่ <span id="contact-address">......</span>
       </div>
-      <div style="margin-bottom: 2px;">
+      <div style="margin-bottom: 3px;">
         หมายเลขโทรศัพท์ที่ติดต่อได้ <span id="contact-phone">......</span>
       </div>
     </div>
 
     <!-- Requestor Signature (ขอแสดงความนับถือ) -->
-    <div style="display: flex; justify-content: flex-end; margin-top: 5px; margin-bottom: 8px;">
-      <div style="width: 300px; text-align: center; line-height: 1.35; font-size: 14px;">
-        <div style="margin-bottom: 4px;">ขอแสดงความนับถือ</div>
-        <div style="height: 30px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px;">
+    <div style="display: flex; justify-content: flex-end; margin-top: 15px; margin-bottom: 15px;">
+      <div style="width: 300px; text-align: center; line-height: 1.25; font-size: 16pt;">
+        <div style="margin-bottom: 8px;">ขอแสดงความนับถือ</div>
+        <div style="height: 38px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px;">
           <img id="user-signature" class="sig-image" src="" alt="ลายเซ็นผู้ขอลา">
         </div>
         <div>(ลงชื่อ) .......................................................</div>
@@ -230,15 +232,15 @@
     </div>
 
     <!-- Divided Lower Section (Divided by a vertical line in the middle) -->
-    <div style="display: flex; border-top: 1px solid #000; margin-top: 8px; padding-top: 6px; font-size: 12.5px; gap: 4%;">
+    <div style="display: flex; border-top: 1px solid #000; margin-top: 15px; padding-top: 12px; font-size: 14pt; gap: 4%;">
       
       <!-- Left Column (48% width) -->
-      <div style="width: 48%; padding-right: 2%; border-right: 1px solid #000; display: flex; flex-direction: column; justify-content: space-between; min-height: 180px;">
+      <div style="width: 48%; padding-right: 2%; border-right: 1px solid #000; display: flex; flex-direction: column; justify-content: space-between; min-height: 200px;">
         <div>
-          <div class="bold text-center" style="margin-bottom: 4px;">สถิติการลาในปีงบประมาณนี้</div>
+          <div class="bold text-center" style="margin-bottom: 6px;">สถิติการลาในปีงบประมาณนี้</div>
           <table class="doc-last-leave">
             <thead>
-              <tr style="font-weight: bold;">
+              <tr style="font-weight: bold; white-space: nowrap;">
                 <th>ประเภทการลา</th>
                 <th>ลามาแล้ว (ครั้ง/วัน)</th>
                 <th>ลาครั้งนี้ (ครั้ง/วัน)</th>
