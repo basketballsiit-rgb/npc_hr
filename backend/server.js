@@ -126,6 +126,42 @@ async function sendLineFlexMessage(to, flexContent, altText) {
   }
 }
 
+// Helper to get all userIds for a person, matching by normalized name
+async function getUserIdsForUser(userId) {
+  try {
+    const [userRows] = await db.query('SELECT fullName FROM users WHERE userId = ?', [userId]);
+    if (userRows.length === 0) {
+      return [userId];
+    }
+    const targetFullName = userRows[0].fullName;
+    
+    const normalize = (name) => {
+      if (!name) return '';
+      return name
+        .replace(/\s+/g, '')
+        .replace(/^(นาย|นางสาว|นาง|น\.ส\.|ดร\.|อาจารย์)/, '');
+    };
+    
+    const targetNormalized = normalize(targetFullName);
+    
+    const [allUsers] = await db.query('SELECT userId, fullName FROM users');
+    const matchingIds = [];
+    allUsers.forEach(u => {
+      if (normalize(u.fullName) === targetNormalized) {
+        matchingIds.push(u.userId);
+      }
+    });
+    
+    if (matchingIds.length === 0) {
+      return [userId];
+    }
+    return matchingIds;
+  } catch (err) {
+    console.error('Error in getUserIdsForUser:', err);
+    return [userId];
+  }
+}
+
 // --- API ROUTES ---
 
 // 1. Authentication Routes
@@ -419,11 +455,13 @@ app.post('/api/leaves/history', async (req, res) => {
     const params = [];
 
     if (role !== 'admin') {
-      query += ' AND userId = ?';
-      params.push(userId);
+      const userIds = await getUserIdsForUser(userId);
+      query += ` AND userId IN (${userIds.map(() => '?').join(', ')})`;
+      params.push(...userIds);
     } else if (filterUserId && filterUserId !== 'all') {
-      query += ' AND userId = ?';
-      params.push(filterUserId);
+      const userIds = await getUserIdsForUser(filterUserId);
+      query += ` AND userId IN (${userIds.map(() => '?').join(', ')})`;
+      params.push(...userIds);
     }
 
     if (filterStartDate) {
@@ -447,9 +485,15 @@ app.post('/api/leaves/history', async (req, res) => {
 app.get('/api/leaves/last-approved/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
+    const userIds = await getUserIdsForUser(userId);
     const [rows] = await db.query(
-      "SELECT leaveType, startDate, endDate, totalDays FROM leave_data WHERE userId = ? AND status = 'อนุมัติ' ORDER BY startDate DESC LIMIT 1",
-      [userId]
+      `SELECT leaveType, startDate, endDate, totalDays 
+       FROM leave_data 
+       WHERE userId IN (${userIds.map(() => '?').join(', ')}) 
+         AND status = 'อนุมัติ' 
+       ORDER BY startDate DESC 
+       LIMIT 1`,
+      userIds
     );
     if (rows.length > 0) {
       res.json(rows[0]);
@@ -472,8 +516,20 @@ app.get('/api/leaves/stats/:userId', async (req, res) => {
       return res.status(400).json({ error: 'Invalid beforeDate parameter' });
     }
     
-    const year = d.getFullYear();
-    const month = d.getMonth();
+    // Format beforeDate to local YYYY-MM-DD in Asia/Bangkok time zone to prevent timezone shifts
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Bangkok',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const cleanBeforeDate = formatter.format(d);
+    
+    // Parse year/month from local date string to correctly determine fiscal year start
+    const [localYear, localMonthStr] = cleanBeforeDate.split('-');
+    const year = parseInt(localYear);
+    const month = parseInt(localMonthStr) - 1; // 0-indexed month
+    
     let startYear;
     if (month >= 9) { // Oct - Dec (months 10, 11, 12: 0-indexed 9, 10, 11)
       startYear = year;
@@ -483,14 +539,15 @@ app.get('/api/leaves/stats/:userId', async (req, res) => {
     const fiscalStart = `${startYear}-10-01`;
     
     // Fetch all approved leaves for the user in the current fiscal year before this date
+    const userIds = await getUserIdsForUser(userId);
     const [rows] = await db.query(
       `SELECT leaveType, totalDays 
        FROM leave_data 
-       WHERE userId = ? 
+       WHERE userId IN (${userIds.map(() => '?').join(', ')}) 
          AND status = 'อนุมัติ' 
          AND startDate >= ? 
          AND startDate < ?`,
-      [userId, fiscalStart, beforeDate]
+      [...userIds, fiscalStart, cleanBeforeDate]
     );
 
     const stats = {
