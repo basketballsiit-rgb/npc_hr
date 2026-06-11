@@ -37,6 +37,15 @@ function showPage(pageId) {
     }
   });
 
+  // Update sub-nav active state
+  document.querySelectorAll('.btn-sub-nav').forEach(btn => {
+    if (btn.getAttribute('data-sub-page') === pageId) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
   window.scrollTo(0, 0);
   
   // Close mobile menu if open

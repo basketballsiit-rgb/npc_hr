@@ -200,6 +200,12 @@
 
       <!-- 1. Dashboard Page -->
       <div id="dashboard-page" class="page hidden">
+        <!-- Leave System Sub Navigation -->
+        <div class="leave-sub-nav">
+          <button type="button" onclick="showPage('dashboard-page'); loadDashboardData();" class="btn-sub-nav active" data-sub-page="dashboard-page">📊 แดชบอร์ดการลา</button>
+          <button type="button" onclick="showPage('leave-form-page'); prepareLeaveForm();" class="btn-sub-nav" data-sub-page="leave-form-page">✍️ ยื่นใบลาใหม่</button>
+          <button type="button" onclick="showPage('history-page'); loadHistory();" class="btn-sub-nav" data-sub-page="history-page">📋 ประวัติการลา</button>
+        </div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
           <h1 style="font-size:1.8rem; font-weight:700; color:var(--neutral-800);">แดชบอร์ดข้อมูลภาพรวม</h1>
           <span style="font-size:0.8rem; font-weight:600; color:var(--primary); background:var(--primary-light); padding:4px 12px; border-radius:999px;">อัปเดตแบบเรียลไทม์</span>
@@ -297,6 +303,12 @@
 
       <!-- 2. Leave Request Form Page -->
       <div id="leave-form-page" class="page hidden" style="max-width: 900px; margin: 0 auto;">
+        <!-- Leave System Sub Navigation -->
+        <div class="leave-sub-nav">
+          <button type="button" onclick="showPage('dashboard-page'); loadDashboardData();" class="btn-sub-nav" data-sub-page="dashboard-page">📊 แดชบอร์ดการลา</button>
+          <button type="button" onclick="showPage('leave-form-page'); prepareLeaveForm();" class="btn-sub-nav" data-sub-page="leave-form-page">✍️ ยื่นใบลาใหม่</button>
+          <button type="button" onclick="showPage('history-page'); loadHistory();" class="btn-sub-nav" data-sub-page="history-page">📋 ประวัติการลา</button>
+        </div>
         <h1 style="font-size:1.8rem; font-weight:700; color:var(--neutral-800); text-align:center; margin-bottom:32px;">แบบฟอร์มขออนุญาตลา</h1>
         
         <form id="leave-request-form" class="glass-card border-accent" style="display:flex; flex-direction:column; gap:28px;">
@@ -530,6 +542,12 @@
 
       <!-- 3. Leave History Page -->
       <div id="history-page" class="page hidden">
+        <!-- Leave System Sub Navigation -->
+        <div class="leave-sub-nav">
+          <button type="button" onclick="showPage('dashboard-page'); loadDashboardData();" class="btn-sub-nav" data-sub-page="dashboard-page">📊 แดชบอร์ดการลา</button>
+          <button type="button" onclick="showPage('leave-form-page'); prepareLeaveForm();" class="btn-sub-nav" data-sub-page="leave-form-page">✍️ ยื่นใบลาใหม่</button>
+          <button type="button" onclick="showPage('history-page'); loadHistory();" class="btn-sub-nav" data-sub-page="history-page">📋 ประวัติการลา</button>
+        </div>
         <h1 style="font-size:1.8rem; font-weight:700; color:var(--neutral-800); margin-bottom:24px;">ประวัติบันทึกการลา</h1>
         
         <div class="glass-card">
@@ -1018,6 +1036,6 @@
   </script>
 
   <!-- Load Custom JS logic -->
-  <script src="app.js?v=3.5"></script>
+  <script src="app.js?v=3.6"></script>
 </body>
 </html>
