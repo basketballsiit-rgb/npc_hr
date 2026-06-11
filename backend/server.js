@@ -598,8 +598,8 @@ app.get('/api/leaves/stats/:userId', async (req, res) => {
        WHERE userId IN (${userIds.map(() => '?').join(', ')}) 
          AND status = 'อนุมัติ' 
          AND (
-           (startDate >= ? AND startDate < ?) OR
-           (startDate >= ? AND startDate < ?)
+           (startDate >= ? AND startDate <= ?) OR
+           (startDate >= ? AND startDate <= ?)
          )`,
       [...userIds, fiscalStartAD, cleanBeforeDateAD, fiscalStartBE, cleanBeforeDateBE]
     );

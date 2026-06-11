@@ -771,12 +771,20 @@ function calculateLastLeaveDays() {
 async function updateLeaveStatsTable() {
   if (!currentUser) return;
   
-  const s = document.getElementById('form-start-date').value || new Date().toISOString().split('T')[0];
   const t = document.getElementById('form-leave-type').value;
   const currDays = parseFloat(document.getElementById('form-total-days').value) || 0;
+
+  // Use end of current fiscal year (Sep 30) as beforeDate
+  // so "ลามาแล้ว" always shows the full fiscal year count
+  const today = new Date();
+  const todayMonth = today.getMonth(); // 0-indexed; 9 = October
+  // Fiscal year ends Sep 30. If current month is Oct-Dec, fiscal year ends this year's Sep 30 (next year).
+  // If Jan-Sep, fiscal year ends this year's Sep 30.
+  const fiscalEndYear = todayMonth >= 9 ? today.getFullYear() + 1 : today.getFullYear();
+  const beforeDate = `${fiscalEndYear}-09-30`;
   
   try {
-    const res = await fetch(`${API_BASE_URL}/api/leaves/stats/${currentUser.userId}?beforeDate=${s}`);
+    const res = await fetch(`${API_BASE_URL}/api/leaves/stats/${currentUser.userId}?beforeDate=${beforeDate}`);
     const stats = await res.json();
     
     // 1. Sick Leave (ลาป่วย)
