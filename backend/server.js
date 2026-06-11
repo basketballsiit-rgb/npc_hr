@@ -507,7 +507,7 @@ app.post('/api/leaves/history', async (req, res) => {
       params.push(normalizeDateToAD(filterEndDate));
     }
 
-    query += ' ORDER BY createdAt DESC';
+    query += ' ORDER BY startDate DESC, requestDate DESC, createdAt DESC';
     const [rows] = await db.query(query, params);
     
     // Normalize date outputs
@@ -808,7 +808,7 @@ app.get('/api/dashboard', async (req, res) => {
     });
 
     const [recentLeaves] = await db.query(
-      'SELECT fullName, leaveType, startDate, endDate, totalDays, status, pdfUrl FROM leave_data ORDER BY createdAt DESC LIMIT 10'
+      'SELECT fullName, leaveType, startDate, endDate, totalDays, status, pdfUrl FROM leave_data ORDER BY startDate DESC, requestDate DESC, createdAt DESC LIMIT 10'
     );
 
     res.json({
@@ -931,7 +931,7 @@ app.post('/api/reports/summary', async (req, res) => {
 app.get('/api/reports/all', async (req, res) => {
   try {
     const [rows] = await db.query(
-      'SELECT fullName, position, requestDate, leaveType, startDate, endDate, totalDays, status, pdfUrl FROM leave_data ORDER BY createdAt DESC'
+      'SELECT fullName, position, requestDate, leaveType, startDate, endDate, totalDays, status, pdfUrl FROM leave_data ORDER BY startDate DESC, requestDate DESC, createdAt DESC'
     );
     rows.forEach(r => {
       if (r.requestDate) r.requestDate = normalizeDateToAD(r.requestDate);
