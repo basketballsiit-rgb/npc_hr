@@ -117,6 +117,12 @@ async function enterModule(pageId, adminOnly) {
     initTravelReportPage();
   } else if (pageId === 'training-page') {
     initTrainingPage();
+  } else if (pageId === 'approval-page') {
+    loadApprovalPage();
+  } else if (pageId === 'report-page') {
+    loadReportPage();
+  } else if (pageId === 'user-management-page') {
+    loadUserManagementPage();
   }
 }
 
