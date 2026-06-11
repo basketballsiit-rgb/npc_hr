@@ -69,17 +69,17 @@
 
     .doc-last-leave th, .doc-last-leave td {
       border: 1px solid #000000;
-      padding: 3px;
+      padding: 5px 3px;
       text-align: center;
-      font-size: 10.5pt; /* Reduced size to prevent table from overflowing left column border */
+      font-size: 11.5pt; /* Increased size to improve readability */
       white-space: nowrap; /* Prevent cell content wrapping */
     }
 
     .sig-image {
-      max-height: 38px; /* Compressed signature height */
-      max-width: 120px;
+      max-height: 48px; /* Increased signature height */
+      max-width: 130px;
       object-fit: contain;
-      margin: 1px 0;
+      margin: 2px 0;
     }
 
     .underline-dotted {
@@ -128,7 +128,7 @@
         line-height: 1.35 !important;
       }
       .doc-last-leave th, .doc-last-leave td {
-        font-size: 10.5pt !important;
+        font-size: 11.5pt !important;
       }
       .doc-last-leave, .sig-image, table, tr, td {
         page-break-inside: avoid; /* Prevent browser from breaking key blocks */
@@ -228,10 +228,10 @@
     </div>
 
     <!-- Divided Lower Section (Divided by a vertical line in the middle) -->
-    <div style="display: flex; border-top: 1px solid #000; margin-top: 15px; padding-top: 12px; font-size: 14pt; gap: 4%;">
+    <div style="display: flex; margin-top: 35px; font-size: 16pt; gap: 4%;">
       
       <!-- Left Column (48% width) -->
-      <div style="width: 48%; padding-right: 2%; border-right: 1px solid #000; display: flex; flex-direction: column; justify-content: space-between; min-height: 200px;">
+      <div style="width: 48%; padding-right: 2%; border-right: 1px solid #000; display: flex; flex-direction: column; justify-content: space-between; min-height: 280px;">
         <div>
           <div class="bold text-center" style="margin-bottom: 6px;">สถิติการลาในปีงบประมาณนี้</div>
           <table class="doc-last-leave">
@@ -267,8 +267,8 @@
         </div>
 
         <!-- Personnel Head Signature Box -->
-        <div style="margin-top: 8px; text-align: center; line-height: 1.35;">
-          <div style="height: 28px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px;">
+        <div style="margin-top: 15px; text-align: center; line-height: 1.35;">
+          <div style="height: 52px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px;">
             <img id="approver-signature" class="sig-image" src="" alt="ลายเซ็นหัวหน้างานบุคลากร" style="display:none;">
           </div>
           <div>(ลงชื่อ) .......................................................</div>
@@ -283,14 +283,14 @@
         <!-- Deputy Director Comment & Signature Box -->
         <div style="line-height: 1.35;">
           <div>ความเห็น ..................................................................................</div>
-          <div style="margin-top: 4px; text-align: center;">
+          <div style="margin-top: 25px; text-align: center;">
             <div>(ลงชื่อ) .......................................................</div>
             <div>( นายจักรพงศ์ พรหมสกุลปัญญา )</div>
             <div>รองผู้อำนวยการฝ่ายบริหารทรัพยากร</div>
           </div>
         </div>
 
-        <div style="margin: 10px 0;"></div>
+        <div style="margin: 15px 0;"></div>
 
         <!-- Director Decision & Signature Box -->
         <div style="line-height: 1.35;">
@@ -299,8 +299,8 @@
             คำสั่ง &nbsp;&nbsp;&nbsp;&nbsp; ( <span id="print-approve-check" style="font-weight: bold;">&nbsp;</span> ) อนุญาต &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ( <span id="print-reject-check" style="font-weight: bold;">&nbsp;</span> ) ไม่อนุญาต
           </div>
           
-          <div style="margin-top: 2px; text-align: center; position: relative;">
-            <div style="height: 28px;"></div>
+          <div style="margin-top: 10px; text-align: center; position: relative;">
+            <div style="height: 48px;"></div>
             <div>(ลงชื่อ) .......................................................</div>
             <div>( <span id="approver-name">นายกเชษฐ์ กิ่งชนะ</span> )</div>
             <div>ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน</div>
