@@ -5,8 +5,8 @@
 
 
 // Automatically detect backend API domain
-const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://localhost:5000'
+const API_BASE_URL = window.location.hostname !== 'service.npc.ac.th'
+  ? `http://${window.location.hostname}:5000`
   : 'https://service.npc.ac.th/npc_eleve_backend'; // Replace with your production Node.js API domain
 
 let currentUser = null;
