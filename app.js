@@ -136,8 +136,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   const appContainer = document.querySelector('.app-container');
   if (sidebarToggleBtn && appContainer) {
     sidebarToggleBtn.addEventListener('click', () => {
-      appContainer.classList.toggle('sidebar-collapsed');
-      appContainer.classList.toggle('sidebar-active');
+      if (window.innerWidth <= 768) {
+        // Mobile: toggle active drawer state only
+        appContainer.classList.toggle('sidebar-active');
+        appContainer.classList.remove('sidebar-collapsed'); // avoid desktop conflicts
+      } else {
+        // Desktop: toggle collapsed state only
+        appContainer.classList.toggle('sidebar-collapsed');
+        appContainer.classList.remove('sidebar-active');
+      }
+    });
+  }
+
+  // Close sidebar on mobile when clicking overlay
+  const sidebarOverlay = document.getElementById('sidebar-overlay');
+  if (sidebarOverlay && appContainer) {
+    sidebarOverlay.addEventListener('click', () => {
+      appContainer.classList.remove('sidebar-active');
     });
   }
 
