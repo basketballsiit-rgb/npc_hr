@@ -126,6 +126,36 @@ async function sendLineFlexMessage(to, flexContent, altText) {
   }
 }
 
+// Helper to convert date strings with Buddhist Era (B.E.) years to Christian Era (A.D.)
+function normalizeDateToAD(dateStr) {
+  if (!dateStr) return dateStr;
+  const str = String(dateStr).trim();
+  
+  // Format: YYYY-MM-DD or YYYY/MM/DD
+  let match = str.match(/^(\d{4})[-/](\d{2})[-/](\d{2})/);
+  if (match) {
+    const year = parseInt(match[1]);
+    if (year > 2400) {
+      return `${year - 543}-${match[2]}-${match[3]}`;
+    }
+    return `${year}-${match[2]}-${match[3]}`;
+  }
+  
+  // Format: DD/MM/YYYY or DD-MM-YYYY
+  match = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (match) {
+    const day = match[1].padStart(2, '0');
+    const month = match[2].padStart(2, '0');
+    let year = parseInt(match[3]);
+    if (year > 2400) {
+      year -= 543;
+    }
+    return `${year}-${month}-${day}`;
+  }
+  
+  return dateStr;
+}
+
 // Helper to get all userIds for a person, matching by normalized name
 async function getUserIdsForUser(userId) {
   try {
@@ -383,7 +413,11 @@ app.post('/api/leaves', async (req, res) => {
     const leaveId = crypto.randomUUID();
     const signatureUrl = saveSignature(leaveData.signatureDataUrl, `sig_${leaveId}`);
     
-    const requestDate = leaveData.requestDate || new Date().toISOString().split('T')[0];
+    const requestDate = normalizeDateToAD(leaveData.requestDate || new Date().toISOString().split('T')[0]);
+    const startDate = normalizeDateToAD(leaveData.startDate);
+    const endDate = normalizeDateToAD(leaveData.endDate);
+    const lastLeaveStartDate = normalizeDateToAD(leaveData.lastLeaveStartDate) || null;
+    const lastLeaveEndDate = normalizeDateToAD(leaveData.lastLeaveEndDate) || null;
     
     await db.query(
       `INSERT INTO leave_data (
@@ -401,12 +435,12 @@ app.post('/api/leaves', async (req, res) => {
         requestDate,
         leaveData.leaveType,
         leaveData.reason,
-        leaveData.startDate,
-        leaveData.endDate,
+        startDate,
+        endDate,
         leaveData.totalDays,
         leaveData.lastLeaveType || '',
-        leaveData.lastLeaveStartDate || null,
-        leaveData.lastLeaveEndDate || null,
+        lastLeaveStartDate,
+        lastLeaveEndDate,
         leaveData.lastLeaveTotalDays || 0,
         leaveData.contactAddress,
         leaveData.contactPhone,
@@ -466,15 +500,25 @@ app.post('/api/leaves/history', async (req, res) => {
 
     if (filterStartDate) {
       query += ' AND startDate >= ?';
-      params.push(filterStartDate);
+      params.push(normalizeDateToAD(filterStartDate));
     }
     if (filterEndDate) {
       query += ' AND startDate <= ?';
-      params.push(filterEndDate);
+      params.push(normalizeDateToAD(filterEndDate));
     }
 
     query += ' ORDER BY createdAt DESC';
     const [rows] = await db.query(query, params);
+    
+    // Normalize date outputs
+    rows.forEach(r => {
+      if (r.requestDate) r.requestDate = normalizeDateToAD(r.requestDate);
+      if (r.startDate) r.startDate = normalizeDateToAD(r.startDate);
+      if (r.endDate) r.endDate = normalizeDateToAD(r.endDate);
+      if (r.lastLeaveStartDate) r.lastLeaveStartDate = normalizeDateToAD(r.lastLeaveStartDate);
+      if (r.lastLeaveEndDate) r.lastLeaveEndDate = normalizeDateToAD(r.lastLeaveEndDate);
+    });
+    
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -496,7 +540,10 @@ app.get('/api/leaves/last-approved/:userId', async (req, res) => {
       userIds
     );
     if (rows.length > 0) {
-      res.json(rows[0]);
+      const leave = rows[0];
+      if (leave.startDate) leave.startDate = normalizeDateToAD(leave.startDate);
+      if (leave.endDate) leave.endDate = normalizeDateToAD(leave.endDate);
+      res.json(leave);
     } else {
       res.json(null);
     }
@@ -508,10 +555,11 @@ app.get('/api/leaves/last-approved/:userId', async (req, res) => {
 // Get Leave Statistics for a User in the Fiscal Year
 app.get('/api/leaves/stats/:userId', async (req, res) => {
   const { userId } = req.params;
-  const beforeDate = req.query.beforeDate || new Date().toISOString().split('T')[0];
+  const rawBeforeDate = req.query.beforeDate || new Date().toISOString().split('T')[0];
   
   try {
-    const d = new Date(beforeDate);
+    const adBeforeDate = normalizeDateToAD(rawBeforeDate);
+    const d = new Date(adBeforeDate);
     if (isNaN(d.getTime())) {
       return res.status(400).json({ error: 'Invalid beforeDate parameter' });
     }
@@ -523,20 +571,24 @@ app.get('/api/leaves/stats/:userId', async (req, res) => {
       month: '2-digit',
       day: '2-digit'
     });
-    const cleanBeforeDate = formatter.format(d);
+    const cleanBeforeDateAD = formatter.format(d);
     
     // Parse year/month from local date string to correctly determine fiscal year start
-    const [localYear, localMonthStr] = cleanBeforeDate.split('-');
-    const year = parseInt(localYear);
+    const [localYearStr, localMonthStr, localDayStr] = cleanBeforeDateAD.split('-');
+    const yearAD = parseInt(localYearStr);
     const month = parseInt(localMonthStr) - 1; // 0-indexed month
     
-    let startYear;
-    if (month >= 9) { // Oct - Dec (months 10, 11, 12: 0-indexed 9, 10, 11)
-      startYear = year;
-    } else { // Jan - Sep (months 1-9: 0-indexed 0 to 8)
-      startYear = year - 1;
+    let startYearAD;
+    if (month >= 9) { // Oct - Dec
+      startYearAD = yearAD;
+    } else { // Jan - Sep
+      startYearAD = yearAD - 1;
     }
-    const fiscalStart = `${startYear}-10-01`;
+    const fiscalStartAD = `${startYearAD}-10-01`;
+    
+    // Compute B.E. equivalents for compatibility with B.E. records in DB
+    const fiscalStartBE = `${startYearAD + 543}-10-01`;
+    const cleanBeforeDateBE = `${yearAD + 543}-${localMonthStr}-${localDayStr}`;
     
     // Fetch all approved leaves for the user in the current fiscal year before this date
     const userIds = await getUserIdsForUser(userId);
@@ -545,9 +597,11 @@ app.get('/api/leaves/stats/:userId', async (req, res) => {
        FROM leave_data 
        WHERE userId IN (${userIds.map(() => '?').join(', ')}) 
          AND status = 'อนุมัติ' 
-         AND startDate >= ? 
-         AND startDate < ?`,
-      [...userIds, fiscalStart, cleanBeforeDate]
+         AND (
+           (startDate >= ? AND startDate < ?) OR
+           (startDate >= ? AND startDate < ?)
+         )`,
+      [...userIds, fiscalStartAD, cleanBeforeDateAD, fiscalStartBE, cleanBeforeDateBE]
     );
 
     const stats = {
@@ -581,6 +635,13 @@ app.get('/api/leaves/stats/:userId', async (req, res) => {
 app.get('/api/leaves/pending', async (req, res) => {
   try {
     const [rows] = await db.query("SELECT * FROM leave_data WHERE status = 'รอการอนุมัติ' ORDER BY createdAt ASC");
+    rows.forEach(r => {
+      if (r.requestDate) r.requestDate = normalizeDateToAD(r.requestDate);
+      if (r.startDate) r.startDate = normalizeDateToAD(r.startDate);
+      if (r.endDate) r.endDate = normalizeDateToAD(r.endDate);
+      if (r.lastLeaveStartDate) r.lastLeaveStartDate = normalizeDateToAD(r.lastLeaveStartDate);
+      if (r.lastLeaveEndDate) r.lastLeaveEndDate = normalizeDateToAD(r.lastLeaveEndDate);
+    });
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -593,7 +654,13 @@ app.get('/api/leaves/:leaveId', async (req, res) => {
   try {
     const [rows] = await db.query("SELECT * FROM leave_data WHERE leaveId = ?", [leaveId]);
     if (rows.length > 0) {
-      res.json(rows[0]);
+      const leave = rows[0];
+      if (leave.requestDate) leave.requestDate = normalizeDateToAD(leave.requestDate);
+      if (leave.startDate) leave.startDate = normalizeDateToAD(leave.startDate);
+      if (leave.endDate) leave.endDate = normalizeDateToAD(leave.endDate);
+      if (leave.lastLeaveStartDate) leave.lastLeaveStartDate = normalizeDateToAD(leave.lastLeaveStartDate);
+      if (leave.lastLeaveEndDate) leave.lastLeaveEndDate = normalizeDateToAD(leave.lastLeaveEndDate);
+      res.json(leave);
     } else {
       res.status(404).json({ message: 'ไม่พบใบลา' });
     }
@@ -845,11 +912,11 @@ app.post('/api/reports/summary', async (req, res) => {
 
     if (startDate) {
       query += ' AND startDate >= ?';
-      params.push(startDate);
+      params.push(normalizeDateToAD(startDate));
     }
     if (endDate) {
       query += ' AND startDate <= ?';
-      params.push(endDate);
+      params.push(normalizeDateToAD(endDate));
     }
 
     query += ' GROUP BY userId, fullName, position';
@@ -866,6 +933,11 @@ app.get('/api/reports/all', async (req, res) => {
     const [rows] = await db.query(
       'SELECT fullName, position, requestDate, leaveType, startDate, endDate, totalDays, status, pdfUrl FROM leave_data ORDER BY createdAt DESC'
     );
+    rows.forEach(r => {
+      if (r.requestDate) r.requestDate = normalizeDateToAD(r.requestDate);
+      if (r.startDate) r.startDate = normalizeDateToAD(r.startDate);
+      if (r.endDate) r.endDate = normalizeDateToAD(r.endDate);
+    });
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -879,8 +951,11 @@ app.post('/api/leaves/calculate-days', async (req, res) => {
   if (isHalfDay) return res.json({ days: 0.5 });
   if (!startDate || !endDate) return res.json({ days: 0 });
 
-  const start = new Date(startDate);
-  const end = new Date(endDate);
+  const adStartDate = normalizeDateToAD(startDate);
+  const adEndDate = normalizeDateToAD(endDate);
+
+  const start = new Date(adStartDate);
+  const end = new Date(adEndDate);
   start.setHours(0,0,0,0);
   end.setHours(0,0,0,0);
 
@@ -893,31 +968,30 @@ app.post('/api/leaves/calculate-days', async (req, res) => {
     try {
       const [holidaysRows] = await db.query('SELECT holidayDate FROM holidays');
       const holidaysList = holidaysRows.map(row => {
-        const d = new Date(row.holidayDate);
-        return d.toISOString().split('T')[0];
+        return normalizeDateToAD(row.holidayDate);
       });
 
       let loopDate = new Date(start);
       while (loopDate <= end) {
-        const dayOfWeek = loopDate.getDay();
+        const dayOfWeek = loopDate.getUTCDay();
         const dateString = loopDate.toISOString().split('T')[0];
         
         // Exclude Sunday (0), Saturday (6) and holidays
         if (dayOfWeek !== 0 && dayOfWeek !== 6 && !holidaysList.includes(dateString)) {
           count++;
         }
-        loopDate.setDate(loopDate.getDate() + 1);
+        loopDate.setUTCDate(loopDate.getUTCDate() + 1);
       }
     } catch (e) {
       console.error('Holiday calculation error:', e);
       // Fallback: exclude weekends only
       let loopDate = new Date(start);
       while (loopDate <= end) {
-        const dayOfWeek = loopDate.getDay();
+        const dayOfWeek = loopDate.getUTCDay();
         if (dayOfWeek !== 0 && dayOfWeek !== 6) {
           count++;
         }
-        loopDate.setDate(loopDate.getDate() + 1);
+        loopDate.setUTCDate(loopDate.getUTCDate() + 1);
       }
     }
   } else {
@@ -937,9 +1011,10 @@ function formatDateThai(dateStr) {
     'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
   ];
   try {
-    const d = new Date(dateStr);
+    const adDateStr = normalizeDateToAD(dateStr);
+    const d = new Date(adDateStr);
     if (isNaN(d.getTime())) return dateStr;
-    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
+    return `${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear() + 543}`;
   } catch (e) {
     return dateStr;
   }
@@ -947,10 +1022,11 @@ function formatDateThai(dateStr) {
 
 // Get Attendance list for a specific date
 app.get('/api/attendance', async (req, res) => {
-  const { date } = req.query;
-  if (!date) {
+  const rawDate = req.query.date;
+  if (!rawDate) {
     return res.status(400).json({ error: 'กรุณาระบุวันที่' });
   }
+  const date = normalizeDateToAD(rawDate);
 
   try {
     // 1. Fetch all active approved users
@@ -1023,13 +1099,14 @@ app.post('/api/attendance', async (req, res) => {
     return res.status(400).json({ success: false, message: 'ข้อมูลไม่ถูกต้อง' });
   }
 
+  const adDate = normalizeDateToAD(date);
   const updater = adminUserId || 'admin';
 
   try {
     // 1. Fetch current status map for this date
     const [existing] = await db.query(
       "SELECT userId, status FROM attendance WHERE attendanceDate = ?", 
-      [date]
+      [adDate]
     );
     const existingMap = new Map(existing.map(r => [r.userId, r.status]));
 
@@ -1049,7 +1126,7 @@ app.post('/api/attendance', async (req, res) => {
          ON DUPLICATE KEY UPDATE 
            status = VALUES(status), 
            updatedBy = VALUES(updatedBy)`,
-        [userId, date, status, updater]
+        [userId, adDate, status, updater]
       );
 
       // Check for notifications on change/new status
@@ -1059,7 +1136,7 @@ app.post('/api/attendance', async (req, res) => {
           notifications.push({
             userId,
             type: 'warning',
-            message: `📢 แจ้งเตือนการปฏิบัติงาน\nตรวจพบสถานะ "${status}" ของคุณในวันที่ ${formatDateThai(date)}\n\nกรุณาทำบันทึกข้อความเพื่อขอเซ็นชื่อปฏิบัติหน้าที่ย้อนหลังเท่านั้นครับ`
+            message: `📢 แจ้งเตือนการปฏิบัติงาน\nตรวจพบสถานะ "${status}" ของคุณในวันที่ ${formatDateThai(adDate)}\n\nกรุณาทำบันทึกข้อความเพื่อขอเซ็นชื่อปฏิบัติหน้าที่ย้อนหลังเท่านั้นครับ`
           });
         } 
         // Special condition: "มาปฏิบัติงาน" (notify if returning from sick leave)
@@ -1070,7 +1147,7 @@ app.post('/api/attendance', async (req, res) => {
              FROM attendance 
              WHERE userId = ? AND attendanceDate < ? 
              ORDER BY attendanceDate DESC LIMIT 1`,
-            [userId, date]
+            [userId, adDate]
           );
           if (lastRecord.length > 0 && lastRecord[0].status === 'ลาป่วย') {
             notifications.push({
@@ -1114,7 +1191,10 @@ app.post('/api/attendance', async (req, res) => {
 
 // --- 1. Travel Permission APIs ---
 app.post('/api/travel', async (req, res) => {
-  const { userId, fullName, subject, destination, startDate, endDate, totalDays, budget, vehicleType } = req.body;
+  const { userId, fullName, subject, destination, totalDays, budget, vehicleType } = req.body;
+  const startDate = normalizeDateToAD(req.body.startDate);
+  const endDate = normalizeDateToAD(req.body.endDate);
+  
   if (!userId || !fullName || !subject || !destination || !startDate || !endDate || !totalDays || !vehicleType) {
     return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
   }
@@ -1142,6 +1222,10 @@ app.get('/api/travel', async (req, res) => {
     } else {
       [rows] = await db.query('SELECT * FROM travel_data ORDER BY createdAt DESC');
     }
+    rows.forEach(r => {
+      if (r.startDate) r.startDate = normalizeDateToAD(r.startDate);
+      if (r.endDate) r.endDate = normalizeDateToAD(r.endDate);
+    });
     res.json(rows);
   } catch (err) {
     console.error('Error fetching travel data:', err.message);
@@ -1204,6 +1288,10 @@ app.get('/api/travel-report', async (req, res) => {
          ORDER BY r.createdAt DESC`
       );
     }
+    rows.forEach(r => {
+      if (r.startDate) r.startDate = normalizeDateToAD(r.startDate);
+      if (r.endDate) r.endDate = normalizeDateToAD(r.endDate);
+    });
     res.json(rows);
   } catch (err) {
     console.error('Error fetching travel reports:', err.message);
@@ -1211,9 +1299,11 @@ app.get('/api/travel-report', async (req, res) => {
   }
 });
 
-// --- 3. Training Record APIs ---
 app.post('/api/training', async (req, res) => {
-  const { userId, fullName, courseName, organizer, startDate, endDate, hours, location } = req.body;
+  const { userId, fullName, courseName, organizer, hours, location } = req.body;
+  const startDate = normalizeDateToAD(req.body.startDate);
+  const endDate = normalizeDateToAD(req.body.endDate);
+  
   if (!userId || !fullName || !courseName || !organizer || !startDate || !endDate || !hours || !location) {
     return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
   }
@@ -1241,6 +1331,10 @@ app.get('/api/training', async (req, res) => {
     } else {
       [rows] = await db.query('SELECT * FROM training_data ORDER BY createdAt DESC');
     }
+    rows.forEach(r => {
+      if (r.startDate) r.startDate = normalizeDateToAD(r.startDate);
+      if (r.endDate) r.endDate = normalizeDateToAD(r.endDate);
+    });
     res.json(rows);
   } catch (err) {
     console.error('Error fetching training records:', err.message);
@@ -1266,6 +1360,10 @@ app.get('/api/activities', async (req, res) => {
       isRegistered: registrations.includes(act.activityId)
     }));
 
+    result.forEach(act => {
+      if (act.activityDate) act.activityDate = normalizeDateToAD(act.activityDate);
+    });
+
     res.json(result);
   } catch (err) {
     console.error('Error fetching activities:', err.message);
@@ -1274,7 +1372,9 @@ app.get('/api/activities', async (req, res) => {
 });
 
 app.post('/api/activities', async (req, res) => {
-  const { activityName, activityDate, location } = req.body;
+  const { activityName, location } = req.body;
+  const activityDate = normalizeDateToAD(req.body.activityDate);
+  
   if (!activityName || !activityDate || !location) {
     return res.status(400).json({ success: false, message: 'ข้อมูลไม่ครบถ้วน' });
   }
