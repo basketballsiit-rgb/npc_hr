@@ -22,7 +22,7 @@
       width: 210mm;
       min-height: 297mm;
       margin: 0 auto;
-      padding: 12mm 15mm 10mm 15mm; /* Reduced paddings to prevent overflow */
+      padding: 10mm 15mm 10mm 15mm; /* Reduced paddings to prevent overflow */
       box-sizing: border-box;
       position: relative;
       background: #ffffff;
@@ -31,44 +31,48 @@
     .header-title {
       text-align: center;
       font-weight: bold;
-      font-size: 21px;
-      margin-bottom: 12px;
+      font-size: 19px; /* Reduced header font-size */
+      margin-bottom: 8px;
     }
 
     .doc-meta {
       text-align: right;
-      margin-bottom: 12px;
-      line-height: 1.4;
+      margin-bottom: 8px;
+      line-height: 1.35;
+      font-size: 13.5px;
     }
 
     .doc-subject {
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       font-weight: bold;
+      font-size: 14px;
     }
 
     .doc-salutation {
-      margin-bottom: 8px;
+      margin-bottom: 6px;
+      font-size: 14px;
     }
 
     .doc-body {
       text-indent: 2.5cm;
       text-align: justify;
-      margin-bottom: 10px;
-      line-height: 1.7; /* Compressed line-height */
+      margin-bottom: 8px;
+      line-height: 1.55; /* Compressed line-height */
+      font-size: 14px;   /* Reduced base font-size */
     }
 
     .doc-last-leave {
       border: 1px solid #000000;
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
     .doc-last-leave th, .doc-last-leave td {
       border: 1px solid #000000;
-      padding: 4px; /* Reduced cell padding */
+      padding: 3px; /* Reduced cell padding */
       text-align: center;
-      font-size: 13.5px;
+      font-size: 12px; /* Reduced table font-size */
     }
 
     .sig-image {
@@ -100,19 +104,24 @@
     @media print {
       body {
         background: #ffffff;
+        font-size: 13.5px;
       }
       .a4-page {
         width: 100%;
         height: auto;
-        padding: 8mm 10mm 5mm 15mm !important; /* Compressed print padding */
+        padding: 5mm 10mm 5mm 15mm !important; /* Compressed print padding */
         margin: 0;
         box-shadow: none;
       }
       .no-print {
         display: none !important;
       }
-      * {
-        page-break-inside: avoid; /* Prevent browser from breaking elements onto page 2 */
+      .doc-body {
+        font-size: 13.5px !important;
+        line-height: 1.5 !important;
+      }
+      .doc-last-leave, .sig-image, table, tr, td {
+        page-break-inside: avoid; /* Prevent browser from breaking key blocks */
       }
     }
 
@@ -171,41 +180,41 @@
     <div class="doc-salutation">เรียน ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน</div>
 
     <!-- Main Body Paragraph (structured exactly as File 2) -->
-    <div class="doc-body" style="line-height: 2.0; font-size: 16px;">
-      <div style="text-indent: 2.5cm; margin-bottom: 6px;">
+    <div class="doc-body" style="line-height: 1.55; font-size: 14px;">
+      <div style="text-indent: 2.5cm; margin-bottom: 2px;">
         ข้าพเจ้า <span id="user-name">......</span> ตำแหน่ง <span id="user-position">......</span> สังกัด วิทยาลัยสารพัดช่างน่าน
       </div>
-      <div style="margin-bottom: 3px;">
+      <div style="margin-bottom: 2px;">
         ขอ<span id="leave-type">......</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;เนื่องจาก <span id="leave-reason">......</span>
       </div>
-      <div style="margin-bottom: 3px;">
+      <div style="margin-bottom: 2px;">
         ตั้งแต่วันที่ <span id="start-date-full">......</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ถึงวันที่ <span id="end-date-full">......</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;มีกำหนด <span id="total-days">......</span> วัน
       </div>
-      <div style="margin-bottom: 3px;">
+      <div style="margin-bottom: 2px;">
         และในการลาครั้งนี้ ข้าพเจ้าได้มอบหมายงาน / การสอนให้กับ <span id="teacher-name">......</span>
       </div>
-      <div style="margin-bottom: 3px;">
+      <div style="margin-bottom: 2px;">
         ผู้รับผิดชอบ/สอนแทนในวิชา <span id="subject-name">......</span>
       </div>
-      <div style="text-indent: 2.5cm; margin-bottom: 3px;">
+      <div style="text-indent: 2.5cm; margin-bottom: 2px;">
         ข้าพเจ้าได้ลา <span id="last-leave-type">......</span> ครั้งสุดท้าย
       </div>
-      <div style="margin-bottom: 3px;">
+      <div style="margin-bottom: 2px;">
         ตั้งแต่วันที่ <span id="last-leave-start">....................................</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ถึง วันที่ <span id="last-leave-end">....................................</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;มีกำหนด <span id="last-leave-days">......</span> วัน
       </div>
-      <div style="margin-bottom: 3px;">
+      <div style="margin-bottom: 2px;">
         ในระหว่างลาครั้งนี้จะติดต่อข้าพเจ้าได้ที่ <span id="contact-address">......</span>
       </div>
-      <div style="margin-bottom: 3px;">
+      <div style="margin-bottom: 2px;">
         หมายเลขโทรศัพท์ที่ติดต่อได้ <span id="contact-phone">......</span>
       </div>
     </div>
 
     <!-- Requestor Signature (ขอแสดงความนับถือ) -->
-    <div style="display: flex; justify-content: flex-end; margin-top: 10px; margin-bottom: 12px;">
-      <div style="width: 300px; text-align: center; line-height: 1.45;">
-        <div style="margin-bottom: 8px;">ขอแสดงความนับถือ</div>
-        <div style="height: 38px; display: flex; align-items: center; justify-content: center;">
+    <div style="display: flex; justify-content: flex-end; margin-top: 5px; margin-bottom: 8px;">
+      <div style="width: 300px; text-align: center; line-height: 1.35; font-size: 14px;">
+        <div style="margin-bottom: 4px;">ขอแสดงความนับถือ</div>
+        <div style="height: 30px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px;">
           <img id="user-signature" class="sig-image" src="" alt="ลายเซ็นผู้ขอลา">
         </div>
         <div>(ลงชื่อ) .......................................................</div>
@@ -215,12 +224,12 @@
     </div>
 
     <!-- Divided Lower Section (Divided by a vertical line in the middle) -->
-    <div style="display: flex; border-top: 1px solid #000; margin-top: 10px; padding-top: 8px; font-size: 13.5px; gap: 4%;">
+    <div style="display: flex; border-top: 1px solid #000; margin-top: 8px; padding-top: 6px; font-size: 12.5px; gap: 4%;">
       
       <!-- Left Column (48% width) -->
-      <div style="width: 48%; padding-right: 2%; border-right: 1px solid #000; display: flex; flex-direction: column; justify-content: space-between; min-height: 240px;">
+      <div style="width: 48%; padding-right: 2%; border-right: 1px solid #000; display: flex; flex-direction: column; justify-content: space-between; min-height: 180px;">
         <div>
-          <div class="bold text-center" style="margin-bottom: 6px;">สถิติการลาในปีงบประมาณนี้</div>
+          <div class="bold text-center" style="margin-bottom: 4px;">สถิติการลาในปีงบประมาณนี้</div>
           <table class="doc-last-leave">
             <thead>
               <tr style="font-weight: bold;">
@@ -254,7 +263,7 @@
         </div>
 
         <!-- Personnel Head Signature Box -->
-        <div style="margin-top: 12px; text-align: center; line-height: 1.45;">
+        <div style="margin-top: 8px; text-align: center; line-height: 1.35;">
           <div>(ลงชื่อ) .......................................................</div>
           <div>( นางปวีณา วงศาระ )</div>
           <div>หัวหน้างานบุคลากร</div>
@@ -263,28 +272,28 @@
       </div>
 
       <!-- Right Column (48% width) -->
-      <div style="width: 48%; display: flex; flex-direction: column; gap: 6px; justify-content: space-between;">
+      <div style="width: 48%; display: flex; flex-direction: column; gap: 4px; justify-content: space-between;">
         <!-- Deputy Director Comment & Signature Box -->
-        <div style="line-height: 1.45;">
+        <div style="line-height: 1.35;">
           <div>ความเห็น ..................................................................................</div>
-          <div style="margin-top: 6px; text-align: center;">
+          <div style="margin-top: 4px; text-align: center;">
             <div>(ลงชื่อ) .......................................................</div>
             <div>( นายจักรพงศ์ พรหมสกุลปัญญา )</div>
             <div>รองผู้อำนวยการฝ่ายบริหารทรัพยากร</div>
           </div>
         </div>
 
-        <hr style="border: 0; border-top: 1px dotted #000; margin: 3px 0;">
+        <hr style="border: 0; border-top: 1px dotted #000; margin: 2px 0;">
 
         <!-- Director Decision & Signature Box -->
-        <div style="line-height: 1.45;">
+        <div style="line-height: 1.35;">
           <div class="bold">ความเห็นของผู้บังคับบัญชา</div>
           <div style="margin-top: 4px;">
             คำสั่ง &nbsp;&nbsp;&nbsp;&nbsp; ( <span id="print-approve-check" style="font-weight: bold;">&nbsp;</span> ) อนุญาต &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ( <span id="print-reject-check" style="font-weight: bold;">&nbsp;</span> ) ไม่อนุญาต
           </div>
           
-          <div style="margin-top: 4px; text-align: center; position: relative;">
-            <div style="height: 35px; display: flex; align-items: center; justify-content: center; margin-bottom: 3px;">
+          <div style="margin-top: 2px; text-align: center; position: relative;">
+            <div style="height: 28px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px;">
               <img id="approver-signature" class="sig-image" src="" alt="ลายเซ็นผู้อนุมัติ" style="display:none;">
             </div>
             <div>(ลงชื่อ) .......................................................</div>
