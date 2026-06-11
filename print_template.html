@@ -367,8 +367,11 @@
         document.getElementById('contact-address').textContent = leave.contactAddress;
         document.getElementById('contact-phone').textContent = leave.contactPhone;
         document.getElementById('teacher-name').textContent = leave.teacherName || '....................................';
-        // Populate requestor date line under signature
-        document.getElementById('user-request-date-line').textContent = formatDateThai(leave.requestDate);
+        // Populate requestor date line under signature if exists
+        const reqDateLine = document.getElementById('user-request-date-line');
+        if (reqDateLine) {
+          reqDateLine.textContent = formatDateThai(leave.requestDate);
+        }
         document.getElementById('subject-name').textContent = leave.subject || '....................................';
         
         // Format last leave text dynamically
