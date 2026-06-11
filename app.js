@@ -461,6 +461,30 @@ function updateUIAfterLogin() {
     </div>
   `;
 
+  // Populate Header Shortcuts
+  const headerShortcuts = document.getElementById('header-shortcuts');
+  if (headerShortcuts) {
+    headerShortcuts.innerHTML = '';
+    
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-primary btn-shortcut';
+    btn.style.cssText = 'padding: 6px 12px; font-size: 0.9rem; font-weight: bold; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px;';
+    
+    if (currentUser.role === 'admin') {
+      btn.innerHTML = `<span>⚖️</span> <span class="shortcut-text">อนุมัติการลา</span>`;
+      btn.onclick = () => {
+        enterModule('approval-page', true);
+      };
+    } else {
+      btn.innerHTML = `<span>📅</span> <span class="shortcut-text">ระบบการยื่นลา</span>`;
+      btn.onclick = () => {
+        enterModule('dashboard-page', false);
+      };
+    }
+    headerShortcuts.appendChild(btn);
+    headerShortcuts.classList.remove('hidden');
+  }
+
   // Menu clicks
   document.getElementById('user-menu-trigger').onclick = (e) => {
     e.stopPropagation();
@@ -486,6 +510,12 @@ function updateUIAfterLogin() {
 function updateUIAfterLogout() {
   document.getElementById('auth-buttons').classList.remove('hidden');
   document.getElementById('user-menu').classList.add('hidden');
+  
+  const headerShortcuts = document.getElementById('header-shortcuts');
+  if (headerShortcuts) {
+    headerShortcuts.innerHTML = '';
+    headerShortcuts.classList.add('hidden');
+  }
   
   // Update welcome message
   const welcomeEl = document.getElementById('portal-user-welcome');
@@ -523,10 +553,15 @@ function buildNavigation() {
     }
   }
 
-  menuItems.forEach(item => {
+  // Populate Sidebar (Desktop/Mobile conditional)
+  let sidebarItems = [...menuItems];
+  if (window.innerWidth <= 768) {
+    // Mobile sidebar should be simplified (only show Portal Home and Leave System)
+    sidebarItems = menuItems.filter(item => ['portal-page', 'dashboard-page'].includes(item.page));
+  }
+
+  sidebarItems.forEach(item => {
     const isAdminOnly = ['attendance-page', 'approval-page', 'report-page', 'user-management-page'].includes(item.page);
-    
-    // Desktop Nav (Sidebar)
     const dLink = document.createElement('a');
     dLink.innerHTML = `<span style="font-size: 1.15rem; width: 24px; text-align: center;">${item.icon}</span> <span>${item.text}</span>`;
     dLink.className = 'nav-link';
@@ -540,9 +575,12 @@ function buildNavigation() {
       if (appContainer) appContainer.classList.remove('sidebar-active');
     };
     if (navMenu) navMenu.appendChild(dLink);
+  });
 
-    // Mobile Nav fallback if present
-    if (mobileNav) {
+  // Mobile Nav fallback if present
+  if (mobileNav) {
+    menuItems.forEach(item => {
+      const isAdminOnly = ['attendance-page', 'approval-page', 'report-page', 'user-management-page'].includes(item.page);
       const mLink = document.createElement('a');
       mLink.innerHTML = `<span style="font-size: 1.15rem; width: 24px; text-align: center;">${item.icon}</span> <span>${item.text}</span>`;
       mLink.className = 'nav-link';
@@ -555,8 +593,8 @@ function buildNavigation() {
         enterModule(item.page, isAdminOnly);
       };
       mobileNav.appendChild(mLink);
-    }
-  });
+    });
+  }
 
   // Populate Dropdown items if user logged in
   if (currentUser) {

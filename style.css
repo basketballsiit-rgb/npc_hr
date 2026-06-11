@@ -932,6 +932,14 @@ select.form-input {
   .logo-txt-tablet { display: none !important; }
   .logo-txt-mobile { display: inline !important; }
   #register-btn { display: none !important; }
+  .shortcut-text { display: none !important; }
+  .btn-shortcut {
+    border-radius: 50% !important;
+    padding: 8px !important;
+    width: 38px;
+    height: 38px;
+    justify-content: center;
+  }
 }
 
 /* Sub Navigation Tabs for Leave System */
