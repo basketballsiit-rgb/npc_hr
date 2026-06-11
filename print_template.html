@@ -72,7 +72,8 @@
       border: 1px solid #000000;
       padding: 3px; /* Reduced cell padding */
       text-align: center;
-      font-size: 12px; /* Reduced table font-size */
+      font-size: 11px; /* Reduced table font-size slightly more */
+      white-space: nowrap; /* Prevent text wrapping inside cells */
     }
 
     .sig-image {
@@ -102,14 +103,19 @@
 
     /* Print settings */
     @media print {
+      @page {
+        size: A4;
+        margin: 0; /* Clears browser default headers/footers and URL/page numbers like 1/2 */
+      }
       body {
         background: #ffffff;
         font-size: 13.5px;
+        margin: 0;
       }
       .a4-page {
         width: 100%;
         height: auto;
-        padding: 5mm 10mm 5mm 15mm !important; /* Compressed print padding */
+        padding: 15mm 15mm 10mm 15mm !important; /* Margin for print content */
         margin: 0;
         box-shadow: none;
       }
@@ -117,8 +123,8 @@
         display: none !important;
       }
       .doc-body {
-        font-size: 13.5px !important;
-        line-height: 1.5 !important;
+        font-size: 13px !important; /* Slightly smaller body font size for printing */
+        line-height: 1.45 !important;
       }
       .doc-last-leave, .sig-image, table, tr, td {
         page-break-inside: avoid; /* Prevent browser from breaking key blocks */
@@ -267,7 +273,7 @@
           <div>(ลงชื่อ) .......................................................</div>
           <div>( นางปวีณา วงศาระ )</div>
           <div>หัวหน้างานบุคลากร</div>
-          <div style="margin-top: 4px;">วันที่ <span id="personnel-date-day">......</span> เดือน <span id="personnel-date-month">........................</span> พ.ศ. <span id="personnel-date-year">..........</span></div>
+          <div style="margin-top: 4px;">วันที่ <span id="personnel-date-day">......</span> <span id="personnel-date-month">........................</span> <span id="personnel-date-year">..........</span></div>
         </div>
       </div>
 
@@ -283,7 +289,7 @@
           </div>
         </div>
 
-        <hr style="border: 0; border-top: 1px dotted #000; margin: 2px 0;">
+        <div style="margin: 10px 0;"></div>
 
         <!-- Director Decision & Signature Box -->
         <div style="line-height: 1.35;">
