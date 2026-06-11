@@ -1,6 +1,7 @@
 // ================================================================= */
 //                     FRONTEND CONTROLLER (Vanilla JS)              */
-//                     ระบบบริหารจัดการการลา วิทยาลัยสารพัดช่างน่าน             */
+//*  Filename: app.js
+    Description: Frontend Controller for ระบบบริหารงานบุคลากร วิทยาลัยสารพัดช่างน่าน             */
 // ================================================================= */
 
 // Automatically detect backend API domain
@@ -83,6 +84,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   document.getElementById('form-last-start-date').addEventListener('change', calculateLastLeaveDays);
   document.getElementById('form-last-end-date').addEventListener('change', calculateLastLeaveDays);
+
+  // Attendance page actions
+  document.getElementById('btn-load-attendance').addEventListener('click', loadAttendanceData);
+  document.getElementById('btn-save-attendance').addEventListener('click', saveAttendanceData);
 
   // Setup signature pad
   const canvas = document.getElementById('signature-pad');
@@ -358,6 +363,7 @@ function buildNavigation() {
     
     if (currentUser.role === 'admin') {
       menuItems.push(
+        { text: 'เช็คชื่อปฏิบัติงาน', page: 'attendance-page', action: initAttendancePage },
         { text: 'พิจารณาอนุมัติ', page: 'approval-page', action: loadApprovalPage },
         { text: 'รายงานสรุป', page: 'report-page', action: loadReportPage },
         { text: 'จัดการผู้ใช้งาน', page: 'user-management-page', action: loadUserManagementPage }
@@ -1470,5 +1476,159 @@ function renderCharts(d) {
         }
       }
     });
+  }
+}
+
+// ==========================================
+// --- Attendance Check-in Controller ---
+// ==========================================
+
+function initAttendancePage() {
+  const dateInput = document.getElementById('attendance-date');
+  if (!dateInput.value) {
+    const today = new Date();
+    const offset = today.getTimezoneOffset();
+    const localToday = new Date(today.getTime() - (offset*60*1000));
+    dateInput.value = localToday.toISOString().split('T')[0];
+  }
+  loadAttendanceData();
+}
+
+async function loadAttendanceData() {
+  const date = document.getElementById('attendance-date').value;
+  if (!date) {
+    Swal.fire('ข้อผิดพลาด', 'กรุณาระบุวันที่ต้องการดึงข้อมูล', 'error');
+    return;
+  }
+
+  showLoading('กำลังดึงข้อมูลการลงเวลา...');
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/attendance?date=${date}`);
+    if (!res.ok) throw new Error('ดึงข้อมูลการเข้าปฏิบัติงานล้มเหลว');
+    
+    const data = await res.json();
+    const tbody = document.getElementById('attendance-table-body');
+    tbody.innerHTML = '';
+
+    if (data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="text-center" style="padding:24px; color:var(--neutral-400);">ไม่พบรายชื่อบุคลากร</td></tr>`;
+      Swal.close();
+      return;
+    }
+
+    data.forEach(user => {
+      let leaveBadge = '-';
+      if (user.activeLeave) {
+        let badgeColor = 'var(--warning)';
+        let badgeBg = 'var(--warning-light)';
+        if (user.activeLeave.leaveType === 'ลาป่วย') {
+          badgeColor = '#ef4444';
+          badgeBg = '#fef2f2';
+        }
+        leaveBadge = `<span style="background:${badgeBg}; color:${badgeColor}; padding:4px 8px; border-radius:6px; font-size:0.8rem; font-weight:600; display:inline-block;">⚠️ ลา: ${user.activeLeave.leaveType} (${user.activeLeave.status})</span>`;
+      }
+
+      tbody.innerHTML += `
+        <tr>
+          <td style="font-weight: 500; text-align: left; padding-left: 20px;">${user.fullName}</td>
+          <td style="text-align: left; padding-left: 20px;">${user.position}</td>
+          <td id="leave-badge-col-${user.userId}">${leaveBadge}</td>
+          <td style="text-align: center;">
+            <select class="form-input attendance-select" data-user-id="${user.userId}" style="padding: 6px 12px; font-size: 0.9rem; font-weight: bold; width: 100%; border-radius: 8px;">
+              <option value="มาปฏิบัติงาน" ${user.status === 'มาปฏิบัติงาน' ? 'selected' : ''}>มาปฏิบัติงาน</option>
+              <option value="ลาป่วย" ${user.status === 'ลาป่วย' ? 'selected' : ''}>ลาป่วย</option>
+              <option value="ลากิจ" ${user.status === 'ลากิจ' ? 'selected' : ''}>ลากิจ</option>
+              <option value="ลาคลอด" ${user.status === 'ลาคลอด' ? 'selected' : ''}>ลาคลอด</option>
+              <option value="ลาพักผ่อน" ${user.status === 'ลาพักผ่อน' ? 'selected' : ''}>ลาพักผ่อน</option>
+              <option value="ขาด" ${user.status === 'ขาด' ? 'selected' : ''}>ขาด</option>
+              <option value="มาสาย" ${user.status === 'มาสาย' ? 'selected' : ''}>มาสาย</option>
+              <option value="ไม่ทราบสาเหตุ" ${user.status === 'ไม่ทราบสาเหตุ' ? 'selected' : ''}>ไม่ทราบสาเหตุ</option>
+            </select>
+          </td>
+        </tr>
+      `;
+    });
+
+    const selects = tbody.querySelectorAll('.attendance-select');
+    selects.forEach(select => {
+      styleAttendanceSelect(select);
+      select.addEventListener('change', () => styleAttendanceSelect(select));
+    });
+
+    Swal.close();
+  } catch (err) {
+    console.error('Error loading attendance:', err);
+    Swal.fire('ข้อผิดพลาด', err.message, 'error');
+  }
+}
+
+function styleAttendanceSelect(selectEl) {
+  const val = selectEl.value;
+  if (val === 'มาปฏิบัติงาน') {
+    selectEl.style.color = '#10B981';
+    selectEl.style.borderColor = '#10B981';
+    selectEl.style.backgroundColor = '#ECFDF5';
+  } else if (val.startsWith('ลา')) {
+    selectEl.style.color = '#D97706';
+    selectEl.style.borderColor = '#F59E0B';
+    selectEl.style.backgroundColor = '#FFFBEB';
+  } else if (val === 'ขาด' || val === 'ไม่ทราบสาเหตุ') {
+    selectEl.style.color = '#EF4444';
+    selectEl.style.borderColor = '#EF4444';
+    selectEl.style.backgroundColor = '#FEF2F2';
+  } else if (val === 'มาสาย') {
+    selectEl.style.color = '#3B82F6';
+    selectEl.style.borderColor = '#3B82F6';
+    selectEl.style.backgroundColor = '#EFF6FF';
+  }
+}
+
+async function saveAttendanceData() {
+  const date = document.getElementById('attendance-date').value;
+  if (!date) {
+    Swal.fire('ข้อผิดพลาด', 'กรุณาระบุวันที่บันทึก', 'error');
+    return;
+  }
+
+  const selects = document.querySelectorAll('.attendance-select');
+  const records = [];
+  selects.forEach(select => {
+    records.push({
+      userId: select.getAttribute('data-user-id'),
+      status: select.value
+    });
+  });
+
+  if (records.length === 0) {
+    Swal.fire('ข้อผิดพลาด', 'ไม่มีข้อมูลสำหรับบันทึก', 'error');
+    return;
+  }
+
+  showLoading('กำลังบันทึกข้อมูลและส่งแจ้งเตือน LINE...');
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/attendance`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        date,
+        records,
+        adminUserId: currentUser.userId
+      })
+    });
+
+    if (!res.ok) throw new Error('บันทึกข้อมูลล้มเหลว');
+    const result = await res.json();
+    
+    if (result.success) {
+      Swal.fire('สำเร็จ', 'บันทึกข้อมูลและส่งแจ้งเตือนทางไลน์เรียบร้อยแล้ว', 'success');
+      loadAttendanceData();
+    } else {
+      throw new Error(result.message);
+    }
+  } catch (err) {
+    console.error('Error saving attendance:', err);
+    Swal.fire('ข้อผิดพลาด', err.message, 'error');
   }
 }

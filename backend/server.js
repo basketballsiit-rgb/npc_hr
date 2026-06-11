@@ -826,6 +826,209 @@ app.post('/api/leaves/calculate-days', async (req, res) => {
   res.json({ days: count });
 });
 
+// Thai Date Formatting Helper
+function formatDateThai(dateStr) {
+  if (!dateStr) return '......';
+  const months = [
+    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+  ];
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
+  } catch (e) {
+    return dateStr;
+  }
+}
+
+// Get Attendance list for a specific date
+app.get('/api/attendance', async (req, res) => {
+  const { date } = req.query;
+  if (!date) {
+    return res.status(400).json({ error: 'กรุณาระบุวันที่' });
+  }
+
+  try {
+    // 1. Fetch all active approved users
+    const [users] = await db.query(
+      "SELECT userId, fullName, position, role FROM users WHERE status = 'approved' ORDER BY fullName ASC"
+    );
+
+    // 2. Fetch saved attendance records for this date
+    const [attendanceRecords] = await db.query(
+      "SELECT userId, status FROM attendance WHERE attendanceDate = ?", 
+      [date]
+    );
+    const attendanceMap = new Map(attendanceRecords.map(r => [r.userId, r.status]));
+
+    // 3. Fetch overlapping leaves (approved or pending) for this date
+    const [leaves] = await db.query(
+      `SELECT leaveId, userId, leaveType, status 
+       FROM leave_data 
+       WHERE ? BETWEEN startDate AND endDate 
+         AND status IN ('อนุมัติ', 'รอการอนุมัติ')`,
+      [date]
+    );
+    const leavesMap = new Map(leaves.map(l => [l.userId, l]));
+
+    // 4. Combine data
+    const result = users.map(user => {
+      const savedStatus = attendanceMap.get(user.userId);
+      const activeLeave = leavesMap.get(user.userId);
+      
+      let defaultStatus = 'มาปฏิบัติงาน';
+      if (savedStatus) {
+        defaultStatus = savedStatus;
+      } else if (activeLeave) {
+        // Auto map leave type to status
+        const lt = activeLeave.leaveType;
+        if (lt === 'ลาป่วย') defaultStatus = 'ลาป่วย';
+        else if (lt === 'ลากิจส่วนตัว') defaultStatus = 'ลากิจ';
+        else if (lt === 'ลาคลอดบุตร') defaultStatus = 'ลาคลอด';
+        else if (lt === 'ลาพักผ่อน') defaultStatus = 'ลาพักผ่อน';
+        else defaultStatus = lt; // Fallback to raw leave type
+      }
+
+      return {
+        userId: user.userId,
+        fullName: user.fullName,
+        position: user.position,
+        role: user.role,
+        status: defaultStatus,
+        hasSavedRecord: !!savedStatus,
+        activeLeave: activeLeave ? {
+          leaveId: activeLeave.leaveId,
+          leaveType: activeLeave.leaveType,
+          status: activeLeave.status
+        } : null
+      };
+    });
+
+    res.json(result);
+  } catch (err) {
+    console.error('Error fetching attendance:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Save/Update Attendance records
+app.post('/api/attendance', async (req, res) => {
+  const { date, records, adminUserId } = req.body;
+
+  if (!date || !records || !Array.isArray(records)) {
+    return res.status(400).json({ success: false, message: 'ข้อมูลไม่ถูกต้อง' });
+  }
+
+  const updater = adminUserId || 'admin';
+
+  try {
+    // 1. Fetch current status map for this date
+    const [existing] = await db.query(
+      "SELECT userId, status FROM attendance WHERE attendanceDate = ?", 
+      [date]
+    );
+    const existingMap = new Map(existing.map(r => [r.userId, r.status]));
+
+    // 2. Loop to save and collect notification list
+    const notifications = [];
+
+    for (const record of records) {
+      const { userId, status } = record;
+      if (!userId || !status) continue;
+
+      const prevStatus = existingMap.get(userId);
+
+      // Insert or update
+      await db.query(
+        `INSERT INTO attendance (userId, attendanceDate, status, updatedBy) 
+         VALUES (?, ?, ?, ?) 
+         ON DUPLICATE KEY UPDATE 
+           status = VALUES(status), 
+           updatedBy = VALUES(updatedBy)`,
+        [userId, date, status, updater]
+      );
+
+      // Check for notifications on change/new status
+      if (status !== prevStatus) {
+        // Special condition: "ขาด", "มาสาย", "ไม่ทราบสาเหตุ" (notify immediately)
+        if (['ขาด', 'มาสาย', 'ไม่ทราบสาเหตุ'].includes(status)) {
+          notifications.push({
+            userId,
+            type: 'warning',
+            message: `📢 แจ้งเตือนการปฏิบัติงาน\nตรวจพบสถานะ "${status}" ของคุณในวันที่ ${formatDateThai(date)}\n\nกรุณาทำบันทึกข้อความเพื่อขอเซ็นชื่อปฏิบัติหน้าที่ย้อนหลังเท่านั้นครับ`
+          });
+        } 
+        // Special condition: "มาปฏิบัติงาน" (notify if returning from sick leave)
+        else if (status === 'มาปฏิบัติงาน') {
+          // Find the user's most recent attendance status before this date
+          const [lastRecord] = await db.query(
+            `SELECT status 
+             FROM attendance 
+             WHERE userId = ? AND attendanceDate < ? 
+             ORDER BY attendanceDate DESC LIMIT 1`,
+            [userId, date]
+          );
+          if (lastRecord.length > 0 && lastRecord[0].status === 'ลาป่วย') {
+            notifications.push({
+              userId,
+              type: 'sick_return',
+              message: `📢 แจ้งเตือนการยื่นใบลาป่วย\nเนื่องจากคุณกลับมาปฏิบัติหน้าที่แล้วหลังจากลาป่วยในวันที่ผ่านมา\n\nขอความกรุณายื่นใบลาเข้าระบบภายใน 1 วันหลังจากกลับมาปฏิบัติหน้าที่แล้วครับ`
+            });
+          }
+        }
+      }
+    }
+
+    // 3. Send notifications asynchronously
+    if (notifications.length > 0) {
+      const userIds = notifications.map(n => n.userId);
+      const [users] = await db.query(
+        "SELECT userId, lineUserId FROM users WHERE userId IN (?)", 
+        [userIds]
+      );
+      const lineUserMap = new Map(users.map(u => [u.userId, u.lineUserId]));
+
+      for (const n of notifications) {
+        const lineUserId = lineUserMap.get(n.userId);
+        if (lineUserId) {
+          try {
+            await sendLinePushMessage(lineUserId, n.message);
+            console.log(`LINE Notification sent to user ${n.userId} for ${n.type}`);
+          } catch (err) {
+            console.error(`Error sending LINE notification to user ${n.userId}:`, err.message);
+          }
+        }
+      }
+    }
+
+    res.json({ success: true, message: 'บันทึกข้อมูลการเข้าปฏิบัติงานเรียบร้อยแล้ว' });
+  } catch (err) {
+    console.error('Error saving attendance:', err.message);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + err.message });
+  }
+});
+
+// Initialize database tables
+(async () => {
+  try {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS attendance (
+        attendanceId INT AUTO_INCREMENT PRIMARY KEY,
+        userId VARCHAR(50) NOT NULL,
+        attendanceDate DATE NOT NULL,
+        status VARCHAR(50) NOT NULL,
+        updatedBy VARCHAR(50) NOT NULL,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_user_date (userId, attendanceDate)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+    console.log('✅ attendance table verified/created successfully.');
+  } catch (err) {
+    console.error('Error creating attendance table:', err.message);
+  }
+})();
+
 // Start Server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

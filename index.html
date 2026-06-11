@@ -136,7 +136,7 @@
         </div>
 
         <!-- Recent Table Card -->
-        <div class="glass-card">
+        <div class="glass-card" style="display: none;">
           <h3 style="font-size:1.1rem; font-weight:600; color:var(--neutral-700); margin-bottom:20px;">รายการยื่นใบลาล่าสุด</h3>
           <div class="table-container">
             <table class="custom-table">
@@ -554,11 +554,53 @@
         </div>
       </div>
 
+      <!-- 7. Attendance Check-in Page (Admin Only) -->
+      <div id="attendance-page" class="page hidden">
+        <h1 style="font-size:1.8rem; font-weight:700; color:var(--neutral-800); margin-bottom:24px;">เช็คชื่อการเข้าปฏิบัติงาน</h1>
+        
+        <div class="glass-card" style="margin-bottom: 24px;">
+          <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+            <div class="form-group" style="margin-bottom:0; flex-grow:1; max-width:300px;">
+              <label class="form-label" style="font-weight:600;">เลือกวันที่ปฏิบัติงาน</label>
+              <input type="date" id="attendance-date" class="form-input">
+            </div>
+            <div style="margin-top:24px;">
+              <button id="btn-load-attendance" class="btn btn-secondary" style="padding: 10px 20px;">ดึงข้อมูล</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:24px;">
+            <h3 style="font-size:1.1rem; font-weight:600; margin:0;">รายชื่อผู้ปฏิบัติงานและการลงเวลา</h3>
+            <div>
+              <button id="btn-save-attendance" class="btn btn-primary" style="padding: 10px 20px;">💾 บันทึกข้อมูลการเช็คชื่อ</button>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>ชื่อ-นามสกุล</th>
+                  <th>ตำแหน่ง</th>
+                  <th>ข้อมูลการลา (หากมี)</th>
+                  <th style="width:280px; text-align:center;">สถานะการเข้าปฏิบัติงาน</th>
+                </tr>
+              </thead>
+              <tbody id="attendance-table-body">
+                <!-- Loaded dynamically by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </main>
 
     <!-- Footer -->
     <footer class="footer">
-      <p class="footer-text">© 2026 ระบบบริหารจัดการข้อมูลการลา วิทยาลัยสารพัดช่างน่าน</p>
+      <p class="footer-text">© 2026 ระบบบริหารงานบุคลากร วิทยาลัยสารพัดช่างน่าน</p>
       <p class="footer-author">พัฒนาเป็นเว็บแอปพลิเคชันโดย นายนิพนธ์ ร่องพืช</p>
     </footer>
 

@@ -59,6 +59,17 @@ CREATE TABLE IF NOT EXISTS holidays (
     description VARCHAR(100) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 5. Table for Attendance Check-in
+CREATE TABLE IF NOT EXISTS attendance (
+    attendanceId INT AUTO_INCREMENT PRIMARY KEY,
+    userId VARCHAR(50) NOT NULL,
+    attendanceDate DATE NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    updatedBy VARCHAR(50) NOT NULL,
+    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_user_date (userId, attendanceDate)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Insert default settings
 INSERT INTO settings (settingKey, settingValue) VALUES
 ('schoolName', 'วิทยาลัยสารพัดช่างน่าน')
