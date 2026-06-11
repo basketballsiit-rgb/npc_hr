@@ -54,7 +54,6 @@
     }
 
     .doc-body {
-      text-indent: 2.5cm;
       text-align: justify;
       margin-bottom: 12px;
       line-height: 1.35;
@@ -72,7 +71,7 @@
       border: 1px solid #000000;
       padding: 3px;
       text-align: center;
-      font-size: 13pt; /* Legible table text */
+      font-size: 10.5pt; /* Reduced size to prevent table from overflowing left column border */
       white-space: nowrap; /* Prevent cell content wrapping */
     }
 
@@ -127,6 +126,9 @@
       .doc-body {
         font-size: 16pt !important;
         line-height: 1.35 !important;
+      }
+      .doc-last-leave th, .doc-last-leave td {
+        font-size: 10.5pt !important;
       }
       .doc-last-leave, .sig-image, table, tr, td {
         page-break-inside: avoid; /* Prevent browser from breaking key blocks */
