@@ -56,6 +56,18 @@ function enterModule(pageId, adminOnly) {
     Swal.fire('ปฏิเสธการเข้าถึง', 'เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถเข้าใช้งานหน้านี้ได้', 'warning');
     return;
   }
+
+  if (pageId === 'activity-page') {
+    const srsUser = {
+      id: currentUser.userId,
+      staff_code: currentUser.username,
+      full_name: currentUser.fullName,
+      role: currentUser.role
+    };
+    localStorage.setItem('srs_user', JSON.stringify(srsUser));
+    window.location.href = 'https://service.npc.ac.th/APR';
+    return;
+  }
   
   showPage(pageId);
   
@@ -70,8 +82,6 @@ function enterModule(pageId, adminOnly) {
     initTravelReportPage();
   } else if (pageId === 'training-page') {
     initTrainingPage();
-  } else if (pageId === 'activity-page') {
-    initActivityPage();
   }
 }
 
@@ -459,6 +469,8 @@ function buildNavigation() {
   }
 
   menuItems.forEach(item => {
+    const isAdminOnly = ['attendance-page', 'approval-page', 'report-page', 'user-management-page'].includes(item.page);
+    
     // Desktop Nav (Sidebar)
     const dLink = document.createElement('a');
     dLink.innerHTML = `<span style="font-size: 1.15rem; width: 24px; text-align: center;">${item.icon}</span> <span>${item.text}</span>`;
@@ -466,8 +478,7 @@ function buildNavigation() {
     dLink.setAttribute('data-page', item.page);
     dLink.onclick = (e) => {
       e.preventDefault();
-      showPage(item.page);
-      if (item.action) item.action();
+      enterModule(item.page, isAdminOnly);
       
       // Auto close sidebar on mobile screen size after click
       const appContainer = document.querySelector('.app-container');
@@ -486,8 +497,7 @@ function buildNavigation() {
       mLink.style.padding = '12px 16px';
       mLink.onclick = (e) => {
         e.preventDefault();
-        showPage(item.page);
-        if (item.action) item.action();
+        enterModule(item.page, isAdminOnly);
       };
       mobileNav.appendChild(mLink);
     }
@@ -501,12 +511,12 @@ function buildNavigation() {
       
       // Add same navigation items into user dropdown for convenience
       menuItems.slice(1).forEach(item => {
+        const isAdminOnly = ['attendance-page', 'approval-page', 'report-page', 'user-management-page'].includes(item.page);
         const dropLink = document.createElement('button');
         dropLink.className = 'user-dropdown-item';
         dropLink.innerHTML = `<span style="margin-right: 8px;">${item.icon}</span> ${item.text}`;
         dropLink.onclick = () => {
-          showPage(item.page);
-          if (item.action) item.action();
+          enterModule(item.page, isAdminOnly);
         };
         dropdownItems.appendChild(dropLink);
       });
