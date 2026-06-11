@@ -22,7 +22,7 @@
       width: 210mm;
       min-height: 297mm;
       margin: 0 auto;
-      padding: 20mm 15mm 15mm 20mm; /* Official Saraban margins */
+      padding: 15mm 15mm 10mm 20mm; /* Official Saraban margins */
       box-sizing: border-box;
       position: relative;
       background: #ffffff;
@@ -32,30 +32,30 @@
       text-align: center;
       font-weight: bold;
       font-size: 20pt; /* Large title font-size */
-      margin-bottom: 15px;
+      margin-bottom: 10px;
     }
 
     .doc-meta {
       text-align: right;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
       line-height: 1.25;
       font-size: 16pt;
     }
 
     .doc-subject {
-      margin-bottom: 8px;
+      margin-bottom: 5px;
       font-weight: bold;
       font-size: 16pt;
     }
 
     .doc-salutation {
-      margin-bottom: 8px;
+      margin-bottom: 5px;
       font-size: 16pt;
     }
 
     .doc-body {
       text-align: justify;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
       line-height: 1.35;
       font-size: 16pt;
     }
@@ -69,7 +69,7 @@
 
     .doc-last-leave th, .doc-last-leave td {
       border: 1px solid #000000;
-      padding: 6px 4px;
+      padding: 4px 3px;
       text-align: center;
       font-size: 13pt; /* Increased size to improve readability */
       white-space: nowrap; /* Prevent cell content wrapping */
@@ -116,7 +116,7 @@
       .a4-page {
         width: 100%;
         height: auto;
-        padding: 20mm 15mm 15mm 20mm !important;
+        padding: 15mm 15mm 10mm 20mm !important;
         margin: 0;
         box-shadow: none;
       }
@@ -215,7 +215,7 @@
     </div>
 
     <!-- Requestor Signature (ขอแสดงความนับถือ) -->
-    <div style="display: flex; justify-content: center; margin-top: 15px; margin-bottom: 15px;">
+    <div style="display: flex; justify-content: center; margin-top: 10px; margin-bottom: 10px;">
       <div style="width: 300px; text-align: center; line-height: 1.25; font-size: 16pt;">
         <div style="margin-bottom: 8px;">ขอแสดงความนับถือ</div>
         <div style="height: 38px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px;">
@@ -228,10 +228,10 @@
     </div>
 
     <!-- Divided Lower Section (Divided by a vertical line in the middle) -->
-    <div style="display: flex; margin-top: 35px; font-size: 16pt; gap: 4%;">
+    <div style="display: flex; margin-top: 20px; font-size: 16pt; gap: 4%;">
       
       <!-- Left Column (48% width) -->
-      <div style="width: 48%; padding-right: 2%; border-right: 1px solid #000; display: flex; flex-direction: column; justify-content: space-between; min-height: 280px;">
+      <div style="width: 48%; padding-right: 2%; border-right: 1px solid #000; display: flex; flex-direction: column; justify-content: space-between; min-height: 240px;">
         <div>
           <div class="bold text-center" style="margin-bottom: 6px;">สถิติการลาในปีงบประมาณนี้</div>
           <table class="doc-last-leave">
@@ -267,8 +267,8 @@
         </div>
 
         <!-- Personnel Head Signature Box -->
-        <div style="margin-top: 15px; text-align: center; line-height: 1.35;">
-          <div style="height: 52px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px;">
+        <div style="margin-top: 8px; text-align: center; line-height: 1.35;">
+          <div style="height: 38px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px;">
             <img id="approver-signature" class="sig-image" src="" alt="ลายเซ็นหัวหน้างานบุคลากร" style="display:none;">
           </div>
           <div>(ลงชื่อ) .......................................................</div>
@@ -283,14 +283,14 @@
         <!-- Deputy Director Comment & Signature Box -->
         <div style="line-height: 1.35;">
           <div>ความเห็น ..................................................................................</div>
-          <div style="margin-top: 25px; text-align: center;">
+          <div style="margin-top: 15px; text-align: center;">
             <div>(ลงชื่อ) .......................................................</div>
             <div>( นายจักรพงศ์ พรหมสกุลปัญญา )</div>
             <div>รองผู้อำนวยการฝ่ายบริหารทรัพยากร</div>
           </div>
         </div>
 
-        <div style="margin: 15px 0;"></div>
+        <div style="margin: 10px 0;"></div>
 
         <!-- Director Decision & Signature Box -->
         <div style="line-height: 1.35;">
@@ -299,8 +299,8 @@
             คำสั่ง &nbsp;&nbsp;&nbsp;&nbsp; ( <span id="print-approve-check" style="font-weight: bold;">&nbsp;</span> ) อนุญาต &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ( <span id="print-reject-check" style="font-weight: bold;">&nbsp;</span> ) ไม่อนุญาต
           </div>
           
-          <div style="margin-top: 10px; text-align: center; position: relative;">
-            <div style="height: 48px;"></div>
+          <div style="margin-top: 4px; text-align: center; position: relative;">
+            <div style="height: 32px;"></div>
             <div>(ลงชื่อ) .......................................................</div>
             <div>( <span id="approver-name">นายกเชษฐ์ กิ่งชนะ</span> )</div>
             <div>ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน</div>
