@@ -22,7 +22,7 @@
       width: 210mm;
       min-height: 297mm;
       margin: 0 auto;
-      padding: 25mm 20mm 20mm 25mm; /* Standard TH margins: Top 2.5cm, Bottom 2cm, Left 2.5cm, Right 2cm */
+      padding: 20mm 15mm 15mm 20mm; /* Adjusted margins to fit everything on a single page nicely */
       box-sizing: border-box;
       position: relative;
       background: #ffffff;
@@ -31,35 +31,29 @@
     .header-title {
       text-align: center;
       font-weight: bold;
-      font-size: 20px;
-      margin-bottom: 30px;
+      font-size: 22px;
+      margin-bottom: 20px;
     }
 
     .doc-meta {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
+      text-align: right;
       margin-bottom: 25px;
-    }
-
-    .doc-meta div {
-      width: 320px;
-      text-align: left;
+      line-height: 1.5;
     }
 
     .doc-subject {
-      margin-bottom: 20px;
+      margin-bottom: 15px;
       font-weight: bold;
     }
 
     .doc-salutation {
-      margin-bottom: 20px;
+      margin-bottom: 15px;
     }
 
     .doc-body {
       text-indent: 2.5cm;
       text-align: justify;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
       line-height: 1.8;
     }
 
@@ -67,41 +61,21 @@
       border: 1px solid #000000;
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 25px;
+      margin-bottom: 15px;
     }
 
     .doc-last-leave th, .doc-last-leave td {
       border: 1px solid #000000;
-      padding: 8px;
+      padding: 6px;
       text-align: center;
       font-size: 14px;
     }
 
-    .doc-footer {
-      margin-top: 30px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 30px;
-    }
-
-    .footer-section {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      line-height: 1.8;
-    }
-
     .sig-image {
-      max-height: 50px;
-      max-width: 150px;
+      max-height: 45px;
+      max-width: 140px;
       object-fit: contain;
-      margin: 5px 0;
-    }
-
-    .sig-placeholder {
-      height: 40px;
-      margin: 5px 0;
+      margin: 2px 0;
     }
 
     .underline-dotted {
@@ -176,110 +150,151 @@
   </div>
 
   <div id="print-content" class="a4-page hidden">
-    <div class="header-title">ใบลา<span id="leave-type-title">......</span></div>
+    <!-- Centered Header Title (lists all three types as File 2) -->
+    <div class="header-title">ใบลาป่วย ลากิจส่วนตัว ลาคลอดบุตร</div>
     
+    <!-- Right-aligned Metadata block -->
     <div class="doc-meta">
-      <div>เขียนที่ <span id="school-name" class="underline-dotted" style="width: 200px;">วิทยาลัยสารพัดช่างน่าน</span></div>
-      <div style="margin-top: 8px;">วันที่ <span id="request-day" class="underline-dotted" style="width: 40px; text-align: center;"></span> เดือน <span id="request-month" class="underline-dotted" style="width: 100px; text-align: center;"></span> พ.ศ. <span id="request-year" class="underline-dotted" style="width: 60px; text-align: center;"></span></div>
+      <div>เขียนที่ วิทยาลัยสารพัดช่างน่าน</div>
+      <div style="margin-top: 4px;"><span id="doc-request-date-thai">......</span></div>
     </div>
 
     <div class="doc-subject">เรื่อง <span id="leave-subject">......</span></div>
     
     <div class="doc-salutation">เรียน ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน</div>
 
-    <div class="doc-body">
-      ข้าพเจ้า <span id="user-name" class="bold">......</span> ตำแหน่ง <span id="user-position">......</span>
-      สังกัด <span id="user-school">วิทยาลัยสารพัดช่างน่าน</span> มีความประสงค์ขอลา <span id="leave-type" class="bold">......</span>
-      เนื่องจาก <span id="leave-reason">......</span>
-      ตั้งแต่วันที่ <span id="start-date-full">......</span> ถึงวันที่ <span id="end-date-full">......</span>
-      มีกำหนด <span id="total-days" class="bold">......</span> วัน
+    <!-- Main Body Paragraph (structured exactly as File 2) -->
+    <div class="doc-body" style="line-height: 2.0; font-size: 16px;">
+      <div style="text-indent: 2.5cm; margin-bottom: 6px;">
+        ข้าพเจ้า <span id="user-name">......</span> ตำแหน่ง <span id="user-position">......</span> สังกัด วิทยาลัยสารพัดช่างน่าน
+      </div>
+      <div style="margin-bottom: 6px;">
+        ขอ<span id="leave-type">......</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;เนื่องจาก <span id="leave-reason">......</span>
+      </div>
+      <div style="margin-bottom: 6px;">
+        ตั้งแต่วันที่ <span id="start-date-full">......</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ถึงวันที่ <span id="end-date-full">......</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;มีกำหนด <span id="total-days">......</span> วัน
+      </div>
+      <div style="margin-bottom: 6px;">
+        และในการลาครั้งนี้ ข้าพเจ้าได้มอบหมายงาน / การสอนให้กับ <span id="teacher-name">......</span>
+      </div>
+      <div style="margin-bottom: 6px;">
+        ผู้รับผิดชอบ/สอนแทนในวิชา <span id="subject-name">......</span>
+      </div>
+      <div style="text-indent: 2.5cm; margin-bottom: 6px;">
+        ข้าพเจ้าได้ลา <span id="last-leave-type">......</span> ครั้งสุดท้าย
+      </div>
+      <div style="margin-bottom: 6px;">
+        ตั้งแต่วันที่ <span id="last-leave-start">....................................</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ถึง วันที่ <span id="last-leave-end">....................................</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;มีกำหนด <span id="last-leave-days">......</span> วัน
+      </div>
+      <div style="margin-bottom: 6px;">
+        ในระหว่างลาครั้งนี้จะติดต่อข้าพเจ้าได้ที่ <span id="contact-address">......</span>
+      </div>
+      <div style="margin-bottom: 6px;">
+        หมายเลขโทรศัพท์ที่ติดต่อได้ <span id="contact-phone">......</span>
+      </div>
     </div>
 
-    <div class="doc-body" style="text-indent: 0; margin-bottom: 25px;">
-      ในระหว่างลา ข้าพเจ้าสามารถติดต่อได้ที่ <span id="contact-address">......</span> 
-      หมายเลขโทรศัพท์ <span id="contact-phone">......</span>
-      ในการนี้ได้มอบหมายงานให้ <span id="teacher-name">......</span> เป็นผู้รับผิดชอบงานแทน ในรายวิชา <span id="subject-name">......</span>
-    </div>
-
-    <div class="doc-footer" style="margin-bottom: 25px; grid-template-columns: 1fr 1fr;">
-      <div class="footer-section">
-        <div class="sig-placeholder"></div>
-        <div>(ลงชื่อ) ....................................................... ผู้รับมอบหมายงานแทน</div>
-        <div>( <span id="teacher-name-confirm">.......................................................</span> )</div>
-      </div>
-      <div class="footer-section">
-        <img id="user-signature" class="sig-image" src="" alt="ลายเซ็นผู้ขอลา">
-        <div>(ลงชื่อ) ....................................................... ผู้ขอลา</div>
-        <div>( <span id="user-name-confirm">......</span> )</div>
-      </div>
-    </div>
-
-    <hr style="border: 0; border-top: 1px solid #000000; margin: 30px 0;">
-
-    <div class="bold" style="margin-bottom: 10px;">สถิติการลาในปีงบประมาณนี้</div>
-    <table class="doc-last-leave">
-      <thead>
-        <tr>
-          <th>ประเภทการลา</th>
-          <th>ลามาแล้ว (ครั้ง/วัน)</th>
-          <th>ลาครั้งนี้ (ครั้ง/วัน)</th>
-          <th>รวมเป็น (ครั้ง/วัน)</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td style="text-align: left; font-weight: bold; padding-left: 15px;">ลาป่วย</td>
-          <td id="print-stats-sick-prev">......</td>
-          <td id="print-stats-sick-curr">......</td>
-          <td id="print-stats-sick-total">......</td>
-        </tr>
-        <tr>
-          <td style="text-align: left; font-weight: bold; padding-left: 15px;">ลากิจ</td>
-          <td id="print-stats-personal-prev">......</td>
-          <td id="print-stats-personal-curr">......</td>
-          <td id="print-stats-personal-total">......</td>
-        </tr>
-        <tr>
-          <td style="text-align: left; font-weight: bold; padding-left: 15px;">ลาคลอด</td>
-          <td id="print-stats-maternity-prev">......</td>
-          <td id="print-stats-maternity-curr">......</td>
-          <td id="print-stats-maternity-total">......</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div class="doc-footer" style="margin-top: 40px;">
-      <div class="footer-section">
-        <div class="bold">ความเห็นของหัวหน้างาน / ผู้บังคับบัญชา</div>
-        <div style="margin-top: 10px;">....................................................................................</div>
-        <div>....................................................................................</div>
-        <div style="margin-top: 20px;">(ลงชื่อ) .......................................................</div>
-        <div>( ....................................................... )</div>
-        <div>ตำแหน่ง .......................................................</div>
-      </div>
-      
-      <div class="footer-section">
-        <div class="bold">คำสั่ง / การอนุมัติ</div>
-        <div style="margin-top: 10px; font-weight: 500;">
-          คำสั่ง: <span id="approval-status" class="bold">..................</span>
+    <!-- Requestor Signature (ขอแสดงความนับถือ) -->
+    <div style="display: flex; justify-content: flex-end; margin-top: 20px; margin-bottom: 25px;">
+      <div style="width: 300px; text-align: center; line-height: 1.8;">
+        <div style="margin-bottom: 12px;">ขอแสดงความนับถือ</div>
+        <div style="height: 50px; display: flex; align-items: center; justify-content: center;">
+          <img id="user-signature" class="sig-image" src="" alt="ลายเซ็นผู้ขอลา">
         </div>
-        <div id="approval-comment-area" style="font-size: 14px; color: #333;"></div>
-        
-        <img id="approver-signature" class="sig-image" src="" alt="ลายเซ็นผู้อนุมัติ" style="display:none;">
-        <div id="approver-sig-line" style="margin-top: 20px;">(ลงชื่อ) ....................................................... ผู้อนุมัติ</div>
-        <div>( <span id="approver-name">.......................................................</span> )</div>
-        <div>ตำแหน่ง <span id="approver-position">.......................................................</span></div>
-        <div style="font-size: 14px;">อนุมัติเมื่อวันที่: <span id="approval-date">......</span></div>
+        <div>(ลงชื่อ) .......................................................</div>
+        <div>( <span id="user-name-confirm">......</span> )</div>
+        <div>ตำแหน่ง <span id="user-position-confirm">......</span></div>
       </div>
+    </div>
+
+    <!-- Divided Lower Section (Divided by a vertical line in the middle) -->
+    <div style="display: flex; border-top: 1px solid #000; margin-top: 20px; padding-top: 15px; font-size: 14px; gap: 4%;">
+      
+      <!-- Left Column (48% width) -->
+      <div style="width: 48%; padding-right: 2%; border-right: 1px solid #000; display: flex; flex-direction: column; justify-content: space-between; min-height: 320px;">
+        <div>
+          <div class="bold text-center" style="margin-bottom: 10px;">สถิติการลาในปีงบประมาณนี้</div>
+          <table class="doc-last-leave">
+            <thead>
+              <tr style="font-weight: bold;">
+                <th>ประเภทการลา</th>
+                <th>ลามาแล้ว (ครั้ง/วัน)</th>
+                <th>ลาครั้งนี้ (ครั้ง/วัน)</th>
+                <th>รวมเป็น (ครั้ง/วัน)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="text-align: left; font-weight: bold; padding-left: 8px;">ลาป่วย</td>
+                <td id="print-stats-sick-prev">......</td>
+                <td id="print-stats-sick-curr">......</td>
+                <td id="print-stats-sick-total">......</td>
+              </tr>
+              <tr>
+                <td style="text-align: left; font-weight: bold; padding-left: 8px;">ลากิจ</td>
+                <td id="print-stats-personal-prev">......</td>
+                <td id="print-stats-personal-curr">......</td>
+                <td id="print-stats-personal-total">......</td>
+              </tr>
+              <tr>
+                <td style="text-align: left; font-weight: bold; padding-left: 8px;">ลาคลอด</td>
+                <td id="print-stats-maternity-prev">......</td>
+                <td id="print-stats-maternity-curr">......</td>
+                <td id="print-stats-maternity-total">......</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Personnel Head Signature Box -->
+        <div style="margin-top: 30px; text-align: center; line-height: 1.8;">
+          <div>(ลงชื่อ) .......................................................</div>
+          <div>( นางปวีณา วงศาระ )</div>
+          <div>หัวหน้างานบุคลากร</div>
+          <div style="margin-top: 4px;">วันที่ <span id="personnel-date-day">......</span> เดือน <span id="personnel-date-month">........................</span> พ.ศ. <span id="personnel-date-year">..........</span></div>
+        </div>
+      </div>
+
+      <!-- Right Column (48% width) -->
+      <div style="width: 48%; display: flex; flex-direction: column; gap: 15px; justify-content: space-between;">
+        <!-- Deputy Director Comment & Signature Box -->
+        <div style="line-height: 1.8;">
+          <div>ความเห็น ..................................................................................</div>
+          <div style="margin-top: 15px; text-align: center;">
+            <div>(ลงชื่อ) .......................................................</div>
+            <div>( นายจักรพงศ์ พรหมสกุลปัญญา )</div>
+            <div>รองผู้อำนวยการฝ่ายบริหารทรัพยากร</div>
+          </div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px dotted #000; margin: 5px 0;">
+
+        <!-- Director Decision & Signature Box -->
+        <div style="line-height: 1.8;">
+          <div class="bold">ความเห็นของผู้บังคับบัญชา</div>
+          <div style="margin-top: 4px;">
+            คำสั่ง &nbsp;&nbsp;&nbsp;&nbsp; ( <span id="print-approve-check" style="font-weight: bold;">&nbsp;</span> ) อนุญาต &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ( <span id="print-reject-check" style="font-weight: bold;">&nbsp;</span> ) ไม่อนุญาต
+          </div>
+          
+          <div style="margin-top: 10px; text-align: center; position: relative;">
+            <div style="height: 45px; display: flex; align-items: center; justify-content: center; margin-bottom: 5px;">
+              <img id="approver-signature" class="sig-image" src="" alt="ลายเซ็นผู้อนุมัติ" style="display:none;">
+            </div>
+            <div>(ลงชื่อ) .......................................................</div>
+            <div>( <span id="approver-name">นางวริทธ์นันท์ จันทรมนตรี</span> )</div>
+            <div>ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน</div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
   <script>
     // Configuration API BASE URL
-    // Automatically detect host to make it run both on localhost and production server
     const API_BASE_URL = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
       ? 'http://localhost:5000'
-      : 'https://service.npc.ac.th/npc_eleve_backend'; // Replace with your production Node.js API domain
+      : window.location.origin + '/npc_eleve_backend';
 
     function formatDateThai(dateStr) {
       if (!dateStr) return '......';
@@ -315,36 +330,39 @@
         const leave = await response.json();
         
         // Populate DOM elements
-        document.getElementById('leave-type-title').textContent = leave.leaveType;
-        document.getElementById('leave-subject').textContent = `ขอ${leave.leaveType}`;
+        document.getElementById('doc-request-date-thai').textContent = formatDateThai(leave.requestDate);
+        document.getElementById('leave-subject').textContent = `ขออนุญาต${leave.leaveType}`;
         
-        // Parse request date
-        const reqDate = new Date(leave.requestDate);
-        if (!isNaN(reqDate.getTime())) {
-          const months = [
-            'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-            'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
-          ];
-          document.getElementById('request-day').textContent = reqDate.getDate();
-          document.getElementById('request-month').textContent = months[reqDate.getMonth()];
-          document.getElementById('request-year').textContent = reqDate.getFullYear() + 543;
-        }
-
         document.getElementById('user-name').textContent = leave.fullName;
         document.getElementById('user-name-confirm').textContent = leave.fullName;
         document.getElementById('user-position').textContent = leave.position;
+        document.getElementById('user-position-confirm').textContent = leave.position;
         document.getElementById('leave-type').textContent = leave.leaveType;
         document.getElementById('leave-reason').textContent = leave.reason;
         document.getElementById('start-date-full').textContent = formatDateThai(leave.startDate);
         document.getElementById('end-date-full').textContent = formatDateThai(leave.endDate);
-        document.getElementById('total-days').textContent = leave.totalDays;
+        document.getElementById('total-days').textContent = parseFloat(leave.totalDays).toFixed(1).replace('.0', '');
         
         document.getElementById('contact-address').textContent = leave.contactAddress;
         document.getElementById('contact-phone').textContent = leave.contactPhone;
-        document.getElementById('teacher-name').textContent = leave.teacherName;
-        document.getElementById('teacher-name-confirm').textContent = leave.teacherName;
-        document.getElementById('subject-name').textContent = leave.subject;
+        document.getElementById('teacher-name').textContent = leave.teacherName || '....................................';
+        document.getElementById('subject-name').textContent = leave.subject || '....................................';
         
+        // Format last leave text dynamically
+        if (leave.lastLeaveStartDate && leave.lastLeaveEndDate) {
+          const lastType = leave.lastLeaveType || 'ลาป่วย';
+          const lastTotal = parseFloat(leave.lastLeaveTotalDays) || 0;
+          document.getElementById('last-leave-type').textContent = lastType;
+          document.getElementById('last-leave-start').textContent = formatDateThai(leave.lastLeaveStartDate);
+          document.getElementById('last-leave-end').textContent = formatDateThai(leave.lastLeaveEndDate);
+          document.getElementById('last-leave-days').textContent = lastTotal.toFixed(1).replace('.0', '');
+        } else {
+          document.getElementById('last-leave-type').textContent = '....................................';
+          document.getElementById('last-leave-start').textContent = '....................................';
+          document.getElementById('last-leave-end').textContent = '....................................';
+          document.getElementById('last-leave-days').textContent = '......';
+        }
+
         // Load signature image
         if (leave.signatureUrl) {
           document.getElementById('user-signature').src = `${API_BASE_URL}${leave.signatureUrl}`;
@@ -396,21 +414,52 @@
 
         // Approver commands
         if (leave.status !== 'รอการอนุมัติ') {
-          document.getElementById('approval-status').textContent = leave.status;
-          
-          if (leave.status === 'ไม่อนุมัติ' && leave.approverComment) {
-            document.getElementById('approval-comment-area').textContent = `หมายเหตุ: ${leave.approverComment}`;
-          }
-          
           if (leave.approverSignatureUrl) {
             const appSigImg = document.getElementById('approver-signature');
             appSigImg.src = `${API_BASE_URL}${leave.approverSignatureUrl}`;
             appSigImg.style.display = 'block';
           }
           
-          document.getElementById('approver-name').textContent = leave.approverName || '.......................................................';
-          document.getElementById('approver-position').textContent = leave.approverPosition || '.......................................................';
-          document.getElementById('approval-date').textContent = leave.approvalDate || '......';
+          if (leave.approverName) {
+            document.getElementById('approver-name').textContent = leave.approverName;
+          }
+          
+          // Parse approval date
+          let appDay = '......';
+          let appMonth = '........................';
+          let appYear = '..........';
+
+          if (leave.approvalDate) {
+            const parts = leave.approvalDate.split(' ');
+            if (parts.length === 3) {
+              appDay = parts[0];
+              appMonth = parts[1];
+              appYear = parts[2];
+            } else {
+              const appDate = new Date(leave.approvalDate);
+              if (!isNaN(appDate.getTime())) {
+                const months = [
+                  'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+                  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+                ];
+                appDay = appDate.getDate();
+                appMonth = months[appDate.getMonth()];
+                appYear = appDate.getFullYear() + 543;
+              }
+            }
+          }
+
+          document.getElementById('personnel-date-day').textContent = appDay;
+          document.getElementById('personnel-date-month').textContent = appMonth;
+          document.getElementById('personnel-date-year').textContent = appYear;
+
+          if (leave.status === 'อนุมัติ') {
+            document.getElementById('print-approve-check').textContent = '✓';
+            document.getElementById('print-reject-check').innerHTML = '&nbsp;';
+          } else if (leave.status === 'ไม่อนุมัติ') {
+            document.getElementById('print-approve-check').innerHTML = '&nbsp;';
+            document.getElementById('print-reject-check').textContent = '✓';
+          }
         }
 
         // Hide loader and show content
