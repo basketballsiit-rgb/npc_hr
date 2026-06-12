@@ -1188,7 +1188,7 @@ app.get('/api/attendance', async (req, res) => {
   try {
     // 1. Fetch all active approved users
     const [users] = await db.query(
-      "SELECT userId, fullName, position, role FROM users WHERE status = 'approved' ORDER BY fullName ASC"
+      "SELECT userId, fullName, position, role, staffType FROM users WHERE status = 'approved' ORDER BY fullName ASC"
     );
 
     // 2. Fetch saved attendance records for this date
@@ -1231,6 +1231,7 @@ app.get('/api/attendance', async (req, res) => {
         fullName: user.fullName,
         position: user.position,
         role: user.role,
+        staffType: user.staffType,
         status: defaultStatus,
         hasSavedRecord: !!savedStatus,
         activeLeave: activeLeave ? {

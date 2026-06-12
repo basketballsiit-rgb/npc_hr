@@ -16,6 +16,7 @@ let leaveTypeChartInstance = null;
 let monthlyLeaveChartInstance = null;
 let signaturePad = null;
 let adminSignaturePad = null;
+let currentAttendanceData = [];
 
 // Page Routing
 const pages = document.querySelectorAll('.page');
@@ -222,6 +223,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Attendance page actions
   document.getElementById('btn-load-attendance').addEventListener('click', loadAttendanceData);
   document.getElementById('btn-save-attendance').addEventListener('click', saveAttendanceData);
+  const filterSelect = document.getElementById('attendance-filter-type');
+  if (filterSelect) {
+    filterSelect.addEventListener('change', filterAndRenderAttendance);
+  }
 
   // Setup signature pad
   const canvas = document.getElementById('signature-pad');
@@ -370,6 +375,7 @@ function showRegisterModal() {
         <div>
           <label class="form-label">ประเภทบุคลากร</label>
           <select id="reg-type" class="form-input">
+            <option value="ผู้บริหาร">ผู้บริหาร</option>
             <option value="ข้าราชการ">ข้าราชการ</option>
             <option value="พนักงานราชการ">พนักงานราชการ</option>
             <option value="ครูพิเศษสอน" selected>ครูพิเศษสอน</option>
@@ -1535,6 +1541,7 @@ window.editUser = (u) => {
           <label class="form-label">ประเภทบุคลากร</label>
           <select id="edit-type" class="form-input">
             <option value="" ${!u.staffType ? 'selected' : ''}>-- ไม่ระบุ --</option>
+            <option value="ผู้บริหาร" ${u.staffType === 'ผู้บริหาร' ? 'selected' : ''}>ผู้บริหาร</option>
             <option value="ข้าราชการ" ${u.staffType === 'ข้าราชการ' ? 'selected' : ''}>ข้าราชการ</option>
             <option value="พนักงานราชการ" ${u.staffType === 'พนักงานราชการ' ? 'selected' : ''}>พนักงานราชการ</option>
             <option value="ครูพิเศษสอน" ${u.staffType === 'ครูพิเศษสอน' ? 'selected' : ''}>ครูพิเศษสอน</option>
@@ -1832,59 +1839,126 @@ async function loadAttendanceData() {
     if (!res.ok) throw new Error('ดึงข้อมูลการเข้าปฏิบัติงานล้มเหลว');
     
     const data = await res.json();
-    const tbody = document.getElementById('attendance-table-body');
-    tbody.innerHTML = '';
+    
+    // Sort data:
+    // 1. ผู้บริหาร
+    // 2. ข้าราชการ
+    // 3. พนักงานราชการ
+    // 4. ครูพิเศษสอน
+    // 5. เจ้าหน้าที่
+    // 6. Others/Empty
+    const staffTypeOrder = [
+      'ผู้บริหาร',
+      'ข้าราชการ',
+      'พนักงานราชการ',
+      'ครูพิเศษสอน',
+      'เจ้าหน้าที่'
+    ];
+    const getStaffTypePriority = (type) => {
+      const idx = staffTypeOrder.indexOf(type);
+      return idx === -1 ? 999 : idx;
+    };
+    
+    data.sort((a, b) => {
+      const pA = getStaffTypePriority(a.staffType);
+      const pB = getStaffTypePriority(b.staffType);
+      if (pA !== pB) {
+        return pA - pB;
+      }
+      return (a.fullName || '').localeCompare(b.fullName || '', 'th');
+    });
 
-    if (data.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="4" class="text-center" style="padding:24px; color:var(--neutral-400);">ไม่พบรายชื่อบุคลากร</td></tr>`;
-      Swal.close();
-      return;
+    currentAttendanceData = data;
+    
+    const filterSelect = document.getElementById('attendance-filter-type');
+    if (filterSelect) {
+      filterSelect.value = 'ทั้งหมด';
     }
 
-    data.forEach(user => {
-      let leaveBadge = '-';
-      if (user.activeLeave) {
-        let badgeColor = 'var(--warning)';
-        let badgeBg = 'var(--warning-light)';
-        if (user.activeLeave.leaveType === 'ลาป่วย') {
-          badgeColor = '#ef4444';
-          badgeBg = '#fef2f2';
-        }
-        leaveBadge = `<span style="background:${badgeBg}; color:${badgeColor}; padding:4px 8px; border-radius:6px; font-size:0.8rem; font-weight:600; display:inline-block;">⚠️ ลา: ${user.activeLeave.leaveType} (${user.activeLeave.status})</span>`;
-      }
-
-      tbody.innerHTML += `
-        <tr>
-          <td style="font-weight: 500; text-align: left; padding-left: 20px;">${user.fullName}</td>
-          <td style="text-align: left; padding-left: 20px;">${user.position}</td>
-          <td id="leave-badge-col-${user.userId}">${leaveBadge}</td>
-          <td style="text-align: center;">
-            <select class="form-input attendance-select" data-user-id="${user.userId}" style="padding: 6px 12px; font-size: 0.9rem; font-weight: bold; width: 100%; border-radius: 8px;">
-              <option value="มาปฏิบัติงาน" ${user.status === 'มาปฏิบัติงาน' ? 'selected' : ''}>มาปฏิบัติงาน</option>
-              <option value="ลาป่วย" ${user.status === 'ลาป่วย' ? 'selected' : ''}>ลาป่วย</option>
-              <option value="ลากิจ" ${user.status === 'ลากิจ' ? 'selected' : ''}>ลากิจ</option>
-              <option value="ลาคลอด" ${user.status === 'ลาคลอด' ? 'selected' : ''}>ลาคลอด</option>
-              <option value="ลาพักผ่อน" ${user.status === 'ลาพักผ่อน' ? 'selected' : ''}>ลาพักผ่อน</option>
-              <option value="ขาด" ${user.status === 'ขาด' ? 'selected' : ''}>ขาด</option>
-              <option value="มาสาย" ${user.status === 'มาสาย' ? 'selected' : ''}>มาสาย</option>
-              <option value="ไม่ทราบสาเหตุ" ${user.status === 'ไม่ทราบสาเหตุ' ? 'selected' : ''}>ไม่ทราบสาเหตุ</option>
-            </select>
-          </td>
-        </tr>
-      `;
-    });
-
-    const selects = tbody.querySelectorAll('.attendance-select');
-    selects.forEach(select => {
-      styleAttendanceSelect(select);
-      select.addEventListener('change', () => styleAttendanceSelect(select));
-    });
-
+    filterAndRenderAttendance();
     Swal.close();
   } catch (err) {
     console.error('Error loading attendance:', err);
     Swal.fire('ข้อผิดพลาด', err.message, 'error');
   }
+}
+
+function filterAndRenderAttendance() {
+  const filterSelect = document.getElementById('attendance-filter-type');
+  const filterType = filterSelect ? filterSelect.value : 'ทั้งหมด';
+  let filtered = [...currentAttendanceData];
+  
+  if (filterType !== 'ทั้งหมด') {
+    if (filterType === 'อื่นๆ') {
+      const knownTypes = ['ผู้บริหาร', 'ข้าราชการ', 'พนักงานราชการ', 'ครูพิเศษสอน', 'เจ้าหน้าที่'];
+      filtered = filtered.filter(u => !u.staffType || !knownTypes.includes(u.staffType));
+    } else {
+      filtered = filtered.filter(u => u.staffType === filterType);
+    }
+  }
+  
+  renderAttendanceTable(filtered);
+}
+
+function renderAttendanceTable(dataList) {
+  const tbody = document.getElementById('attendance-table-body');
+  tbody.innerHTML = '';
+
+  if (dataList.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center" style="padding:24px; color:var(--neutral-400);">ไม่พบรายชื่อบุคลากร</td></tr>`;
+    return;
+  }
+
+  dataList.forEach(user => {
+    let leaveBadge = '-';
+    if (user.activeLeave) {
+      let badgeColor = 'var(--warning)';
+      let badgeBg = 'var(--warning-light)';
+      if (user.activeLeave.leaveType === 'ลาป่วย') {
+        badgeColor = '#ef4444';
+        badgeBg = '#fef2f2';
+      }
+      leaveBadge = `<span style="background:${badgeBg}; color:${badgeColor}; padding:4px 8px; border-radius:6px; font-size:0.8rem; font-weight:600; display:inline-block;">⚠️ ลา: ${user.activeLeave.leaveType} (${user.activeLeave.status})</span>`;
+    }
+
+    tbody.innerHTML += `
+      <tr>
+        <td style="font-weight: 500; text-align: left; padding-left: 20px;">
+          ${user.fullName}
+          <div style="font-size:0.75rem; color:var(--neutral-500); margin-top:2px;">
+            ${user.staffType || 'ไม่ระบุประเภท'}
+          </div>
+        </td>
+        <td style="text-align: left; padding-left: 20px;">${user.position}</td>
+        <td id="leave-badge-col-${user.userId}">${leaveBadge}</td>
+        <td style="text-align: center;">
+          <select class="form-input attendance-select" data-user-id="${user.userId}" style="padding: 6px 12px; font-size: 0.9rem; font-weight: bold; width: 100%; border-radius: 8px;">
+            <option value="มาปฏิบัติงาน" ${user.status === 'มาปฏิบัติงาน' ? 'selected' : ''}>มาปฏิบัติงาน</option>
+            <option value="ลาป่วย" ${user.status === 'ลาป่วย' ? 'selected' : ''}>ลาป่วย</option>
+            <option value="ลากิจ" ${user.status === 'ลากิจ' ? 'selected' : ''}>ลากิจ</option>
+            <option value="ลาคลอด" ${user.status === 'ลาคลอด' ? 'selected' : ''}>ลาคลอด</option>
+            <option value="ลาพักผ่อน" ${user.status === 'ลาพักผ่อน' ? 'selected' : ''}>ลาพักผ่อน</option>
+            <option value="ขาด" ${user.status === 'ขาด' ? 'selected' : ''}>ขาด</option>
+            <option value="มาสาย" ${user.status === 'มาสาย' ? 'selected' : ''}>มาสาย</option>
+            <option value="ไม่ทราบสาเหตุ" ${user.status === 'ไม่ทราบสาเหตุ' ? 'selected' : ''}>ไม่ทราบสาเหตุ</option>
+          </select>
+        </td>
+      </tr>
+    `;
+  });
+
+  const selects = tbody.querySelectorAll('.attendance-select');
+  selects.forEach(select => {
+    styleAttendanceSelect(select);
+    select.addEventListener('change', () => {
+      const userId = select.getAttribute('data-user-id');
+      const user = currentAttendanceData.find(u => u.userId == userId);
+      if (user) {
+        user.status = select.value;
+      }
+      styleAttendanceSelect(select);
+    });
+  });
 }
 
 function styleAttendanceSelect(selectEl) {
@@ -1915,14 +1989,10 @@ async function saveAttendanceData() {
     return;
   }
 
-  const selects = document.querySelectorAll('.attendance-select');
-  const records = [];
-  selects.forEach(select => {
-    records.push({
-      userId: select.getAttribute('data-user-id'),
-      status: select.value
-    });
-  });
+  const records = currentAttendanceData.map(u => ({
+    userId: u.userId,
+    status: u.status
+  }));
 
   if (records.length === 0) {
     Swal.fire('ข้อผิดพลาด', 'ไม่มีข้อมูลสำหรับบันทึก', 'error');
