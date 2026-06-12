@@ -523,7 +523,7 @@ app.post('/api/leaves', async (req, res) => {
 
 // Get Leave History
 app.post('/api/leaves/history', async (req, res) => {
-  const { role, userId, filterUserId, filterStartDate, filterEndDate } = req.body;
+  const { role, userId, filterUserId, filterStartDate, filterEndDate, fiscalYear } = req.body;
   try {
     let query = 'SELECT * FROM leave_data WHERE 1=1';
     const params = [];
@@ -538,13 +538,23 @@ app.post('/api/leaves/history', async (req, res) => {
       params.push(...userIds);
     }
 
-    if (filterStartDate) {
-      query += ' AND startDate >= ?';
-      params.push(normalizeDateToAD(filterStartDate));
+    let startLimit = filterStartDate;
+    let endLimit = filterEndDate;
+
+    if (!startLimit && !endLimit && fiscalYear && !isNaN(parseInt(fiscalYear))) {
+      const targetFY_BE = parseInt(fiscalYear);
+      const targetFY_AD = targetFY_BE - 543;
+      startLimit = `${targetFY_AD - 1}-10-01`;
+      endLimit = `${targetFY_AD}-09-30`;
     }
-    if (filterEndDate) {
+
+    if (startLimit) {
+      query += ' AND startDate >= ?';
+      params.push(normalizeDateToAD(startLimit));
+    }
+    if (endLimit) {
       query += ' AND startDate <= ?';
-      params.push(normalizeDateToAD(filterEndDate));
+      params.push(normalizeDateToAD(endLimit));
     }
 
     query += ' ORDER BY startDate DESC, requestDate DESC, createdAt DESC';

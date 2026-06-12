@@ -609,8 +609,16 @@
         <h1 style="font-size:1.8rem; font-weight:700; color:var(--neutral-800); margin-bottom:24px;">ประวัติบันทึกการลา</h1>
         
         <div class="glass-card">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:24px;">
-            <h3 id="history-title" style="font-size:1.1rem; font-weight:600;">ประวัติการลา</h3>
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:24px; width:100%;">
+            <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+              <h3 id="history-title" style="font-size:1.1rem; font-weight:600; margin:0;">ประวัติการลา</h3>
+              <div style="display:flex; align-items:center; gap:8px; background:#f1f5f9; border:1px solid #cbd5e1; padding:6px 12px; border-radius:8px; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">
+                <label for="history-fiscal-year-select" style="font-size:0.85rem; font-weight:600; color:#475569; margin:0;">เลือกปีงบประมาณ:</label>
+                <select id="history-fiscal-year-select" style="border:none; font-size:0.85rem; font-weight:600; color:#0284c7; outline:none; background:transparent; cursor:pointer;" onchange="loadHistoryData()">
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+            </div>
             
             <!-- Filters (Admin Only) -->
             <div id="history-filters" class="hidden" style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; background:var(--neutral-100); padding:16px; border-radius:12px; border:1px solid var(--neutral-200);">
@@ -1209,6 +1217,6 @@
   </div>
 
   <!-- Load Custom JS logic -->
-  <script src="app.js?v=4.6"></script>
+  <script src="app.js?v=4.7"></script>
 </body>
 </html>

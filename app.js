@@ -1146,6 +1146,9 @@ function loadHistory() {
   const filterSec = document.getElementById('history-filters');
   const userColHeader = document.getElementById('history-table-user-header');
   
+  // Populate fiscal year dropdown for history page
+  populateHistoryFiscalYearDropdown();
+  
   if (currentUser.role === 'admin') {
     document.getElementById('history-title').textContent = 'ประวัติการลาของบุคลากรทั้งหมด';
     userColHeader.classList.remove('hidden');
@@ -1179,12 +1182,14 @@ function loadHistory() {
 async function loadHistoryData() {
   showLoading('กำลังโหลดข้อมูลประวัติ...');
   
+  const fySelect = document.getElementById('history-fiscal-year-select');
   const filterPayload = {
     role: currentUser.role,
     userId: currentUser.userId,
     filterUserId: document.getElementById('filter-user')?.value || 'all',
     filterStartDate: document.getElementById('filter-start-date')?.value || '',
-    filterEndDate: document.getElementById('filter-end-date')?.value || ''
+    filterEndDate: document.getElementById('filter-end-date')?.value || '',
+    fiscalYear: fySelect ? fySelect.value : ''
   };
 
   try {
@@ -2770,6 +2775,47 @@ async function handleActivityCreate(e) {
 
 function populateDashboardFiscalYearDropdown() {
   const select = document.getElementById('dashboard-fiscal-year-select');
+  if (!select) return;
+
+  const currentVal = select.value;
+  select.innerHTML = '';
+
+  let years = [];
+  if (settings && settings.fiscal_years) {
+    years = settings.fiscal_years.split(',').map(y => y.trim()).filter(Boolean);
+  }
+
+  if (years.length === 0) {
+    const today = new Date();
+    const tYear = today.getFullYear();
+    const tMonth = today.getMonth() + 1;
+    let currentFY = tYear + 543;
+    if (tMonth >= 10) {
+      currentFY += 1;
+    }
+    years = [String(currentFY), String(currentFY - 1), String(currentFY - 2)];
+  }
+
+  years.sort((a, b) => parseInt(b) - parseInt(a));
+
+  years.forEach(yr => {
+    const opt = document.createElement('option');
+    opt.value = yr;
+    opt.textContent = `ปีงบประมาณ ${yr}`;
+    select.appendChild(opt);
+  });
+
+  if (currentVal && years.includes(currentVal)) {
+    select.value = currentVal;
+  } else if (settings && settings.default_fiscal_year && years.includes(settings.default_fiscal_year)) {
+    select.value = settings.default_fiscal_year;
+  } else {
+    select.value = years[0];
+  }
+}
+
+function populateHistoryFiscalYearDropdown() {
+  const select = document.getElementById('history-fiscal-year-select');
   if (!select) return;
 
   const currentVal = select.value;
