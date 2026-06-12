@@ -427,9 +427,12 @@ window.showSelfEditModal = () => {
           <input id="self-pos" class="form-input" value="${currentUser.position || ''}" autocomplete="off">
         </div>
         <div>
-          <label class="form-label">LINE User ID</label>
+          <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>LINE User ID</span>
+            <a href="https://line.me/R/ti/p/@943jvlmv" target="_blank" style="background:#06c755; color:white; padding:4px 10px; font-size:11px; border-radius:6px; font-weight:bold; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">💬 แชทบอตขอ ID</a>
+          </label>
           <input id="self-lid" class="form-input" value="${currentUser.lineUserId || ''}" placeholder="ระบุ LINE User ID (เริ่มต้นด้วย U...)" autocomplete="off">
-          <p style="font-size:10px; color:var(--text-muted); margin-top:4px;">*จำเป็นต้องผูกเพื่อใช้รับการแจ้งเตือนจากบอท</p>
+          <p style="font-size:10px; color:var(--text-muted); margin-top:4px;">*พิมพ์ "ขอ ID" ในห้องแชทเพื่อขอรหัสจากบอต</p>
         </div>
         <div>
           <label class="form-label">รหัสผ่านใหม่ (ปล่อยว่างหากไม่ต้องการเปลี่ยน)</label>
@@ -1740,8 +1743,12 @@ window.editUser = (u) => {
           </select>
         </div>
         <div>
-          <label class="form-label">LINE User ID</label>
+          <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>LINE User ID</span>
+            <a href="https://line.me/R/ti/p/@943jvlmv" target="_blank" style="background:#06c755; color:white; padding:4px 10px; font-size:11px; border-radius:6px; font-weight:bold; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">💬 แชทบอตขอ ID</a>
+          </label>
           <input id="edit-lid" class="form-input" value="${u.lineUserId || ''}" placeholder="ระบุ LINE User ID (เริ่มต้นด้วย U...)" autocomplete="off">
+          <p style="font-size:10px; color:var(--text-muted); margin-top:4px;">*พิมพ์ "ขอ ID" ในห้องแชทเพื่อขอรหัสจากบอต</p>
         </div>
         <div>
           <label class="form-label">รหัสผ่านใหม่ (ปล่อยว่างหากไม่ต้องการเปลี่ยน)</label>
