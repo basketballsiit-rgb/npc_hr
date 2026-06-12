@@ -40,7 +40,48 @@ function doGet(e) {
 }
 
 function doPost(e) {
+  try {
+    const json = JSON.parse(e.postData.contents);
+    const event = json.events[0];
+    
+    if (event && event.type === 'message' && event.message.type === 'text') {
+      const replyToken = event.replyToken;
+      const userMessage = event.message.text.trim();
+      const userId = event.source.userId;
+      
+      const lowerMessage = userMessage.toLowerCase().replace(/\s+/g, '');
+      if (lowerMessage === 'ขอid' || lowerMessage === 'id') {
+        replyLineMessage(replyToken, "รหัส LINE User ID ของคุณคือ:\n\n" + userId);
+      }
+    }
+  } catch (error) {
+    console.error("Error in doPost webhook: " + error.message);
+  }
   return ContentService.createTextOutput("OK");
+}
+
+function replyLineMessage(replyToken, text) {
+  const url = "https://api.line.me/v2/bot/message/reply";
+  const payload = {
+    "replyToken": replyToken,
+    "messages": [
+      {
+        "type": "text",
+        "text": text
+      }
+    ]
+  };
+  
+  const options = {
+    "method": "post",
+    "headers": {
+      "Authorization": "Bearer " + CONFIG.LINE_ACCESS_TOKEN,
+      "Content-Type": "application/json"
+    },
+    "payload": JSON.stringify(payload)
+  };
+  
+  UrlFetchApp.fetch(url, options);
 }
 
 function getWebAppUrl() {
