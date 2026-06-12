@@ -1319,18 +1319,36 @@ app.post('/api/attendance', async (req, res) => {
         else if (status === 'มาปฏิบัติงาน') {
           // Find the user's most recent attendance status before this date
           const [lastRecord] = await db.query(
-            `SELECT status 
+            `SELECT status, attendanceDate 
              FROM attendance 
              WHERE userId = ? AND attendanceDate < ? 
              ORDER BY attendanceDate DESC LIMIT 1`,
             [userId, adDate]
           );
           if (lastRecord.length > 0 && lastRecord[0].status === 'ลาป่วย') {
-            notifications.push({
-              userId,
-              type: 'sick_return',
-              message: `📢 แจ้งเตือนการยื่นใบลาป่วย\nเนื่องจากคุณกลับมาปฏิบัติหน้าที่แล้วหลังจากลาป่วยในวันที่ผ่านมา\n\nขอความกรุณายื่นใบลาเข้าระบบภายใน 1 วันหลังจากกลับมาปฏิบัติหน้าที่แล้วครับ`
-            });
+            const lastSickDate = lastRecord[0].attendanceDate;
+
+            // Check if there is already an approved/pending sick leave request covering this lastSickDate
+            const [leaves] = await db.query(
+              `SELECT leaveId 
+               FROM leave_data 
+               WHERE userId = ? AND leaveType = 'ลาป่วย' 
+                 AND ? BETWEEN startDate AND endDate 
+                 AND status IN ('อนุมัติ', 'รอการอนุมัติ')`,
+              [userId, lastSickDate]
+            );
+
+            if (leaves.length === 0) {
+              const todayDateObj = new Date(adDate);
+              const tomorrowObj = new Date(todayDateObj.getTime() + 24 * 60 * 60 * 1000);
+              const tomorrowStr = tomorrowObj.toISOString().split('T')[0];
+
+              notifications.push({
+                userId,
+                type: 'sick_return',
+                message: `📢 แจ้งเตือนการยื่นใบลาย้อนหลัง\nเนื่องจากคุณได้กลับมาปฏิบัติหน้าที่ในวันที่ ${formatDateThai(adDate)} หลังจากลาป่วย\n\nกรุณาดำเนินการยื่นใบลาย้อนหลังในระบบให้เรียบร้อยภายใน 1 วัน (กำหนดส่งภายในวันที่ ${formatDateThai(tomorrowStr)})`
+              });
+            }
           }
         }
       }
