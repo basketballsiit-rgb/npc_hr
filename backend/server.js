@@ -198,7 +198,7 @@ async function getUserIdsForUser(userId) {
 
 // Register new user
 app.post('/api/auth/register', async (req, res) => {
-  const { fullName, position, username, password, lineUserId } = req.body;
+  const { fullName, position, username, password, lineUserId, staffType } = req.body;
   if (!fullName || !position || !username || !password) {
     return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
   }
@@ -218,8 +218,8 @@ app.post('/api/auth/register', async (req, res) => {
 
     const hashedPassword = bcrypt.hashSync(password, 10);
     await db.query(
-      'INSERT INTO users (userId, fullName, position, username, password, role, status, lineUserId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [userId, fullName, position, username, hashedPassword, role, status, lineUserId || null]
+      'INSERT INTO users (userId, fullName, position, username, password, role, status, lineUserId, staffType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [userId, fullName, position, username, hashedPassword, role, status, lineUserId || null, staffType || null]
     );
 
     const message = isFirstUser
@@ -322,7 +322,7 @@ app.get('/api/auth/get-apr-id', async (req, res) => {
 // 2. User Management (Admin Only)
 app.get('/api/users', async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT userId, fullName, position, username, role, status, lineUserId, createdAt FROM users ORDER BY createdAt DESC');
+    const [rows] = await db.query('SELECT userId, fullName, position, username, role, status, lineUserId, staffType, createdAt FROM users ORDER BY createdAt DESC');
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -331,18 +331,18 @@ app.get('/api/users', async (req, res) => {
 
 app.put('/api/users/:userId', async (req, res) => {
   const { userId } = req.params;
-  const { fullName, position, password, role } = req.body;
+  const { fullName, position, password, role, staffType, lineUserId } = req.body;
   try {
     if (password && password.trim() !== '') {
       const hashedPassword = bcrypt.hashSync(password, 10);
       await db.query(
-        'UPDATE users SET fullName = ?, position = ?, password = ?, role = ? WHERE userId = ?',
-        [fullName, position, hashedPassword, role, userId]
+        'UPDATE users SET fullName = ?, position = ?, password = ?, role = ?, staffType = ?, lineUserId = ? WHERE userId = ?',
+        [fullName, position, hashedPassword, role, staffType, lineUserId, userId]
       );
     } else {
       await db.query(
-        'UPDATE users SET fullName = ?, position = ?, role = ? WHERE userId = ?',
-        [fullName, position, role, userId]
+        'UPDATE users SET fullName = ?, position = ?, role = ?, staffType = ?, lineUserId = ? WHERE userId = ?',
+        [fullName, position, role, staffType, lineUserId, userId]
       );
     }
     res.json({ success: true, message: 'อัปเดตข้อมูลสำเร็จ' });
@@ -390,8 +390,8 @@ app.post('/api/users/import', async (req, res) => {
         const userId = crypto.randomUUID();
         const hashedPassword = bcrypt.hashSync(String(u.password || '123456'), 10);
         await db.query(
-          'INSERT INTO users (userId, fullName, position, username, password, role, status, lineUserId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          [userId, u.fullName || '', u.position || '', u.username, hashedPassword, 'user', 'approved', '']
+          'INSERT INTO users (userId, fullName, position, username, password, role, status, lineUserId, staffType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [userId, u.fullName || '', u.position || '', u.username, hashedPassword, 'user', 'approved', '', u.staffType || u.ประเภท || u.type || null]
         );
         addedCount++;
       } else {

@@ -368,6 +368,15 @@ function showRegisterModal() {
           <input id="reg-pos" class="form-input" placeholder="เช่น ครูวิทยฐานะชำนาญการพิเศษ">
         </div>
         <div>
+          <label class="form-label">ประเภทบุคลากร</label>
+          <select id="reg-type" class="form-input">
+            <option value="ข้าราชการ">ข้าราชการ</option>
+            <option value="พนักงานราชการ">พนักงานราชการ</option>
+            <option value="ครูพิเศษสอน" selected>ครูพิเศษสอน</option>
+            <option value="เจ้าหน้าที่">เจ้าหน้าที่</option>
+          </select>
+        </div>
+        <div>
           <label class="form-label">ชื่อผู้ใช้ (ภาษาอังกฤษ)</label>
           <input id="reg-ru" class="form-input" placeholder="Username สำหรับเข้าสู่ระบบ">
         </div>
@@ -391,6 +400,7 @@ function showRegisterModal() {
     preConfirm: () => {
       const fn = document.getElementById('reg-fn').value;
       const pos = document.getElementById('reg-pos').value;
+      const type = document.getElementById('reg-type').value;
       const ru = document.getElementById('reg-ru').value;
       const rp = document.getElementById('reg-rp').value;
       const lid = document.getElementById('reg-lid').value.trim();
@@ -398,7 +408,7 @@ function showRegisterModal() {
       if (!fn || !pos || !ru || !rp) {
         Swal.showValidationMessage('กรุณากรอกข้อมูลหลักให้ครบถ้วน');
       }
-      return { fullName: fn, position: pos, username: ru, password: rp, lineUserId: lid };
+      return { fullName: fn, position: pos, staffType: type, username: ru, password: rp, lineUserId: lid };
     }
   }).then(async (result) => {
     if (result.isConfirmed) {
@@ -1430,6 +1440,11 @@ async function loadUserManagementPage() {
         <tr>
           <td style="font-weight: 600;">${x.fullName}</td>
           <td>${x.position}</td>
+          <td>
+            <span style="font-size:0.875rem; color:#475569; font-weight:500;">
+              ${x.staffType || '-'}
+            </span>
+          </td>
           <td>${x.username}</td>
           <td>
             <span class="badge ${x.role === 'admin' ? 'badge-pending' : 'badge-cancelled'}" style="${x.role === 'admin' ? 'background: #f3e8ff; color: #7e22ce; border-color: #e9d5ff;' : ''}">
@@ -1513,11 +1528,25 @@ window.editUser = (u) => {
           <input id="edit-pos" class="form-input" value="${u.position}">
         </div>
         <div>
+          <label class="form-label">ประเภทบุคลากร</label>
+          <select id="edit-type" class="form-input">
+            <option value="" ${!u.staffType ? 'selected' : ''}>-- ไม่ระบุ --</option>
+            <option value="ข้าราชการ" ${u.staffType === 'ข้าราชการ' ? 'selected' : ''}>ข้าราชการ</option>
+            <option value="พนักงานราชการ" ${u.staffType === 'พนักงานราชการ' ? 'selected' : ''}>พนักงานราชการ</option>
+            <option value="ครูพิเศษสอน" ${u.staffType === 'ครูพิเศษสอน' ? 'selected' : ''}>ครูพิเศษสอน</option>
+            <option value="เจ้าหน้าที่" ${u.staffType === 'เจ้าหน้าที่' ? 'selected' : ''}>เจ้าหน้าที่</option>
+          </select>
+        </div>
+        <div>
           <label class="form-label">สิทธิ์การเข้าถึง</label>
           <select id="edit-er" class="form-input">
             <option value="user" ${u.role === 'user' ? 'selected' : ''}>บุคลากร (User)</option>
             <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>ผู้ดูแลระบบ (Admin)</option>
           </select>
+        </div>
+        <div>
+          <label class="form-label">LINE User ID</label>
+          <input id="edit-lid" class="form-input" value="${u.lineUserId || ''}" placeholder="ระบุ LINE User ID (เริ่มต้นด้วย U...)">
         </div>
         <div>
           <label class="form-label">รหัสผ่านใหม่ (ปล่อยว่างหากไม่ต้องการเปลี่ยน)</label>
@@ -1532,7 +1561,9 @@ window.editUser = (u) => {
       return {
         fullName: document.getElementById('edit-fn').value,
         position: document.getElementById('edit-pos').value,
+        staffType: document.getElementById('edit-type').value || null,
         role: document.getElementById('edit-er').value,
+        lineUserId: document.getElementById('edit-lid').value.trim() || null,
         password: document.getElementById('edit-eps').value
       };
     }

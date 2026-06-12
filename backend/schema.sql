@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
     role VARCHAR(20) DEFAULT 'user', -- 'admin', 'user'
     status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'approved'
     lineUserId VARCHAR(100) DEFAULT NULL,
+    staffType VARCHAR(50) DEFAULT NULL,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
