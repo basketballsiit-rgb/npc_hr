@@ -283,6 +283,8 @@ app.post('/api/auth/login', async (req, res) => {
         position: user.position,
         username: user.username,
         role: user.role,
+        lineUserId: user.lineUserId,
+        staffType: user.staffType,
         aprStaffId: aprStaffId
       }
     });
@@ -291,6 +293,44 @@ app.post('/api/auth/login', async (req, res) => {
     res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดภายในระบบ: ' + error.message });
   }
 });
+
+// Reset Password via Username & LINE User ID verification
+app.post('/api/auth/reset-password', async (req, res) => {
+  const { username, lineUserId, newPassword } = req.body;
+  if (!username || !lineUserId || !newPassword) {
+    return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
+  }
+
+  try {
+    const [rows] = await db.query('SELECT * FROM users WHERE username = ?', [username]);
+    if (rows.length === 0) {
+      return res.json({ success: false, message: 'ไม่พบชื่อผู้ใช้นี้ในระบบ' });
+    }
+
+    const user = rows[0];
+    
+    if (!user.lineUserId || user.lineUserId.trim() === '') {
+      return res.json({ 
+        success: false, 
+        message: 'บัญชีของคุณไม่มีข้อมูล LINE User ID ในระบบ กรุณาติดต่อผู้ดูแลระบบเพื่อรีเซ็ตรหัสผ่าน' 
+      });
+    }
+
+    if (user.lineUserId.trim() !== lineUserId.trim()) {
+      return res.json({ success: false, message: 'ข้อมูล LINE User ID ไม่ถูกต้อง' });
+    }
+
+    // Hash the new password and update
+    const hashedPassword = bcrypt.hashSync(newPassword, 10);
+    await db.query('UPDATE users SET password = ? WHERE userId = ?', [hashedPassword, user.userId]);
+
+    res.json({ success: true, message: 'รีเซ็ตรหัสผ่านใหม่สำเร็จแล้ว สามารถเข้าสู่ระบบได้ทันที' });
+  } catch (error) {
+    console.error('Reset password error:', error.message);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดภายในระบบ: ' + error.message });
+  }
+});
+
 
 // Endpoint to fetch APR staff ID dynamically (fallback for users logged in prior to updates)
 app.get('/api/auth/get-apr-id', async (req, res) => {

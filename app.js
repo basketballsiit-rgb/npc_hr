@@ -340,7 +340,139 @@ window.toggleLoginPassword = () => {
 
 window.handleForgotPassword = (e) => {
   e.preventDefault();
-  Swal.fire('ลืมรหัสผ่าน', 'กรุณาติดต่อผู้ดูแลระบบเพื่อรีเซ็ตรหัสผ่านของคุณครับ', 'info');
+  Swal.fire({
+    title: 'รีเซ็ตรหัสผ่านด้วย LINE ID',
+    html: `
+      <div style="text-align: left; display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <label class="form-label">ชื่อผู้ใช้ (Username)</label>
+          <input id="reset-username" class="form-input" placeholder="กรอก Username ของท่าน" autocomplete="off">
+        </div>
+        <div>
+          <label class="form-label">LINE User ID (ที่ผูกไว้กับระบบ)</label>
+          <input id="reset-lineid" class="form-input" placeholder="กรอกรหัสผู้ใช้ไลน์ (ขึ้นต้นด้วย U...)" autocomplete="off">
+          <p style="font-size:11px; color:var(--secondary); margin-top:4px;">*รหัส LINE ID สำหรับตรวจสอบตัวตนที่เคยลงทะเบียนไว้</p>
+        </div>
+        <div>
+          <label class="form-label">รหัสผ่านใหม่ที่ต้องการตั้ง</label>
+          <input id="reset-newpassword" type="password" class="form-input" placeholder="ระบุรหัสผ่านใหม่" autocomplete="new-password">
+        </div>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'ยืนยันการเปลี่ยนรหัสผ่าน',
+    cancelButtonText: 'ยกเลิก',
+    preConfirm: () => {
+      const u = document.getElementById('reset-username').value.trim();
+      const lid = document.getElementById('reset-lineid').value.trim();
+      const np = document.getElementById('reset-newpassword').value;
+
+      if (!u || !lid || !np) {
+        Swal.showValidationMessage('กรุณากรอกข้อมูลให้ครบทุกช่อง');
+        return false;
+      }
+      return { username: u, lineUserId: lid, newPassword: np };
+    }
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      showLoading('กำลังดำเนินการตรวจสอบข้อมูล...');
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(result.value)
+        });
+        const data = await res.json();
+        if (data.success) {
+          Swal.fire('สำเร็จ', data.message, 'success');
+        } else {
+          showError(data.message);
+        }
+      } catch (err) {
+        showError('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message);
+      }
+    }
+  });
+};
+
+window.showSelfEditModal = () => {
+  if (!currentUser) return;
+  Swal.fire({
+    title: 'แก้ไขข้อมูลส่วนตัว',
+    html: `
+      <!-- Dummy fields to prevent browser autofill -->
+      <input type="text" style="display:none;" name="dummy-username" autocomplete="username">
+      <input type="password" style="display:none;" name="dummy-password" autocomplete="new-password">
+
+      <div style="text-align: left; display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <label class="form-label">ชื่อ-นามสกุล</label>
+          <input id="self-fn" class="form-input" value="${currentUser.fullName || ''}" autocomplete="off">
+        </div>
+        <div>
+          <label class="form-label">ตำแหน่ง</label>
+          <input id="self-pos" class="form-input" value="${currentUser.position || ''}" autocomplete="off">
+        </div>
+        <div>
+          <label class="form-label">LINE User ID</label>
+          <input id="self-lid" class="form-input" value="${currentUser.lineUserId || ''}" placeholder="ระบุ LINE User ID (เริ่มต้นด้วย U...)" autocomplete="off">
+          <p style="font-size:10px; color:var(--text-muted); margin-top:4px;">*จำเป็นต้องผูกเพื่อใช้รับการแจ้งเตือนจากบอท</p>
+        </div>
+        <div>
+          <label class="form-label">รหัสผ่านใหม่ (ปล่อยว่างหากไม่ต้องการเปลี่ยน)</label>
+          <input id="self-eps" type="password" class="form-input" placeholder="กรอกรหัสผ่านใหม่" autocomplete="new-password">
+        </div>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'บันทึก',
+    cancelButtonText: 'ยกเลิก',
+    preConfirm: () => {
+      const fn = document.getElementById('self-fn').value.trim();
+      const pos = document.getElementById('self-pos').value.trim();
+      const lid = document.getElementById('self-lid').value.trim();
+      const ps = document.getElementById('self-eps').value;
+      if (!fn || !pos) {
+        Swal.showValidationMessage('กรุณากรอกชื่อและตำแหน่งงาน');
+        return false;
+      }
+      return { fullName: fn, position: pos, lineUserId: lid, password: ps };
+    }
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      const payload = {
+        ...result.value,
+        role: currentUser.role,
+        staffType: currentUser.staffType
+      };
+
+      showLoading('กำลังบันทึกข้อมูล...');
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/users/${currentUser.userId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          // Update local session storage details
+          currentUser.fullName = payload.fullName;
+          currentUser.position = payload.position;
+          currentUser.lineUserId = payload.lineUserId;
+          sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+          
+          // Refresh UI
+          updateUIAfterLogin();
+
+          Swal.fire('สำเร็จ', 'อัปเดตข้อมูลส่วนตัวเรียบร้อยแล้ว', 'success');
+        } else {
+          showError(data.message);
+        }
+      } catch (err) {
+        showError('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message);
+      }
+    }
+  });
 };
 
 window.handleCustomLogin = async (e) => {
@@ -646,6 +778,19 @@ function buildNavigation() {
     const dropdownItems = document.getElementById('user-dropdown-items');
     if (dropdownItems) {
       dropdownItems.innerHTML = '';
+      
+      // Add edit profile button for the current user
+      const editProfileBtn = document.createElement('button');
+      editProfileBtn.className = 'user-dropdown-item';
+      editProfileBtn.style.fontWeight = '600';
+      editProfileBtn.style.borderBottom = '1px solid var(--neutral-200)';
+      editProfileBtn.style.paddingBottom = '10px';
+      editProfileBtn.style.marginBottom = '6px';
+      editProfileBtn.innerHTML = `<span style="margin-right: 8px;">👤</span> แก้ไขข้อมูลส่วนตัว / รหัสผ่าน`;
+      editProfileBtn.onclick = () => {
+        showSelfEditModal();
+      };
+      dropdownItems.appendChild(editProfileBtn);
       
       // Add same navigation items into user dropdown for convenience
       menuItems.slice(1).forEach(item => {
