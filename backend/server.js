@@ -781,14 +781,41 @@ app.get('/api/dashboard', async (req, res) => {
   const isAdmin = role === 'admin';
 
   try {
+    // 1. Calculate Current Fiscal Year dates in Asia/Bangkok timezone
+    const today = new Date();
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Bangkok',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const cleanTodayStr = formatter.format(today); // "YYYY-MM-DD"
+    const [tYearStr, tMonthStr] = cleanTodayStr.split('-');
+    const tYear = parseInt(tYearStr);
+    const tMonth = parseInt(tMonthStr);
+
+    let fiscalStartYear;
+    if (tMonth >= 10) {
+      fiscalStartYear = tYear;
+    } else {
+      fiscalStartYear = tYear - 1;
+    }
+
+    const fiscalStartAD = `${fiscalStartYear}-10-01`;
+    const fiscalEndAD = `${fiscalStartYear + 1}-09-30`;
+    const fiscalStartBE = `${fiscalStartYear + 543}-10-01`;
+    const fiscalEndBE = `${fiscalStartYear + 544}-09-30`;
+
     let totalStaffVal = 0;
     let statusCountsVal = { approved: 0, pending: 0, rejected: 0 };
     let leaveTypesVal = [];
     let monthlyCountsVal = Array(12).fill(0);
     let recentLeavesVal = [];
 
+    const dateFilterSql = `((startDate >= ? AND startDate <= ?) OR (startDate >= ? AND startDate <= ?))`;
+
     if (isAdmin || !userId) {
-      // Admin: Aggregate stats for all staff
+      // Admin: Aggregate stats for all staff in the current fiscal year
       const [[{ totalStaff }]] = await db.query('SELECT COUNT(*) as totalStaff FROM users WHERE role = "user" AND status = "approved"');
       totalStaffVal = totalStaff || 0;
 
@@ -797,7 +824,9 @@ app.get('/api/dashboard', async (req, res) => {
           SUM(CASE WHEN status = 'อนุมัติ' THEN 1 ELSE 0 END) as approved,
           SUM(CASE WHEN status = 'รอการอนุมัติ' THEN 1 ELSE 0 END) as pending,
           SUM(CASE WHEN status = 'ไม่อนุมัติ' THEN 1 ELSE 0 END) as rejected
-         FROM leave_data`
+         FROM leave_data
+         WHERE ${dateFilterSql}`,
+        [fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
       if (statusCounts && statusCounts[0]) {
         statusCountsVal = {
@@ -807,54 +836,66 @@ app.get('/api/dashboard', async (req, res) => {
         };
       }
 
-      // Doughnut Chart: sum of approved leave days per type
+      // Doughnut Chart: sum of approved leave days per type in the current fiscal year
       const [leaveTypes] = await db.query(
         `SELECT leaveType, COALESCE(SUM(totalDays), 0) as count 
          FROM leave_data 
-         WHERE status = 'อนุมัติ' 
-         GROUP BY leaveType`
+         WHERE status = 'อนุมัติ' AND ${dateFilterSql}
+         GROUP BY leaveType`,
+        [fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
       leaveTypesVal = leaveTypes;
 
-      // Monthly Chart: sum of approved leave days per month for current year
+      // Monthly Chart: sum of approved leave days per month in the current fiscal year
       const [monthlyStats] = await db.query(
         `SELECT MONTH(startDate) as month, COALESCE(SUM(totalDays), 0) as count 
          FROM leave_data 
-         WHERE status = 'อนุมัติ' AND YEAR(startDate) = YEAR(CURDATE())
-         GROUP BY MONTH(startDate)`
+         WHERE status = 'อนุมัติ' AND ${dateFilterSql}
+         GROUP BY MONTH(startDate)`,
+        [fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
+      
+      const fiscalMonths = [10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9];
       monthlyStats.forEach(item => {
-        if (item.month >= 1 && item.month <= 12) {
-          monthlyCountsVal[item.month - 1] = parseFloat(item.count) || 0;
+        const idx = fiscalMonths.indexOf(item.month);
+        if (idx !== -1) {
+          monthlyCountsVal[idx] = parseFloat(item.count) || 0;
         }
       });
 
       const [recentLeaves] = await db.query(
-        'SELECT fullName, leaveType, startDate, endDate, totalDays, status, pdfUrl FROM leave_data ORDER BY startDate DESC, requestDate DESC, createdAt DESC LIMIT 10'
+        `SELECT fullName, leaveType, startDate, endDate, totalDays, status, pdfUrl 
+         FROM leave_data 
+         WHERE ${dateFilterSql}
+         ORDER BY startDate DESC, requestDate DESC, createdAt DESC LIMIT 10`,
+        [fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
       recentLeavesVal = recentLeaves;
     } else {
-      // Teacher: Stats for this specific user (including duplicates)
+      // Teacher: Stats for this specific user (including duplicates) in the current fiscal year
       const userIds = await getUserIdsForUser(userId);
       
-      // Card 1: Total accumulated approved leave days
+      // Card 1: Total accumulated approved leave days in the current fiscal year
       const [[{ totalStaff }]] = await db.query(
         `SELECT COALESCE(SUM(totalDays), 0) as totalStaff 
          FROM leave_data 
-         WHERE userId IN (${userIds.map(() => '?').join(', ')}) AND status = 'อนุมัติ'`,
-        userIds
+         WHERE userId IN (${userIds.map(() => '?').join(', ')}) 
+           AND status = 'อนุมัติ' 
+           AND ${dateFilterSql}`,
+        [...userIds, fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
       totalStaffVal = parseFloat(totalStaff) || 0;
 
-      // Cards 2, 3, 4: Sum of days for approved, pending, and rejected leaves
+      // Cards 2, 3, 4: Sum of days for approved, pending, and rejected leaves in the current fiscal year
       const [statusCounts] = await db.query(
         `SELECT 
           SUM(CASE WHEN status = 'อนุมัติ' THEN totalDays ELSE 0 END) as approved,
           SUM(CASE WHEN status = 'รอการอนุมัติ' THEN totalDays ELSE 0 END) as pending,
           SUM(CASE WHEN status = 'ไม่อนุมัติ' THEN totalDays ELSE 0 END) as rejected
          FROM leave_data
-         WHERE userId IN (${userIds.map(() => '?').join(', ')})`,
-        userIds
+         WHERE userId IN (${userIds.map(() => '?').join(', ')})
+           AND ${dateFilterSql}`,
+        [...userIds, fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
       if (statusCounts && statusCounts[0]) {
         statusCountsVal = {
@@ -864,28 +905,34 @@ app.get('/api/dashboard', async (req, res) => {
         };
       }
 
-      // Doughnut Chart: sum of approved leave days per type for the teacher
+      // Doughnut Chart: sum of approved leave days per type for the teacher in the current fiscal year
       const [leaveTypes] = await db.query(
         `SELECT leaveType, COALESCE(SUM(totalDays), 0) as count 
          FROM leave_data 
-         WHERE userId IN (${userIds.map(() => '?').join(', ')}) AND status = 'อนุมัติ' 
+         WHERE userId IN (${userIds.map(() => '?').join(', ')}) 
+           AND status = 'อนุมัติ' 
+           AND ${dateFilterSql}
          GROUP BY leaveType`,
-        userIds
+        [...userIds, fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
       leaveTypesVal = leaveTypes;
 
-      // Monthly Chart: sum of approved leave days per month for the teacher
+      // Monthly Chart: sum of approved leave days per month for the teacher in the current fiscal year
       const [monthlyStats] = await db.query(
         `SELECT MONTH(startDate) as month, COALESCE(SUM(totalDays), 0) as count 
          FROM leave_data 
          WHERE userId IN (${userIds.map(() => '?').join(', ')})
-           AND status = 'อนุมัติ' AND YEAR(startDate) = YEAR(CURDATE())
+           AND status = 'อนุมัติ' 
+           AND ${dateFilterSql}
          GROUP BY MONTH(startDate)`,
-        userIds
+        [...userIds, fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
+      
+      const fiscalMonths = [10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9];
       monthlyStats.forEach(item => {
-        if (item.month >= 1 && item.month <= 12) {
-          monthlyCountsVal[item.month - 1] = parseFloat(item.count) || 0;
+        const idx = fiscalMonths.indexOf(item.month);
+        if (idx !== -1) {
+          monthlyCountsVal[idx] = parseFloat(item.count) || 0;
         }
       });
 
@@ -893,8 +940,9 @@ app.get('/api/dashboard', async (req, res) => {
         `SELECT fullName, leaveType, startDate, endDate, totalDays, status, pdfUrl 
          FROM leave_data 
          WHERE userId IN (${userIds.map(() => '?').join(', ')})
+           AND ${dateFilterSql}
          ORDER BY startDate DESC, requestDate DESC, createdAt DESC LIMIT 10`,
-        userIds
+        [...userIds, fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
       recentLeavesVal = recentLeaves;
     }
@@ -912,7 +960,7 @@ app.get('/api/dashboard', async (req, res) => {
           data: leaveTypesVal.map(lt => lt.count)
         },
         monthlyLeaveData: {
-          labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
+          labels: ['ต.ค.', 'พ.ย.', 'ธ.ค.', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.'],
           data: monthlyCountsVal
         }
       },

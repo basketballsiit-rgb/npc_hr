@@ -257,7 +257,7 @@
           <button type="button" onclick="showPage('history-page'); loadHistory();" class="btn-sub-nav" data-sub-page="history-page">📋 ประวัติการลา</button>
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
-          <h1 id="dashboard-main-title" style="font-size:1.8rem; font-weight:700; color:var(--neutral-800);">แดชบอร์ดข้อมูลภาพรวม</h1>
+          <h1 id="dashboard-main-title" style="font-size:1.8rem; font-weight:700; color:var(--neutral-800);">แดชบอร์ดข้อมูลภาพรวมปีงบประมาณ</h1>
           <span style="font-size:0.8rem; font-weight:600; color:var(--primary); background:var(--primary-light); padding:4px 12px; border-radius:999px;">อัปเดตแบบเรียลไทม์</span>
         </div>
         
@@ -270,7 +270,7 @@
               </svg>
             </div>
             <div class="stat-info">
-              <p id="stat-total-label">บุคลากรทั้งหมด</p>
+              <p id="stat-total-label">วันลาสะสมปีงบประมาณ</p>
               <div id="stat-total-staff" class="stat-value">0</div>
             </div>
           </div>
@@ -315,13 +315,13 @@
         <!-- Charts Grid -->
         <div class="charts-grid">
           <div class="glass-card chart-card">
-            <h3 id="chart-type-label">สัดส่วนประเภทการลาของบุคลากร</h3>
+            <h3 id="chart-type-label">สัดส่วนประเภทการลาของบุคลากร (ปีงบประมาณปัจจุบัน)</h3>
             <div style="position:relative; flex-grow:1; min-height:220px;">
               <canvas id="leaveTypeChart"></canvas>
             </div>
           </div>
           <div class="glass-card chart-card">
-            <h3 id="chart-monthly-label">สถิติจำนวนการลาสะสมรายเดือน (ปีปัจจุบัน)</h3>
+            <h3 id="chart-monthly-label">สถิติจำนวนการลาสะสมรายเดือน (ปีงบประมาณปัจจุบัน)</h3>
             <div style="position:relative; flex-grow:1; min-height:220px;">
               <canvas id="monthlyLeaveChart"></canvas>
             </div>
@@ -1086,6 +1086,6 @@
   </script>
 
   <!-- Load Custom JS logic -->
-  <script src="app.js?v=4.2"></script>
+  <script src="app.js?v=4.3"></script>
 </body>
 </html>

@@ -643,19 +643,19 @@ async function loadDashboardData() {
 
       if (currentUser && currentUser.role === 'admin') {
         if (totalLabel) totalLabel.textContent = 'บุคลากรทั้งหมด';
-        if (dashboardTitle) dashboardTitle.textContent = 'แดชบอร์ดข้อมูลภาพรวม';
-        if (chartTypeLabel) chartTypeLabel.textContent = 'สัดส่วนประเภทการลาของบุคลากร';
-        if (chartMonthlyLabel) chartMonthlyLabel.textContent = 'สถิติจำนวนการลาสะสมรายเดือน (ปีปัจจุบัน)';
+        if (dashboardTitle) dashboardTitle.textContent = 'แดชบอร์ดข้อมูลภาพรวมปีงบประมาณ';
+        if (chartTypeLabel) chartTypeLabel.textContent = 'สัดส่วนประเภทการลาของบุคลากร (ปีงบประมาณปัจจุบัน)';
+        if (chartMonthlyLabel) chartMonthlyLabel.textContent = 'สถิติจำนวนการลาสะสมรายเดือน (ปีงบประมาณปัจจุบัน)';
         
         document.getElementById('stat-total-staff').textContent = d.stats.totalStaff;
         document.getElementById('stat-approved').textContent = d.stats.approved;
         document.getElementById('stat-pending').textContent = d.stats.pending;
         document.getElementById('stat-rejected').textContent = d.stats.rejected;
       } else {
-        if (totalLabel) totalLabel.textContent = 'วันลาสะสมทั้งหมด';
-        if (dashboardTitle) dashboardTitle.textContent = 'แดชบอร์ดการลาของฉัน';
-        if (chartTypeLabel) chartTypeLabel.textContent = 'สัดส่วนประเภทการลาของฉัน';
-        if (chartMonthlyLabel) chartMonthlyLabel.textContent = 'สถิติจำนวนการลาสะสมรายเดือนของฉัน (ปีปัจจุบัน)';
+        if (totalLabel) totalLabel.textContent = 'วันลาสะสมปีงบประมาณ';
+        if (dashboardTitle) dashboardTitle.textContent = 'แดชบอร์ดการลาของฉัน (ปีงบประมาณ)';
+        if (chartTypeLabel) chartTypeLabel.textContent = 'สัดส่วนประเภทการลาของฉัน (ปีงบประมาณปัจจุบัน)';
+        if (chartMonthlyLabel) chartMonthlyLabel.textContent = 'สถิติจำนวนการลาสะสมรายเดือนของฉัน (ปีงบประมาณปัจจุบัน)';
         
         document.getElementById('stat-total-staff').textContent = formatDays(d.stats.totalStaff);
         document.getElementById('stat-approved').textContent = formatDays(d.stats.approved);
