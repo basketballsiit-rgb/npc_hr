@@ -1518,14 +1518,18 @@ window.editUser = (u) => {
   Swal.fire({
     title: 'แก้ไขข้อมูลผู้ใช้',
     html: `
+      <!-- Dummy fields to prevent browser autofill -->
+      <input type="text" style="display:none;" name="dummy-username" autocomplete="username">
+      <input type="password" style="display:none;" name="dummy-password" autocomplete="new-password">
+
       <div style="text-align: left; display:flex; flex-direction:column; gap:12px;">
         <div>
           <label class="form-label">ชื่อ-นามสกุล</label>
-          <input id="edit-fn" class="form-input" value="${u.fullName}">
+          <input id="edit-fn" class="form-input" value="${u.fullName}" autocomplete="off">
         </div>
         <div>
           <label class="form-label">ตำแหน่ง</label>
-          <input id="edit-pos" class="form-input" value="${u.position}">
+          <input id="edit-pos" class="form-input" value="${u.position}" autocomplete="off">
         </div>
         <div>
           <label class="form-label">ประเภทบุคลากร</label>
@@ -1546,11 +1550,11 @@ window.editUser = (u) => {
         </div>
         <div>
           <label class="form-label">LINE User ID</label>
-          <input id="edit-lid" class="form-input" value="${u.lineUserId || ''}" placeholder="ระบุ LINE User ID (เริ่มต้นด้วย U...)">
+          <input id="edit-lid" class="form-input" value="${u.lineUserId || ''}" placeholder="ระบุ LINE User ID (เริ่มต้นด้วย U...)" autocomplete="off">
         </div>
         <div>
           <label class="form-label">รหัสผ่านใหม่ (ปล่อยว่างหากไม่ต้องการเปลี่ยน)</label>
-          <input id="edit-eps" type="password" class="form-input" placeholder="กรอกรหัสผ่านใหม่">
+          <input id="edit-eps" type="password" class="form-input" placeholder="กรอกรหัสผ่านใหม่" autocomplete="new-password">
         </div>
       </div>
     `,
