@@ -351,9 +351,12 @@ window.handleForgotPassword = (e) => {
           <input id="reset-username" class="form-input" placeholder="กรอก Username ของท่าน" autocomplete="off">
         </div>
         <div>
-          <label class="form-label">LINE User ID (ที่ผูกไว้กับระบบ)</label>
+          <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>LINE User ID (ที่ผูกไว้กับระบบ)</span>
+            <a href="https://line.me/R/ti/p/@943jvlmv" target="_blank" style="background:#06c755; color:white; padding:4px 10px; font-size:11px; border-radius:6px; font-weight:bold; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">💬 แชทบอตขอ ID</a>
+          </label>
           <input id="reset-lineid" class="form-input" placeholder="กรอกรหัสผู้ใช้ไลน์ (ขึ้นต้นด้วย U...)" autocomplete="off">
-          <p style="font-size:11px; color:var(--secondary); margin-top:4px;">*รหัส LINE ID สำหรับตรวจสอบตัวตนที่เคยลงทะเบียนไว้</p>
+          <p style="font-size:11px; color:var(--secondary); margin-top:4px;">*กดปุ่มสีเขียวเพื่อเปิดแชทกับบอต -> พิมพ์ "ขอ ID" ส่งไปในแชทเพื่อขอรหัส</p>
         </div>
         <div>
           <label class="form-label">รหัสผ่านใหม่ที่ต้องการตั้ง</label>
