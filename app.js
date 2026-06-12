@@ -340,6 +340,8 @@ window.toggleLoginPassword = () => {
 
 window.handleForgotPassword = (e) => {
   e.preventDefault();
+  hideLoginModal();
+
   Swal.fire({
     title: 'รีเซ็ตรหัสผ่านด้วย LINE ID',
     html: `
@@ -384,13 +386,21 @@ window.handleForgotPassword = (e) => {
         });
         const data = await res.json();
         if (data.success) {
-          Swal.fire('สำเร็จ', data.message, 'success');
+          Swal.fire('สำเร็จ', data.message, 'success').then(() => {
+            showLoginModal();
+          });
         } else {
-          showError(data.message);
+          showError(data.message).then(() => {
+            showLoginModal();
+          });
         }
       } catch (err) {
-        showError('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message);
+        showError('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message).then(() => {
+          showLoginModal();
+        });
       }
+    } else {
+      showLoginModal();
     }
   });
 };
@@ -1825,7 +1835,7 @@ function showLoading(msg) {
 }
 
 function showError(msg) {
-  Swal.fire({
+  return Swal.fire({
     title: 'เกิดข้อผิดพลาด',
     text: typeof msg === 'object' ? JSON.stringify(msg) : msg,
     icon: 'error',

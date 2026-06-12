@@ -1401,3 +1401,9 @@ select.form-input {
   height: 60px;
   display: block;
 }
+
+/* Ensure SweetAlert sits on top of the login modal */
+.swal2-container {
+  z-index: 1000000 !important;
+}
+
