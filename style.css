@@ -337,6 +337,228 @@ a {
 }
 
 /* ================================================================= */
+/* Premium Layered Portal Cards (Reference UI Layout)                */
+/* ================================================================= */
+
+.portal-card-container {
+  position: relative;
+  width: 100%;
+  border-radius: 20px;
+  background: #f8f9fa;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 16px 0;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.portal-card-header-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 80px;
+  z-index: 1;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.portal-card-inner {
+  position: relative;
+  z-index: 2;
+  margin: 16px 16px 0 16px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.02);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.portal-card-inner-header {
+  height: 48px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #ffffff;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.portal-card-number {
+  font-size: 1.25rem;
+  letter-spacing: 0.5px;
+}
+
+.portal-card-divider {
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 300;
+  font-size: 1.1rem;
+}
+
+.portal-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.portal-card-icon svg {
+  width: 22px;
+  height: 22px;
+  stroke: #ffffff;
+}
+
+.portal-card-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: #fee2e2;
+  color: #ef4444;
+  padding: 3px 10px;
+  border-radius: 99px;
+  margin-left: auto;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.15);
+  font-family: 'Kanit', sans-serif;
+}
+
+.portal-card-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex-grow: 1;
+  background: #ffffff;
+  min-height: 150px;
+}
+
+.portal-card-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 10px 0;
+  font-family: 'Kanit', sans-serif;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.portal-card-description {
+  font-size: 0.85rem;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0 0 16px 0;
+}
+
+.portal-card-footer {
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.portal-card-footer .arrow {
+  font-size: 1.1rem;
+  transition: transform 0.3s ease;
+}
+
+/* Hover & Focus Interactions */
+.portal-card-container:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.portal-card-container:hover .portal-card-inner {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+}
+
+.portal-card-container:hover .portal-card-footer .arrow {
+  transform: translateX(4px);
+}
+
+/* Card Themes mapping Outer (darker/deeper) and Inner (brighter/vibrant) */
+
+/* Theme 1: Leave System (Green/Lime) */
+.portal-card-container.theme-green .portal-card-header-bg {
+  background: #2e7d32;
+}
+.portal-card-container.theme-green .portal-card-inner-header {
+  background: #7cb342;
+}
+.portal-card-container.theme-green .portal-card-title,
+.portal-card-container.theme-green .portal-card-footer {
+  color: #2e7d32;
+}
+
+/* Theme 2: Attendance System (Orange/Yellow) */
+.portal-card-container.theme-orange .portal-card-header-bg {
+  background: #e65100;
+}
+.portal-card-container.theme-orange .portal-card-inner-header {
+  background: #fbc02d;
+}
+.portal-card-container.theme-orange .portal-card-title,
+.portal-card-container.theme-orange .portal-card-footer {
+  color: #e65100;
+}
+
+/* Theme 3: Travel Request (Teal/Cyan) */
+.portal-card-container.theme-teal .portal-card-header-bg {
+  background: #00695c;
+}
+.portal-card-container.theme-teal .portal-card-inner-header {
+  background: #00acc1;
+}
+.portal-card-container.theme-teal .portal-card-title,
+.portal-card-container.theme-teal .portal-card-footer {
+  color: #00695c;
+}
+
+/* Theme 4: Travel Report (Purple/Violet) */
+.portal-card-container.theme-purple .portal-card-header-bg {
+  background: #4a148c;
+}
+.portal-card-container.theme-purple .portal-card-inner-header {
+  background: #ab47bc;
+}
+.portal-card-container.theme-purple .portal-card-title,
+.portal-card-container.theme-purple .portal-card-footer {
+  color: #4a148c;
+}
+
+/* Theme 5: Training Records (Deep Blue/Blue) */
+.portal-card-container.theme-blue .portal-card-header-bg {
+  background: #1a237e;
+}
+.portal-card-container.theme-blue .portal-card-inner-header {
+  background: #29b6f6;
+}
+.portal-card-container.theme-blue .portal-card-title,
+.portal-card-container.theme-blue .portal-card-footer {
+  color: #1a237e;
+}
+
+/* Theme 6: Activity (Rose/Crimson) */
+.portal-card-container.theme-rose .portal-card-header-bg {
+  background: #880e4f;
+}
+.portal-card-container.theme-rose .portal-card-inner-header {
+  background: #ec407a;
+}
+.portal-card-container.theme-rose .portal-card-title,
+.portal-card-container.theme-rose .portal-card-footer {
+  color: #880e4f;
+}
+
+
+/* ================================================================= */
 /* Forms & Input Elements                                            */
 /* ================================================================= */
 

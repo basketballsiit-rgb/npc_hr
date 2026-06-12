@@ -95,113 +95,153 @@
         <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
           
           <!-- Card 1: Leave System -->
-          <div class="glass-card portal-card" onclick="enterModule('dashboard-page', false)" style="border-top: 5px solid #0284c7; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; min-height: 200px; transition: var(--transition);">
-            <div>
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
-                <h4 style="font-size: 1.15rem; font-weight: 700; color: #0369a1; margin: 0;">1. ระบบการยื่นลา</h4>
-                <div style="background: #e0f2fe; color: #0284c7; padding: 8px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                  <svg style="width: 24px; height: 24px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="portal-card-container theme-green" onclick="enterModule('dashboard-page', false)">
+            <div class="portal-card-header-bg"></div>
+            <div class="portal-card-inner">
+              <div class="portal-card-inner-header">
+                <span class="portal-card-number">01</span>
+                <span class="portal-card-divider">|</span>
+                <div class="portal-card-icon">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
               </div>
-              <p style="font-size: 0.875rem; color: var(--neutral-500); line-height: 1.5; margin-bottom: 16px;">ยื่นขอใบลาป่วย ลากิจ ลาคลอด ลาพักผ่อน ตรวจสอบวันลาสะสม ค้นหาประวัติการลา และพิมพ์ใบลา PDF</p>
-            </div>
-            <div style="font-size: 0.9rem; font-weight: 600; color: #0284c7; text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
-              เข้าใช้งานระบบ <span style="font-size: 1.1rem;">➔</span>
+              <div class="portal-card-body">
+                <div>
+                  <h4 class="portal-card-title">ระบบการยื่นลา</h4>
+                  <p class="portal-card-description">ยื่นขอใบลาป่วย ลากิจ ลาคลอด ลาพักผ่อน ตรวจสอบวันลาสะสม ค้นหาประวัติการลา และพิมพ์ใบลา PDF</p>
+                </div>
+                <div class="portal-card-footer">
+                  เข้าใช้งานระบบ <span class="arrow">➔</span>
+                </div>
+              </div>
             </div>
           </div>
 
           <!-- Card 2: Attendance System -->
-          <div class="glass-card portal-card" onclick="enterModule('attendance-page', true)" style="border-top: 5px solid #0369a1; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; min-height: 200px; transition: var(--transition);">
-            <div>
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
-                <div style="display: flex; flex-direction: column; gap: 4px;">
-                  <h4 style="font-size: 1.15rem; font-weight: 700; color: #0369a1; margin: 0;">2. ระบบลงเวลาปฏิบัติงาน</h4>
-                  <span style="font-size: 0.725rem; font-weight: 700; background: #fee2e2; color: #ef4444; padding: 2px 8px; border-radius: 99px; width: fit-content;">เฉพาะแอดมิน</span>
-                </div>
-                <div style="background: #e0f2fe; color: #0369a1; padding: 8px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                  <svg style="width: 24px; height: 24px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="portal-card-container theme-orange" onclick="enterModule('attendance-page', true)">
+            <div class="portal-card-header-bg"></div>
+            <div class="portal-card-inner">
+              <div class="portal-card-inner-header">
+                <span class="portal-card-number">02</span>
+                <span class="portal-card-divider">|</span>
+                <div class="portal-card-icon">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
+                <span class="portal-card-badge">เฉพาะแอดมิน</span>
               </div>
-              <p style="font-size: 0.875rem; color: var(--neutral-500); line-height: 1.5; margin-bottom: 16px;">บันทึกข้อมูลการเข้าปฏิบัติงานของบุคลากรประจำวัน ขาด ลาสาย หรือส่งข้อความแจ้งเตือนทางไลน์อัติโนมัติ</p>
-            </div>
-            <div style="font-size: 0.9rem; font-weight: 600; color: #0369a1; text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
-              เข้าใช้งานระบบ <span style="font-size: 1.1rem;">➔</span>
+              <div class="portal-card-body">
+                <div>
+                  <h4 class="portal-card-title">ระบบลงเวลาปฏิบัติงาน</h4>
+                  <p class="portal-card-description">บันทึกข้อมูลการเข้าปฏิบัติงานของบุคลากรประจำวัน ขาด ลาสาย หรือส่งข้อความแจ้งเตือนทางไลน์อัติโนมัติ</p>
+                </div>
+                <div class="portal-card-footer">
+                  เข้าใช้งานระบบ <span class="arrow">➔</span>
+                </div>
+              </div>
             </div>
           </div>
 
           <!-- Card 3: Travel Request -->
-          <div class="glass-card portal-card" onclick="enterModule('travel-page', false)" style="border-top: 5px solid #075985; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; min-height: 200px; transition: var(--transition);">
-            <div>
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
-                <h4 style="font-size: 1.15rem; font-weight: 700; color: #0369a1; margin: 0;">3. ขออนุญาตเดินทางไปราชการ</h4>
-                <div style="background: #e0f2fe; color: #075985; padding: 8px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                  <svg style="width: 24px; height: 24px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="portal-card-container theme-teal" onclick="enterModule('travel-page', false)">
+            <div class="portal-card-header-bg"></div>
+            <div class="portal-card-inner">
+              <div class="portal-card-inner-header">
+                <span class="portal-card-number">03</span>
+                <span class="portal-card-divider">|</span>
+                <div class="portal-card-icon">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                   </svg>
                 </div>
               </div>
-              <p style="font-size: 0.875rem; color: var(--neutral-500); line-height: 1.5; margin-bottom: 16px;">ขออนุมัติการเดินทางไปราชการ ยื่นงบประมาณที่ใช้ ระบุพาหนะการเดินทาง และรอผลอนุมัติจากผู้บริหาร</p>
-            </div>
-            <div style="font-size: 0.9rem; font-weight: 600; color: #075985; text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
-              เข้าใช้งานระบบ <span style="font-size: 1.1rem;">➔</span>
+              <div class="portal-card-body">
+                <div>
+                  <h4 class="portal-card-title">ขออนุญาตเดินทางไปราชการ</h4>
+                  <p class="portal-card-description">ขออนุมัติการเดินทางไปราชการ ยื่นงบประมาณที่ใช้ ระบุพาหนะการเดินทาง และรอผลอนุมัติจากผู้บริหาร</p>
+                </div>
+                <div class="portal-card-footer">
+                  เข้าใช้งานระบบ <span class="arrow">➔</span>
+                </div>
+              </div>
             </div>
           </div>
 
           <!-- Card 4: Travel Report -->
-          <div class="glass-card portal-card" onclick="enterModule('travel-report-page', false)" style="border-top: 5px solid #0891b2; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; min-height: 200px; transition: var(--transition);">
-            <div>
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
-                <h4 style="font-size: 1.15rem; font-weight: 700; color: #0369a1; margin: 0;">4. รายงานการเดินทางไปราชการ</h4>
-                <div style="background: #e0f2fe; color: #0891b2; padding: 8px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                  <svg style="width: 24px; height: 24px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="portal-card-container theme-purple" onclick="enterModule('travel-report-page', false)">
+            <div class="portal-card-header-bg"></div>
+            <div class="portal-card-inner">
+              <div class="portal-card-inner-header">
+                <span class="portal-card-number">04</span>
+                <span class="portal-card-divider">|</span>
+                <div class="portal-card-icon">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
               </div>
-              <p style="font-size: 0.875rem; color: var(--neutral-500); line-height: 1.5; margin-bottom: 16px;">บันทึกรายงานสรุปผลหลังการปฏิบัติราชการเสร็จสิ้น ระบุผลสัมฤทธิ์ และผลประโยชน์ที่วิทยาลัยได้รับ</p>
-            </div>
-            <div style="font-size: 0.9rem; font-weight: 600; color: #0891b2; text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
-              เข้าใช้งานระบบ <span style="font-size: 1.1rem;">➔</span>
+              <div class="portal-card-body">
+                <div>
+                  <h4 class="portal-card-title">รายงานการเดินทางไปราชการ</h4>
+                  <p class="portal-card-description">บันทึกรายงานสรุปผลหลังการปฏิบัติราชการเสร็จสิ้น ระบุผลสัมฤทธิ์ และผลประโยชน์ที่วิทยาลัยได้รับ</p>
+                </div>
+                <div class="portal-card-footer">
+                  เข้าใช้งานระบบ <span class="arrow">➔</span>
+                </div>
+              </div>
             </div>
           </div>
 
           <!-- Card 5: Training Records -->
-          <div class="glass-card portal-card" onclick="enterModule('training-page', false)" style="border-top: 5px solid #4f46e5; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; min-height: 200px; transition: var(--transition);">
-            <div>
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
-                <h4 style="font-size: 1.15rem; font-weight: 700; color: #0369a1; margin: 0;">5. บันทึกการอบรม</h4>
-                <div style="background: #e0f2fe; color: #4f46e5; padding: 8px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                  <svg style="width: 24px; height: 24px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="portal-card-container theme-blue" onclick="enterModule('training-page', false)">
+            <div class="portal-card-header-bg"></div>
+            <div class="portal-card-inner">
+              <div class="portal-card-inner-header">
+                <span class="portal-card-number">05</span>
+                <span class="portal-card-divider">|</span>
+                <div class="portal-card-icon">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                   </svg>
                 </div>
               </div>
-              <p style="font-size: 0.875rem; color: var(--neutral-500); line-height: 1.5; margin-bottom: 16px;">บันทึกและรวบรวมประวัติการเข้าศึกษา อบรม ประชุมสัมมนา สรุปหัวข้ออบรม คณะผู้จัด และจำนวนชั่วโมงเรียน</p>
-            </div>
-            <div style="font-size: 0.9rem; font-weight: 600; color: #4f46e5; text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
-              เข้าใช้งานระบบ <span style="font-size: 1.1rem;">➔</span>
+              <div class="portal-card-body">
+                <div>
+                  <h4 class="portal-card-title">บันทึกการอบรม</h4>
+                  <p class="portal-card-description">บันทึกและรวบรวมประวัติการเข้าศึกษา อบรม ประชุมสัมมนา สรุปหัวข้ออบรม คณะผู้จัด และจำนวนชั่วโมงเรียน</p>
+                </div>
+                <div class="portal-card-footer">
+                  เข้าใช้งานระบบ <span class="arrow">➔</span>
+                </div>
+              </div>
             </div>
           </div>
 
           <!-- Card 6: Activity Participation -->
-          <div class="glass-card portal-card" onclick="enterModule('activity-page', false)" style="border-top: 5px solid #0d9488; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; min-height: 200px; transition: var(--transition);">
-            <div>
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
-                <h4 style="font-size: 1.15rem; font-weight: 700; color: #0369a1; margin: 0;">6. การเข้าร่วมกิจกรรม</h4>
-                <div style="background: #e0f2fe; color: #0d9488; padding: 8px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                  <svg style="width: 24px; height: 24px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="portal-card-container theme-rose" onclick="enterModule('activity-page', false)">
+            <div class="portal-card-header-bg"></div>
+            <div class="portal-card-inner">
+              <div class="portal-card-inner-header">
+                <span class="portal-card-number">06</span>
+                <span class="portal-card-divider">|</span>
+                <div class="portal-card-icon">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 </div>
               </div>
-              <p style="font-size: 0.875rem; color: var(--neutral-500); line-height: 1.5; margin-bottom: 16px;">ตรวจสอบตารางกิจกรรมของวิทยาลัย ยื่นแบบลงทะเบียนยืนยันตัวตนเข้าร่วมกิจกรรมต่าง ๆ ของวิทยาลัยน่าน</p>
-            </div>
-            <div style="font-size: 0.9rem; font-weight: 600; color: #0d9488; text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
-              เข้าใช้งานระบบ <span style="font-size: 1.1rem;">➔</span>
+              <div class="portal-card-body">
+                <div>
+                  <h4 class="portal-card-title">การเข้าร่วมกิจกรรม</h4>
+                  <p class="portal-card-description">ตรวจสอบตารางกิจกรรมของวิทยาลัย ยื่นแบบลงทะเบียนยืนยันตัวตนเข้าร่วมกิจกรรมต่าง ๆ ของวิทยาลัยน่าน</p>
+                </div>
+                <div class="portal-card-footer">
+                  เข้าใช้งานระบบ <span class="arrow">➔</span>
+                </div>
+              </div>
             </div>
           </div>
 
