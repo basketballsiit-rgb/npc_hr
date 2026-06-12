@@ -1919,6 +1919,8 @@ function renderAttendanceTable(dataList) {
         badgeBg = '#fef2f2';
       }
       leaveBadge = `<span style="background:${badgeBg}; color:${badgeColor}; padding:4px 8px; border-radius:6px; font-size:0.8rem; font-weight:600; display:inline-block;">⚠️ ลา: ${user.activeLeave.leaveType} (${user.activeLeave.status})</span>`;
+    } else if (user.activeTravel) {
+      leaveBadge = `<span style="background:#f5f3ff; color:#7c3aed; padding:4px 8px; border-radius:6px; font-size:0.8rem; font-weight:600; display:inline-block;">✈️ ไปราชการ (${user.activeTravel.status})</span>`;
     }
 
     tbody.innerHTML += `
@@ -1938,6 +1940,7 @@ function renderAttendanceTable(dataList) {
             <option value="ลากิจ" ${user.status === 'ลากิจ' ? 'selected' : ''}>ลากิจ</option>
             <option value="ลาคลอด" ${user.status === 'ลาคลอด' ? 'selected' : ''}>ลาคลอด</option>
             <option value="ลาพักผ่อน" ${user.status === 'ลาพักผ่อน' ? 'selected' : ''}>ลาพักผ่อน</option>
+            <option value="เดินทางไปราชการ" ${user.status === 'เดินทางไปราชการ' ? 'selected' : ''}>เดินทางไปราชการ</option>
             <option value="ขาด" ${user.status === 'ขาด' ? 'selected' : ''}>ขาด</option>
             <option value="มาสาย" ${user.status === 'มาสาย' ? 'selected' : ''}>มาสาย</option>
             <option value="ไม่ทราบสาเหตุ" ${user.status === 'ไม่ทราบสาเหตุ' ? 'selected' : ''}>ไม่ทราบสาเหตุ</option>
@@ -1971,6 +1974,10 @@ function styleAttendanceSelect(selectEl) {
     selectEl.style.color = '#D97706';
     selectEl.style.borderColor = '#F59E0B';
     selectEl.style.backgroundColor = '#FFFBEB';
+  } else if (val === 'เดินทางไปราชการ') {
+    selectEl.style.color = '#7C3AED';
+    selectEl.style.borderColor = '#8B5CF6';
+    selectEl.style.backgroundColor = '#F5F3FF';
   } else if (val === 'ขาด' || val === 'ไม่ทราบสาเหตุ') {
     selectEl.style.color = '#EF4444';
     selectEl.style.borderColor = '#EF4444';

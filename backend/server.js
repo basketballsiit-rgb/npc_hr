@@ -1208,10 +1208,21 @@ app.get('/api/attendance', async (req, res) => {
     );
     const leavesMap = new Map(leaves.map(l => [l.userId, l]));
 
+    // 3b. Fetch overlapping travel requests (approved only) for this date
+    const [travels] = await db.query(
+      `SELECT travelId, userId, subject, status 
+       FROM travel_data 
+       WHERE ? BETWEEN startDate AND endDate 
+         AND status = 'อนุมัติ'`,
+      [date]
+    );
+    const travelsMap = new Map(travels.map(t => [t.userId, t]));
+
     // 4. Combine data
     const result = users.map(user => {
       const savedStatus = attendanceMap.get(user.userId);
       const activeLeave = leavesMap.get(user.userId);
+      const activeTravel = travelsMap.get(user.userId);
       
       let defaultStatus = 'มาปฏิบัติงาน';
       if (savedStatus) {
@@ -1221,9 +1232,11 @@ app.get('/api/attendance', async (req, res) => {
         const lt = activeLeave.leaveType;
         if (lt === 'ลาป่วย') defaultStatus = 'ลาป่วย';
         else if (lt === 'ลากิจส่วนตัว') defaultStatus = 'ลากิจ';
-        else if (lt === 'ลาคลอดบุตร') defaultStatus = 'ลาคลอด';
+        else if (lt === 'ลาคลอดบุตร' || lt === 'ลาคลอด') defaultStatus = 'ลาคลอด';
         else if (lt === 'ลาพักผ่อน') defaultStatus = 'ลาพักผ่อน';
         else defaultStatus = lt; // Fallback to raw leave type
+      } else if (activeTravel) {
+        defaultStatus = 'เดินทางไปราชการ';
       }
 
       return {
@@ -1238,6 +1251,11 @@ app.get('/api/attendance', async (req, res) => {
           leaveId: activeLeave.leaveId,
           leaveType: activeLeave.leaveType,
           status: activeLeave.status
+        } : null,
+        activeTravel: activeTravel ? {
+          travelId: activeTravel.travelId,
+          subject: activeTravel.subject,
+          status: activeTravel.status
         } : null
       };
     });
