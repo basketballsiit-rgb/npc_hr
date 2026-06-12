@@ -781,30 +781,51 @@ app.get('/api/dashboard', async (req, res) => {
   const isAdmin = role === 'admin';
 
   try {
-    // 1. Calculate Current Fiscal Year dates in Asia/Bangkok timezone
-    const today = new Date();
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Asia/Bangkok',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-    const cleanTodayStr = formatter.format(today); // "YYYY-MM-DD"
-    const [tYearStr, tMonthStr] = cleanTodayStr.split('-');
-    const tYear = parseInt(tYearStr);
-    const tMonth = parseInt(tMonthStr);
+    let fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE;
 
-    let fiscalStartYear;
-    if (tMonth >= 10) {
-      fiscalStartYear = tYear;
+    const reqFiscalYear = req.query.fiscalYear;
+    if (reqFiscalYear && !isNaN(parseInt(reqFiscalYear))) {
+      const targetFY_BE = parseInt(reqFiscalYear);
+      const targetFY_AD = targetFY_BE - 543;
+      fiscalStartAD = `${targetFY_AD - 1}-10-01`;
+      fiscalEndAD = `${targetFY_AD}-09-30`;
+      fiscalStartBE = `${targetFY_BE - 1}-10-01`;
+      fiscalEndBE = `${targetFY_BE}-09-30`;
     } else {
-      fiscalStartYear = tYear - 1;
-    }
+      const [defaultSetting] = await db.query('SELECT settingValue FROM settings WHERE settingKey = "default_fiscal_year"');
+      if (defaultSetting && defaultSetting.length > 0 && defaultSetting[0].settingValue) {
+        const targetFY_BE = parseInt(defaultSetting[0].settingValue);
+        const targetFY_AD = targetFY_BE - 543;
+        fiscalStartAD = `${targetFY_AD - 1}-10-01`;
+        fiscalEndAD = `${targetFY_AD}-09-30`;
+        fiscalStartBE = `${targetFY_BE - 1}-10-01`;
+        fiscalEndBE = `${targetFY_BE}-09-30`;
+      } else {
+        const today = new Date();
+        const formatter = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Asia/Bangkok',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+        const cleanTodayStr = formatter.format(today);
+        const [tYearStr, tMonthStr] = cleanTodayStr.split('-');
+        const tYear = parseInt(tYearStr);
+        const tMonth = parseInt(tMonthStr);
 
-    const fiscalStartAD = `${fiscalStartYear}-10-01`;
-    const fiscalEndAD = `${fiscalStartYear + 1}-09-30`;
-    const fiscalStartBE = `${fiscalStartYear + 543}-10-01`;
-    const fiscalEndBE = `${fiscalStartYear + 544}-09-30`;
+        let fiscalStartYear;
+        if (tMonth >= 10) {
+          fiscalStartYear = tYear;
+        } else {
+          fiscalStartYear = tYear - 1;
+        }
+
+        fiscalStartAD = `${fiscalStartYear}-10-01`;
+        fiscalEndAD = `${fiscalStartYear + 1}-09-30`;
+        fiscalStartBE = `${fiscalStartYear + 543}-10-01`;
+        fiscalEndBE = `${fiscalStartYear + 544}-09-30`;
+      }
+    }
 
     let totalStaffVal = 0;
     let statusCountsVal = { approved: 0, pending: 0, rejected: 0 };

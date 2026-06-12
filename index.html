@@ -257,8 +257,16 @@
           <button type="button" onclick="showPage('history-page'); loadHistory();" class="btn-sub-nav" data-sub-page="history-page">📋 ประวัติการลา</button>
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
-          <h1 id="dashboard-main-title" style="font-size:1.8rem; font-weight:700; color:var(--neutral-800);">แดชบอร์ดข้อมูลภาพรวมปีงบประมาณ</h1>
-          <span style="font-size:0.8rem; font-weight:600; color:var(--primary); background:var(--primary-light); padding:4px 12px; border-radius:999px;">อัปเดตแบบเรียลไทม์</span>
+          <h1 id="dashboard-main-title" style="font-size:1.8rem; font-weight:700; color:var(--neutral-800); margin:0;">แดชบอร์ดข้อมูลภาพรวมปีงบประมาณ</h1>
+          <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:8px; background:white; border:1px solid #cbd5e1; padding:6px 12px; border-radius:8px; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">
+              <label for="dashboard-fiscal-year-select" style="font-size:0.9rem; font-weight:600; color:#475569; margin:0;">เลือกปีงบประมาณ:</label>
+              <select id="dashboard-fiscal-year-select" style="border:none; font-size:0.9rem; font-weight:600; color:#0284c7; outline:none; background:transparent; cursor:pointer;" onchange="loadDashboardData()">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <span style="font-size:0.8rem; font-weight:600; color:var(--primary); background:var(--primary-light); padding:4px 12px; border-radius:999px;">อัปเดตแบบเรียลไทม์</span>
+          </div>
         </div>
         
         <!-- Stats Grid -->
@@ -755,6 +763,62 @@
                 <!-- Loaded dynamically by app.js -->
               </tbody>
             </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Settings Page (Admin Only) -->
+      <div id="admin-settings-page" class="page hidden">
+        <h1 style="font-size:1.8rem; font-weight:700; color:var(--neutral-800); margin-bottom:24px;">ตั้งค่าปีงบประมาณระบบ</h1>
+        
+        <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
+          <!-- Card 1: Add/Remove Fiscal Years -->
+          <div class="glass-card">
+            <h3 style="font-size:1.15rem; font-weight:600; color:var(--neutral-800); margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+              <span>📅</span> รายการปีงบประมาณในระบบ
+            </h3>
+            
+            <div style="display:flex; gap:8px; margin-bottom:20px;">
+              <input type="number" id="setting-new-fiscal-year" placeholder="ระบุปี พ.ศ. เช่น 2570" style="flex:1; padding:10px 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.95rem; outline:none;" min="2500" max="3000">
+              <button onclick="addFiscalYearSetting()" class="btn btn-primary" style="padding:10px 16px; font-size:0.9rem; margin-top:0;">เพิ่มปี</button>
+            </div>
+            
+            <div class="table-container" style="max-height: 250px; overflow-y: auto;">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>ปีงบประมาณ (พ.ศ.)</th>
+                    <th style="text-align: center; width: 80px;">เครื่องมือ</th>
+                  </tr>
+                </thead>
+                <tbody id="fiscal-years-list-body">
+                  <!-- Loaded dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <!-- Card 2: Default Fiscal Year Configuration -->
+          <div class="glass-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3 style="font-size:1.15rem; font-weight:600; color:var(--neutral-800); margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+                <span>⚙️</span> กำหนดค่าเริ่มต้นระบบ
+              </h3>
+              <p style="font-size:0.9rem; color:#64748b; margin-bottom:20px;">
+                เลือกปีงบประมาณที่เป็นค่าเริ่มต้นเมื่อเข้าสู่หน้าแดชบอร์ด
+              </p>
+              
+              <div style="margin-bottom:24px;">
+                <label for="setting-default-fiscal-year" style="display:block; font-size:0.9rem; font-weight:600; color:#475569; margin-bottom:8px;">ปีงบประมาณเริ่มต้น:</label>
+                <select id="setting-default-fiscal-year" style="width:100%; padding:10px 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.95rem; outline:none; background:white; color:#0f172a;">
+                  <!-- Loaded dynamically -->
+                </select>
+              </div>
+            </div>
+            
+            <div>
+              <button onclick="saveAdminSettings()" class="btn btn-primary" style="width:100%; padding:12px; font-size:0.95rem; font-weight:600;">💾 บันทึกการตั้งค่า</button>
+            </div>
           </div>
         </div>
       </div>

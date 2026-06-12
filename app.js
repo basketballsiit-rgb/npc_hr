@@ -123,6 +123,8 @@ async function enterModule(pageId, adminOnly) {
     loadReportPage();
   } else if (pageId === 'user-management-page') {
     loadUserManagementPage();
+  } else if (pageId === 'admin-settings-page') {
+    loadAdminSettingsPage();
   }
 }
 
@@ -548,7 +550,8 @@ function buildNavigation() {
         { text: 'เช็คชื่อปฏิบัติงาน', icon: '⏱️', page: 'attendance-page', action: initAttendancePage },
         { text: 'พิจารณาอนุมัติการลา', icon: '⚖️', page: 'approval-page', action: loadApprovalPage },
         { text: 'รายงานสรุปการลา', icon: '📊', page: 'report-page', action: loadReportPage },
-        { text: 'จัดการผู้ใช้งาน', icon: '⚙️', page: 'user-management-page', action: loadUserManagementPage }
+        { text: 'จัดการผู้ใช้งาน', icon: '⚙️', page: 'user-management-page', action: loadUserManagementPage },
+        { text: 'ตั้งค่าปีงบประมาณ', icon: '🔧', page: 'admin-settings-page', action: loadAdminSettingsPage }
       );
     }
   }
@@ -561,7 +564,7 @@ function buildNavigation() {
   }
 
   sidebarItems.forEach(item => {
-    const isAdminOnly = ['attendance-page', 'approval-page', 'report-page', 'user-management-page'].includes(item.page);
+    const isAdminOnly = ['attendance-page', 'approval-page', 'report-page', 'user-management-page', 'admin-settings-page'].includes(item.page);
     const dLink = document.createElement('a');
     dLink.innerHTML = `<span style="font-size: 1.15rem; width: 24px; text-align: center;">${item.icon}</span> <span>${item.text}</span>`;
     dLink.className = 'nav-link';
@@ -580,7 +583,7 @@ function buildNavigation() {
   // Mobile Nav fallback if present
   if (mobileNav) {
     menuItems.forEach(item => {
-      const isAdminOnly = ['attendance-page', 'approval-page', 'report-page', 'user-management-page'].includes(item.page);
+      const isAdminOnly = ['attendance-page', 'approval-page', 'report-page', 'user-management-page', 'admin-settings-page'].includes(item.page);
       const mLink = document.createElement('a');
       mLink.innerHTML = `<span style="font-size: 1.15rem; width: 24px; text-align: center;">${item.icon}</span> <span>${item.text}</span>`;
       mLink.className = 'nav-link';
@@ -604,7 +607,7 @@ function buildNavigation() {
       
       // Add same navigation items into user dropdown for convenience
       menuItems.slice(1).forEach(item => {
-        const isAdminOnly = ['attendance-page', 'approval-page', 'report-page', 'user-management-page'].includes(item.page);
+        const isAdminOnly = ['attendance-page', 'approval-page', 'report-page', 'user-management-page', 'admin-settings-page'].includes(item.page);
         const dropLink = document.createElement('button');
         dropLink.className = 'user-dropdown-item';
         dropLink.innerHTML = `<span style="margin-right: 8px;">${item.icon}</span> ${item.text}`;
@@ -627,9 +630,23 @@ function formatDays(val) {
 
 async function loadDashboardData() {
   try {
+    const select = document.getElementById('dashboard-fiscal-year-select');
+    if (select && select.options.length === 0) {
+      populateDashboardFiscalYearDropdown();
+    }
+    const fiscalYear = select ? select.value : '';
+
     let url = `${API_BASE_URL}/api/dashboard`;
+    let queryParams = [];
     if (currentUser) {
-      url += `?userId=${currentUser.userId}&role=${currentUser.role}`;
+      queryParams.push(`userId=${currentUser.userId}`);
+      queryParams.push(`role=${currentUser.role}`);
+    }
+    if (fiscalYear) {
+      queryParams.push(`fiscalYear=${fiscalYear}`);
+    }
+    if (queryParams.length > 0) {
+      url += `?${queryParams.join('&')}`;
     }
     const res = await fetch(url);
     const d = await res.json();
@@ -641,21 +658,23 @@ async function loadDashboardData() {
       const chartTypeLabel = document.getElementById('chart-type-label');
       const chartMonthlyLabel = document.getElementById('chart-monthly-label');
 
+      const yrDisplay = fiscalYear ? `ปีงบประมาณ ${fiscalYear}` : 'ปีงบประมาณปัจจุบัน';
+
       if (currentUser && currentUser.role === 'admin') {
         if (totalLabel) totalLabel.textContent = 'บุคลากรทั้งหมด';
-        if (dashboardTitle) dashboardTitle.textContent = 'แดชบอร์ดข้อมูลภาพรวมปีงบประมาณ';
-        if (chartTypeLabel) chartTypeLabel.textContent = 'สัดส่วนประเภทการลาของบุคลากร (ปีงบประมาณปัจจุบัน)';
-        if (chartMonthlyLabel) chartMonthlyLabel.textContent = 'สถิติจำนวนการลาสะสมรายเดือน (ปีงบประมาณปัจจุบัน)';
+        if (dashboardTitle) dashboardTitle.textContent = `แดชบอร์ดข้อมูลภาพรวม${yrDisplay}`;
+        if (chartTypeLabel) chartTypeLabel.textContent = `สัดส่วนประเภทการลาของบุคลากร (${yrDisplay})`;
+        if (chartMonthlyLabel) chartMonthlyLabel.textContent = `สถิติจำนวนการลาสะสมรายเดือน (${yrDisplay})`;
         
         document.getElementById('stat-total-staff').textContent = d.stats.totalStaff;
         document.getElementById('stat-approved').textContent = d.stats.approved;
         document.getElementById('stat-pending').textContent = d.stats.pending;
         document.getElementById('stat-rejected').textContent = d.stats.rejected;
       } else {
-        if (totalLabel) totalLabel.textContent = 'วันลาสะสมปีงบประมาณ';
-        if (dashboardTitle) dashboardTitle.textContent = 'แดชบอร์ดการลาของฉัน (ปีงบประมาณ)';
-        if (chartTypeLabel) chartTypeLabel.textContent = 'สัดส่วนประเภทการลาของฉัน (ปีงบประมาณปัจจุบัน)';
-        if (chartMonthlyLabel) chartMonthlyLabel.textContent = 'สถิติจำนวนการลาสะสมรายเดือนของฉัน (ปีงบประมาณปัจจุบัน)';
+        if (totalLabel) totalLabel.textContent = `วันลาสะสม${yrDisplay}`;
+        if (dashboardTitle) dashboardTitle.textContent = `แดชบอร์ดการลาของฉัน (${yrDisplay})`;
+        if (chartTypeLabel) chartTypeLabel.textContent = `สัดส่วนประเภทการลาของฉัน (${yrDisplay})`;
+        if (chartMonthlyLabel) chartMonthlyLabel.textContent = `สถิติจำนวนการลาสะสมรายเดือนของฉัน (${yrDisplay})`;
         
         document.getElementById('stat-total-staff').textContent = formatDays(d.stats.totalStaff);
         document.getElementById('stat-approved').textContent = formatDays(d.stats.approved);
@@ -2444,7 +2463,204 @@ async function handleActivityCreate(e) {
   }
 }
 
+// --- Fiscal Year & Admin Settings Management ---
+
+function populateDashboardFiscalYearDropdown() {
+  const select = document.getElementById('dashboard-fiscal-year-select');
+  if (!select) return;
+
+  const currentVal = select.value;
+  select.innerHTML = '';
+
+  let years = [];
+  if (settings && settings.fiscal_years) {
+    years = settings.fiscal_years.split(',').map(y => y.trim()).filter(Boolean);
+  }
+
+  if (years.length === 0) {
+    const today = new Date();
+    const tYear = today.getFullYear();
+    const tMonth = today.getMonth() + 1;
+    let currentFY = tYear + 543;
+    if (tMonth >= 10) {
+      currentFY += 1;
+    }
+    years = [String(currentFY), String(currentFY - 1), String(currentFY - 2)];
+  }
+
+  years.sort((a, b) => parseInt(b) - parseInt(a));
+
+  years.forEach(yr => {
+    const opt = document.createElement('option');
+    opt.value = yr;
+    opt.textContent = `ปีงบประมาณ ${yr}`;
+    select.appendChild(opt);
+  });
+
+  if (currentVal && years.includes(currentVal)) {
+    select.value = currentVal;
+  } else if (settings && settings.default_fiscal_year && years.includes(settings.default_fiscal_year)) {
+    select.value = settings.default_fiscal_year;
+  } else {
+    select.value = years[0];
+  }
+}
+
+function loadAdminSettingsPage() {
+  renderFiscalYearsList();
+
+  const select = document.getElementById('setting-default-fiscal-year');
+  if (select) {
+    select.innerHTML = '';
+    let years = [];
+    if (settings && settings.fiscal_years) {
+      years = settings.fiscal_years.split(',').map(y => y.trim()).filter(Boolean);
+    }
+    years.sort((a, b) => parseInt(b) - parseInt(a));
+    
+    years.forEach(yr => {
+      const opt = document.createElement('option');
+      opt.value = yr;
+      opt.textContent = `ปีงบประมาณ ${yr}`;
+      select.appendChild(opt);
+    });
+
+    if (settings && settings.default_fiscal_year) {
+      select.value = settings.default_fiscal_year;
+    }
+  }
+}
+
+function renderFiscalYearsList() {
+  const tbody = document.getElementById('fiscal-years-list-body');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+  let years = [];
+  if (settings && settings.fiscal_years) {
+    years = settings.fiscal_years.split(',').map(y => y.trim()).filter(Boolean);
+  }
+  years.sort((a, b) => parseInt(b) - parseInt(a));
+
+  if (years.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="2" class="text-center" style="color:var(--neutral-400); padding:16px;">ไม่มีข้อมูลปีงบประมาณ กรุณาเพิ่มปีงบประมาณ</td></tr>`;
+    return;
+  }
+
+  years.forEach(yr => {
+    tbody.innerHTML += `
+      <tr>
+        <td style="font-weight: 600; padding: 12px 16px;">ปีงบประมาณ ${yr}</td>
+        <td style="text-align: center; padding: 12px 16px;">
+          <button class="btn btn-outline" style="border-color: #ef4444; color: #ef4444; padding: 4px 8px; font-size: 0.8rem; margin: 0;" onclick="removeFiscalYearSetting('${yr}')">ลบ</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+async function addFiscalYearSetting() {
+  const input = document.getElementById('setting-new-fiscal-year');
+  if (!input) return;
+
+  const value = input.value.trim();
+  if (!value) {
+    Swal.fire({ icon: 'warning', title: 'กรุณากรอกปีงบประมาณ', text: 'ตัวอย่างเช่น 2570' });
+    return;
+  }
+
+  const yr = parseInt(value);
+  if (isNaN(yr) || yr < 2500 || yr > 3000) {
+    Swal.fire({ icon: 'error', title: 'ปีงบประมาณไม่ถูกต้อง', text: 'กรุณากรอกปี พ.ศ. ระหว่าง 2500 - 3000' });
+    return;
+  }
+
+  let years = [];
+  if (settings && settings.fiscal_years) {
+    years = settings.fiscal_years.split(',').map(y => y.trim()).filter(Boolean);
+  }
+
+  if (years.includes(String(yr))) {
+    Swal.fire({ icon: 'warning', title: 'มีปีงบประมาณนี้อยู่แล้ว' });
+    return;
+  }
+
+  years.push(String(yr));
+  if (!settings) settings = {};
+  settings.fiscal_years = years.join(',');
+
+  if (!settings.default_fiscal_year) {
+    settings.default_fiscal_year = String(yr);
+  }
+
+  input.value = '';
+  loadAdminSettingsPage();
+}
+
+function removeFiscalYearSetting(yr) {
+  let years = [];
+  if (settings && settings.fiscal_years) {
+    years = settings.fiscal_years.split(',').map(y => y.trim()).filter(Boolean);
+  }
+
+  years = years.filter(y => y !== String(yr));
+  if (!settings) settings = {};
+  settings.fiscal_years = years.join(',');
+
+  if (settings.default_fiscal_year === String(yr)) {
+    settings.default_fiscal_year = years[0] || '';
+  }
+
+  loadAdminSettingsPage();
+}
+
+async function saveAdminSettings() {
+  const select = document.getElementById('setting-default-fiscal-year');
+  if (select && settings) {
+    settings.default_fiscal_year = select.value;
+  }
+
+  showLoading('กำลังบันทึกการตั้งค่า...');
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/settings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        fiscal_years: (settings && settings.fiscal_years) || '',
+        default_fiscal_year: (settings && settings.default_fiscal_year) || ''
+      })
+    });
+    const d = await res.json();
+    Swal.close();
+
+    if (d && d.success) {
+      // Re-fetch settings
+      const setRes = await fetch(`${API_BASE_URL}/api/settings`);
+      settings = await setRes.json();
+
+      Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: d.message });
+      
+      const dbSelect = document.getElementById('dashboard-fiscal-year-select');
+      if (dbSelect) {
+        dbSelect.innerHTML = '';
+      }
+    } else {
+      showError(d.message || 'บันทึกไม่สำเร็จ');
+    }
+  } catch (err) {
+    showError('เกิดข้อผิดพลาด: ' + err.message);
+  }
+}
+
 // Bind callbacks globally
+window.populateDashboardFiscalYearDropdown = populateDashboardFiscalYearDropdown;
+window.loadAdminSettingsPage = loadAdminSettingsPage;
+window.renderFiscalYearsList = renderFiscalYearsList;
+window.addFiscalYearSetting = addFiscalYearSetting;
+window.removeFiscalYearSetting = removeFiscalYearSetting;
+window.saveAdminSettings = saveAdminSettings;
 window.approveTravel = approveTravel;
 window.registerActivity = registerActivity;
 window.viewParticipants = viewParticipants;
