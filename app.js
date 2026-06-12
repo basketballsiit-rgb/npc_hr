@@ -179,6 +179,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('login-btn').addEventListener('click', showLoginModal);
   document.getElementById('register-btn').addEventListener('click', showRegisterModal);
 
+  // Close login modal when clicking outside
+  const loginModalEl = document.getElementById('login-modal');
+  if (loginModalEl) {
+    loginModalEl.addEventListener('click', (e) => {
+      if (e.target === loginModalEl) {
+        hideLoginModal();
+      }
+    });
+  }
+
   // Forms submit & events
   document.getElementById('leave-request-form').addEventListener('submit', handleLeaveSubmit);
   document.getElementById('export-excel-btn').addEventListener('click', handleExportExcel);
@@ -298,66 +308,82 @@ function processSignatureFile(file) {
 // --- Auth Functions ---
 
 function showLoginModal() {
-  Swal.fire({
-    title: 'เข้าสู่ระบบ',
-    html: `
-      <div style="text-align: left;">
-        <label class="form-label">ชื่อผู้ใช้ (Username)</label>
-        <input id="login-u" class="form-input mb-4" style="margin-bottom:15px;" placeholder="Username">
-        <label class="form-label">รหัสผ่าน (Password)</label>
-        <input id="login-p" type="password" class="form-input" placeholder="Password">
-      </div>
-    `,
-    confirmButtonText: 'เข้าสู่ระบบ',
-    showCancelButton: true,
-    cancelButtonText: 'ยกเลิก',
-    preConfirm: () => {
-      const u = document.getElementById('login-u').value;
-      const p = document.getElementById('login-p').value;
-      if (!u || !p) {
-        Swal.showValidationMessage('กรุณากรอกข้อมูลให้ครบถ้วน');
-      }
-      return { username: u, password: p };
-    }
-  }).then(async (result) => {
-    if (result.isConfirmed) {
-      showLoading('กำลังเข้าสู่ระบบ...');
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(result.value)
-        });
-        const data = await res.json();
-        
-        if (data.success) {
-          currentUser = data.user;
-          sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
-          updateUIAfterLogin();
-          
-          Swal.fire({
-            icon: 'success',
-            title: 'เข้าสู่ระบบสำเร็จ',
-            showConfirmButton: false,
-            timer: 1500
-          });
-          
-          if (typeof redirectAfterLogin === 'object' && redirectAfterLogin !== null) {
-            const { pageId, adminOnly } = redirectAfterLogin;
-            redirectAfterLogin = null;
-            enterModule(pageId, adminOnly);
-          } else {
-            showPage('portal-page');
-          }
-        } else {
-          showError(data.message);
-        }
-      } catch (err) {
-        showError('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์: ' + err.message);
-      }
-    }
-  });
+  const modal = document.getElementById('login-modal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    document.getElementById('login-u').value = '';
+    document.getElementById('login-p').value = '';
+    document.getElementById('login-u').focus();
+  }
 }
+
+window.hideLoginModal = () => {
+  const modal = document.getElementById('login-modal');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+};
+
+window.toggleLoginPassword = () => {
+  const passField = document.getElementById('login-p');
+  const eyeIcon = document.getElementById('eye-icon');
+  if (!passField || !eyeIcon) return;
+  
+  if (passField.type === 'password') {
+    passField.type = 'text';
+    eyeIcon.innerHTML = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>`;
+  } else {
+    passField.type = 'password';
+    eyeIcon.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>`;
+  }
+};
+
+window.handleForgotPassword = (e) => {
+  e.preventDefault();
+  Swal.fire('ลืมรหัสผ่าน', 'กรุณาติดต่อผู้ดูแลระบบเพื่อรีเซ็ตรหัสผ่านของคุณครับ', 'info');
+};
+
+window.handleCustomLogin = async (e) => {
+  e.preventDefault();
+  const u = document.getElementById('login-u').value;
+  const p = document.getElementById('login-p').value;
+  
+  showLoading('กำลังเข้าสู่ระบบ...');
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: u, password: p })
+    });
+    const data = await res.json();
+    
+    if (data.success) {
+      currentUser = data.user;
+      sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+      updateUIAfterLogin();
+      hideLoginModal();
+      
+      Swal.fire({
+        icon: 'success',
+        title: 'เข้าสู่ระบบสำเร็จ',
+        showConfirmButton: false,
+        timer: 1500
+      });
+      
+      if (typeof redirectAfterLogin === 'object' && redirectAfterLogin !== null) {
+        const { pageId, adminOnly } = redirectAfterLogin;
+        redirectAfterLogin = null;
+        enterModule(pageId, adminOnly);
+      } else {
+        showPage('portal-page');
+      }
+    } else {
+      showError(data.message);
+    }
+  } catch (err) {
+    showError('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์: ' + err.message);
+  }
+};
 
 function showRegisterModal() {
   Swal.fire({
