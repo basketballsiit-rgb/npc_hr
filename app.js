@@ -621,10 +621,32 @@ function buildNavigation() {
 
 async function loadDashboardData() {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/dashboard`);
+    let url = `${API_BASE_URL}/api/dashboard`;
+    if (currentUser) {
+      url += `?userId=${currentUser.userId}&role=${currentUser.role}`;
+    }
+    const res = await fetch(url);
     const d = await res.json();
     
     if (d && d.stats) {
+      // Dynamic Labels based on Role
+      const totalLabel = document.getElementById('stat-total-label');
+      const dashboardTitle = document.getElementById('dashboard-main-title');
+      const chartTypeLabel = document.getElementById('chart-type-label');
+      const chartMonthlyLabel = document.getElementById('chart-monthly-label');
+
+      if (currentUser && currentUser.role === 'admin') {
+        if (totalLabel) totalLabel.textContent = 'บุคลากรทั้งหมด';
+        if (dashboardTitle) dashboardTitle.textContent = 'แดชบอร์ดข้อมูลภาพรวม';
+        if (chartTypeLabel) chartTypeLabel.textContent = 'สัดส่วนประเภทการลาของบุคลากร';
+        if (chartMonthlyLabel) chartMonthlyLabel.textContent = 'สถิติจำนวนการลาสะสมรายเดือน (ปีปัจจุบัน)';
+      } else {
+        if (totalLabel) totalLabel.textContent = 'คำขอลาทั้งหมด';
+        if (dashboardTitle) dashboardTitle.textContent = 'แดชบอร์ดการลาของฉัน';
+        if (chartTypeLabel) chartTypeLabel.textContent = 'สัดส่วนประเภทการลาของฉัน';
+        if (chartMonthlyLabel) chartMonthlyLabel.textContent = 'สถิติจำนวนการลาสะสมรายเดือนของฉัน (ปีปัจจุบัน)';
+      }
+
       document.getElementById('stat-total-staff').textContent = d.stats.totalStaff;
       document.getElementById('stat-approved').textContent = d.stats.approved;
       document.getElementById('stat-pending').textContent = d.stats.pending;
@@ -635,24 +657,26 @@ async function loadDashboardData() {
       
       // Render Recent Leaves Table
       const tb = document.getElementById('recent-leaves-table');
-      tb.innerHTML = '';
-      if (!d.recentLeaves.length) {
-        tb.innerHTML = `<tr><td colspan="6" class="text-center" style="color:var(--neutral-400); padding:24px;">ไม่มีข้อมูลคำขอลาล่าสุด</td></tr>`;
-      } else {
-        d.recentLeaves.forEach(l => {
-          tb.innerHTML += `
-            <tr>
-              <td style="font-weight: 500;">${l.fullName}</td>
-              <td>${l.leaveType}</td>
-              <td>${formatDate(l.startDate)} - ${formatDate(l.endDate)}</td>
-              <td style="text-align: center; font-weight: bold;">${l.totalDays}</td>
-              <td>${renderBadge(l.status)}</td>
-              <td>
-                ${l.pdfUrl ? `<a href="${l.pdfUrl}" target="_blank" style="color:var(--primary); font-weight:600;">พิมพ์ใบลา</a>` : '-'}
-              </td>
-            </tr>
-          `;
-        });
+      if (tb) {
+        tb.innerHTML = '';
+        if (!d.recentLeaves.length) {
+          tb.innerHTML = `<tr><td colspan="6" class="text-center" style="color:var(--neutral-400); padding:24px;">ไม่มีข้อมูลคำขอลาล่าสุด</td></tr>`;
+        } else {
+          d.recentLeaves.forEach(l => {
+            tb.innerHTML += `
+              <tr>
+                <td style="font-weight: 500;">${l.fullName}</td>
+                <td>${l.leaveType}</td>
+                <td>${formatDate(l.startDate)} - ${formatDate(l.endDate)}</td>
+                <td style="text-align: center; font-weight: bold;">${l.totalDays}</td>
+                <td>${renderBadge(l.status)}</td>
+                <td>
+                  ${l.pdfUrl ? `<a href="${l.pdfUrl}" target="_blank" style="color:var(--primary); font-weight:600;">พิมพ์ใบลา</a>` : '-'}
+                </td>
+              </tr>
+            `;
+          });
+        }
       }
     }
   } catch (err) {

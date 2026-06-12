@@ -777,58 +777,132 @@ app.delete('/api/leaves/:leaveId', async (req, res) => {
 
 // 4. Dashboard Stats Route
 app.get('/api/dashboard', async (req, res) => {
+  const { userId, role } = req.query;
+  const isAdmin = role === 'admin';
+
   try {
-    const [[{ totalStaff }]] = await db.query('SELECT COUNT(*) as totalStaff FROM users WHERE role = "user" AND status = "approved"');
-    
-    const [statusCounts] = await db.query(
-      `SELECT 
-        SUM(CASE WHEN status = 'อนุมัติ' THEN 1 ELSE 0 END) as approved,
-        SUM(CASE WHEN status = 'รอการอนุมัติ' THEN 1 ELSE 0 END) as pending,
-        SUM(CASE WHEN status = 'ไม่อนุมัติ' THEN 1 ELSE 0 END) as rejected
-       FROM leave_data`
-    );
+    let totalStaffVal = 0;
+    let statusCountsVal = { approved: 0, pending: 0, rejected: 0 };
+    let leaveTypesVal = [];
+    let monthlyCountsVal = Array(12).fill(0);
+    let recentLeavesVal = [];
 
-    const [leaveTypes] = await db.query(
-      'SELECT leaveType, COUNT(*) as count FROM leave_data GROUP BY leaveType'
-    );
+    if (isAdmin || !userId) {
+      // Admin: Aggregate stats for all staff
+      const [[{ totalStaff }]] = await db.query('SELECT COUNT(*) as totalStaff FROM users WHERE role = "user" AND status = "approved"');
+      totalStaffVal = totalStaff || 0;
 
-    // Monthly stats for current year
-    const [monthlyStats] = await db.query(
-      `SELECT MONTH(startDate) as month, COUNT(*) as count 
-       FROM leave_data 
-       WHERE YEAR(startDate) = YEAR(CURDATE())
-       GROUP BY MONTH(startDate)`
-    );
-
-    const monthlyCounts = Array(12).fill(0);
-    monthlyStats.forEach(item => {
-      if (item.month >= 1 && item.month <= 12) {
-        monthlyCounts[item.month - 1] = item.count;
+      const [statusCounts] = await db.query(
+        `SELECT 
+          SUM(CASE WHEN status = 'อนุมัติ' THEN 1 ELSE 0 END) as approved,
+          SUM(CASE WHEN status = 'รอการอนุมัติ' THEN 1 ELSE 0 END) as pending,
+          SUM(CASE WHEN status = 'ไม่อนุมัติ' THEN 1 ELSE 0 END) as rejected
+         FROM leave_data`
+      );
+      if (statusCounts && statusCounts[0]) {
+        statusCountsVal = {
+          approved: statusCounts[0].approved || 0,
+          pending: statusCounts[0].pending || 0,
+          rejected: statusCounts[0].rejected || 0
+        };
       }
-    });
 
-    const [recentLeaves] = await db.query(
-      'SELECT fullName, leaveType, startDate, endDate, totalDays, status, pdfUrl FROM leave_data ORDER BY startDate DESC, requestDate DESC, createdAt DESC LIMIT 10'
-    );
+      const [leaveTypes] = await db.query(
+        'SELECT leaveType, COUNT(*) as count FROM leave_data GROUP BY leaveType'
+      );
+      leaveTypesVal = leaveTypes;
+
+      const [monthlyStats] = await db.query(
+        `SELECT MONTH(startDate) as month, COUNT(*) as count 
+         FROM leave_data 
+         WHERE YEAR(startDate) = YEAR(CURDATE())
+         GROUP BY MONTH(startDate)`
+      );
+      monthlyStats.forEach(item => {
+        if (item.month >= 1 && item.month <= 12) {
+          monthlyCountsVal[item.month - 1] = item.count;
+        }
+      });
+
+      const [recentLeaves] = await db.query(
+        'SELECT fullName, leaveType, startDate, endDate, totalDays, status, pdfUrl FROM leave_data ORDER BY startDate DESC, requestDate DESC, createdAt DESC LIMIT 10'
+      );
+      recentLeavesVal = recentLeaves;
+    } else {
+      // Teacher: Stats for this specific user (including duplicates)
+      const userIds = await getUserIdsForUser(userId);
+      
+      const [[{ totalStaff }]] = await db.query(
+        `SELECT COUNT(*) as totalStaff FROM leave_data WHERE userId IN (${userIds.map(() => '?').join(', ')})`,
+        userIds
+      );
+      totalStaffVal = totalStaff || 0;
+
+      const [statusCounts] = await db.query(
+        `SELECT 
+          SUM(CASE WHEN status = 'อนุมัติ' THEN 1 ELSE 0 END) as approved,
+          SUM(CASE WHEN status = 'รอการอนุมัติ' THEN 1 ELSE 0 END) as pending,
+          SUM(CASE WHEN status = 'ไม่อนุมัติ' THEN 1 ELSE 0 END) as rejected
+         FROM leave_data
+         WHERE userId IN (${userIds.map(() => '?').join(', ')})`,
+        userIds
+      );
+      if (statusCounts && statusCounts[0]) {
+        statusCountsVal = {
+          approved: statusCounts[0].approved || 0,
+          pending: statusCounts[0].pending || 0,
+          rejected: statusCounts[0].rejected || 0
+        };
+      }
+
+      const [leaveTypes] = await db.query(
+        `SELECT leaveType, COUNT(*) as count FROM leave_data WHERE userId IN (${userIds.map(() => '?').join(', ')}) GROUP BY leaveType`,
+        userIds
+      );
+      leaveTypesVal = leaveTypes;
+
+      const [monthlyStats] = await db.query(
+        `SELECT MONTH(startDate) as month, COUNT(*) as count 
+         FROM leave_data 
+         WHERE userId IN (${userIds.map(() => '?').join(', ')})
+           AND YEAR(startDate) = YEAR(CURDATE())
+         GROUP BY MONTH(startDate)`,
+        userIds
+      );
+      monthlyStats.forEach(item => {
+        if (item.month >= 1 && item.month <= 12) {
+          monthlyCountsVal[item.month - 1] = item.count;
+        }
+      });
+
+      const [recentLeaves] = await db.query(
+        `SELECT fullName, leaveType, startDate, endDate, totalDays, status, pdfUrl 
+         FROM leave_data 
+         WHERE userId IN (${userIds.map(() => '?').join(', ')})
+         ORDER BY startDate DESC, requestDate DESC, createdAt DESC LIMIT 10`,
+        userIds
+      );
+      recentLeavesVal = recentLeaves;
+    }
 
     res.json({
       stats: {
-        totalStaff: totalStaff || 0,
-        approved: statusCounts[0].approved || 0,
-        pending: statusCounts[0].pending || 0,
-        rejected: statusCounts[0].rejected || 0
+        totalStaff: totalStaffVal,
+        approved: statusCountsVal.approved,
+        pending: statusCountsVal.pending,
+        rejected: statusCountsVal.rejected
       },
       charts: {
         leaveTypeData: {
-          labels: leaveTypes.map(lt => lt.leaveType),
-          data: leaveTypes.map(lt => lt.count)
+          labels: leaveTypesVal.map(lt => lt.leaveType),
+          data: leaveTypesVal.map(lt => lt.count)
         },
         monthlyLeaveData: {
           labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
-          data: monthlyCounts
+          data: monthlyCountsVal
         }
       },
-      recentLeaves
+      recentLeaves: recentLeavesVal
     });
   } catch (error) {
     console.error('Dashboard query error:', error.message);
