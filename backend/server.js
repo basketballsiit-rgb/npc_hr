@@ -807,20 +807,25 @@ app.get('/api/dashboard', async (req, res) => {
         };
       }
 
+      // Doughnut Chart: sum of approved leave days per type
       const [leaveTypes] = await db.query(
-        'SELECT leaveType, COUNT(*) as count FROM leave_data GROUP BY leaveType'
+        `SELECT leaveType, COALESCE(SUM(totalDays), 0) as count 
+         FROM leave_data 
+         WHERE status = 'อนุมัติ' 
+         GROUP BY leaveType`
       );
       leaveTypesVal = leaveTypes;
 
+      // Monthly Chart: sum of approved leave days per month for current year
       const [monthlyStats] = await db.query(
-        `SELECT MONTH(startDate) as month, COUNT(*) as count 
+        `SELECT MONTH(startDate) as month, COALESCE(SUM(totalDays), 0) as count 
          FROM leave_data 
-         WHERE YEAR(startDate) = YEAR(CURDATE())
+         WHERE status = 'อนุมัติ' AND YEAR(startDate) = YEAR(CURDATE())
          GROUP BY MONTH(startDate)`
       );
       monthlyStats.forEach(item => {
         if (item.month >= 1 && item.month <= 12) {
-          monthlyCountsVal[item.month - 1] = item.count;
+          monthlyCountsVal[item.month - 1] = parseFloat(item.count) || 0;
         }
       });
 
@@ -832,46 +837,55 @@ app.get('/api/dashboard', async (req, res) => {
       // Teacher: Stats for this specific user (including duplicates)
       const userIds = await getUserIdsForUser(userId);
       
+      // Card 1: Total accumulated approved leave days
       const [[{ totalStaff }]] = await db.query(
-        `SELECT COUNT(*) as totalStaff FROM leave_data WHERE userId IN (${userIds.map(() => '?').join(', ')})`,
+        `SELECT COALESCE(SUM(totalDays), 0) as totalStaff 
+         FROM leave_data 
+         WHERE userId IN (${userIds.map(() => '?').join(', ')}) AND status = 'อนุมัติ'`,
         userIds
       );
-      totalStaffVal = totalStaff || 0;
+      totalStaffVal = parseFloat(totalStaff) || 0;
 
+      // Cards 2, 3, 4: Sum of days for approved, pending, and rejected leaves
       const [statusCounts] = await db.query(
         `SELECT 
-          SUM(CASE WHEN status = 'อนุมัติ' THEN 1 ELSE 0 END) as approved,
-          SUM(CASE WHEN status = 'รอการอนุมัติ' THEN 1 ELSE 0 END) as pending,
-          SUM(CASE WHEN status = 'ไม่อนุมัติ' THEN 1 ELSE 0 END) as rejected
+          SUM(CASE WHEN status = 'อนุมัติ' THEN totalDays ELSE 0 END) as approved,
+          SUM(CASE WHEN status = 'รอการอนุมัติ' THEN totalDays ELSE 0 END) as pending,
+          SUM(CASE WHEN status = 'ไม่อนุมัติ' THEN totalDays ELSE 0 END) as rejected
          FROM leave_data
          WHERE userId IN (${userIds.map(() => '?').join(', ')})`,
         userIds
       );
       if (statusCounts && statusCounts[0]) {
         statusCountsVal = {
-          approved: statusCounts[0].approved || 0,
-          pending: statusCounts[0].pending || 0,
-          rejected: statusCounts[0].rejected || 0
+          approved: parseFloat(statusCounts[0].approved) || 0,
+          pending: parseFloat(statusCounts[0].pending) || 0,
+          rejected: parseFloat(statusCounts[0].rejected) || 0
         };
       }
 
+      // Doughnut Chart: sum of approved leave days per type for the teacher
       const [leaveTypes] = await db.query(
-        `SELECT leaveType, COUNT(*) as count FROM leave_data WHERE userId IN (${userIds.map(() => '?').join(', ')}) GROUP BY leaveType`,
+        `SELECT leaveType, COALESCE(SUM(totalDays), 0) as count 
+         FROM leave_data 
+         WHERE userId IN (${userIds.map(() => '?').join(', ')}) AND status = 'อนุมัติ' 
+         GROUP BY leaveType`,
         userIds
       );
       leaveTypesVal = leaveTypes;
 
+      // Monthly Chart: sum of approved leave days per month for the teacher
       const [monthlyStats] = await db.query(
-        `SELECT MONTH(startDate) as month, COUNT(*) as count 
+        `SELECT MONTH(startDate) as month, COALESCE(SUM(totalDays), 0) as count 
          FROM leave_data 
          WHERE userId IN (${userIds.map(() => '?').join(', ')})
-           AND YEAR(startDate) = YEAR(CURDATE())
+           AND status = 'อนุมัติ' AND YEAR(startDate) = YEAR(CURDATE())
          GROUP BY MONTH(startDate)`,
         userIds
       );
       monthlyStats.forEach(item => {
         if (item.month >= 1 && item.month <= 12) {
-          monthlyCountsVal[item.month - 1] = item.count;
+          monthlyCountsVal[item.month - 1] = parseFloat(item.count) || 0;
         }
       });
 

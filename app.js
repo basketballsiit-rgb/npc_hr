@@ -619,6 +619,12 @@ function buildNavigation() {
 
 // --- Dashboard Loading ---
 
+// Helper to format days count nicely (e.g. 2.5 วัน, 1 วัน, 0 วัน)
+function formatDays(val) {
+  const num = parseFloat(val) || 0;
+  return num.toFixed(1).replace('.0', '') + ' วัน';
+}
+
 async function loadDashboardData() {
   try {
     let url = `${API_BASE_URL}/api/dashboard`;
@@ -640,17 +646,22 @@ async function loadDashboardData() {
         if (dashboardTitle) dashboardTitle.textContent = 'แดชบอร์ดข้อมูลภาพรวม';
         if (chartTypeLabel) chartTypeLabel.textContent = 'สัดส่วนประเภทการลาของบุคลากร';
         if (chartMonthlyLabel) chartMonthlyLabel.textContent = 'สถิติจำนวนการลาสะสมรายเดือน (ปีปัจจุบัน)';
+        
+        document.getElementById('stat-total-staff').textContent = d.stats.totalStaff;
+        document.getElementById('stat-approved').textContent = d.stats.approved;
+        document.getElementById('stat-pending').textContent = d.stats.pending;
+        document.getElementById('stat-rejected').textContent = d.stats.rejected;
       } else {
-        if (totalLabel) totalLabel.textContent = 'คำขอลาทั้งหมด';
+        if (totalLabel) totalLabel.textContent = 'วันลาสะสมทั้งหมด';
         if (dashboardTitle) dashboardTitle.textContent = 'แดชบอร์ดการลาของฉัน';
         if (chartTypeLabel) chartTypeLabel.textContent = 'สัดส่วนประเภทการลาของฉัน';
         if (chartMonthlyLabel) chartMonthlyLabel.textContent = 'สถิติจำนวนการลาสะสมรายเดือนของฉัน (ปีปัจจุบัน)';
+        
+        document.getElementById('stat-total-staff').textContent = formatDays(d.stats.totalStaff);
+        document.getElementById('stat-approved').textContent = formatDays(d.stats.approved);
+        document.getElementById('stat-pending').textContent = formatDays(d.stats.pending);
+        document.getElementById('stat-rejected').textContent = formatDays(d.stats.rejected);
       }
-
-      document.getElementById('stat-total-staff').textContent = d.stats.totalStaff;
-      document.getElementById('stat-approved').textContent = d.stats.approved;
-      document.getElementById('stat-pending').textContent = d.stats.pending;
-      document.getElementById('stat-rejected').textContent = d.stats.rejected;
       
       // Render Charts
       renderCharts(d.charts);
@@ -1666,6 +1677,20 @@ function renderCharts(d) {
               boxWidth: 8,
               font: { family: 'Kanit' }
             }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                let label = context.label || '';
+                if (label) {
+                  label += ': ';
+                }
+                if (context.parsed !== null) {
+                  label += context.parsed.toFixed(1).replace('.0', '') + ' วัน';
+                }
+                return label;
+              }
+            }
           }
         }
       }
@@ -1682,7 +1707,7 @@ function renderCharts(d) {
       data: {
         labels: d.monthlyLeaveData.labels,
         datasets: [{
-          label: 'จำนวนการลา (ครั้ง)',
+          label: 'จำนวนการลา (วัน)',
           data: d.monthlyLeaveData.data,
           backgroundColor: '#6366f1',
           borderRadius: 8,
@@ -1704,7 +1729,21 @@ function renderCharts(d) {
           }
         },
         plugins: {
-          legend: { display: false }
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                let label = context.dataset.label || '';
+                if (label) {
+                  label = 'จำนวนวันลา: ';
+                }
+                if (context.parsed.y !== null) {
+                  label += context.parsed.y.toFixed(1).replace('.0', '') + ' วัน';
+                }
+                return label;
+              }
+            }
+          }
         }
       }
     });
