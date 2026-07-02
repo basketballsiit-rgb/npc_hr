@@ -2488,31 +2488,114 @@ function updateTravelersCount() {
   calculateExpenses();
 }
 
-// Route dynamic rows management (Transportation estimation)
-window.addRouteRow = (from = '', to = '', weight = '', volume = '', cost = 0, remark = '') => {
-  const tbody = document.getElementById('travel-routes-tbody');
-  if (!tbody) return;
-  
-  const tr = document.createElement('tr');
-  tr.className = 'travel-route-row';
-  
-  tr.innerHTML = `
-    <td><input type="text" class="form-input form-input-sm travel-route-from" placeholder="ต้นทาง..." value="${from}" required></td>
-    <td><input type="text" class="form-input form-input-sm travel-route-to" placeholder="ปลายทาง..." value="${to}" required></td>
-    <td><input type="number" class="form-input form-input-sm travel-route-weight" placeholder="กก." value="${weight}" onchange="calculateExpenses()"></td>
-    <td><input type="number" class="form-input form-input-sm travel-route-volume" placeholder="ลบ.ม." value="${volume}" onchange="calculateExpenses()"></td>
-    <td><input type="number" class="form-input form-input-sm travel-route-cost" placeholder="จำนวนเงิน..." value="${cost || ''}" required onchange="calculateExpenses()"></td>
-    <td><input type="text" class="form-input form-input-sm travel-route-remark" placeholder="หมายเหตุ..." value="${remark}"></td>
-    <td style="text-align:center;"><button type="button" class="btn btn-outline btn-xs" onclick="removeRouteRow(this)" style="border-color:var(--danger); color:var(--danger);">❌</button></td>
-  `;
-  tbody.appendChild(tr);
+// ============================================================
+// Vehicle Type Panel Functions
+// ============================================================
+window.onVehicleTypeChange = () => {
+  const type = document.getElementById('travel-vehicle-type-select').value;
+  const panelDist    = document.getElementById('vehicle-panel-distance');
+  const panelTicket  = document.getElementById('vehicle-panel-ticket');
+  const panelHolder  = document.getElementById('vehicle-panel-placeholder');
+
+  // Hide all panels first
+  panelDist.style.display   = 'none';
+  panelTicket.style.display = 'none';
+  panelHolder.style.display = 'none';
+
+  if (type === 'gov_car' || type === 'personal_car') {
+    panelDist.style.display = 'block';
+    calcDistanceCost();
+  } else if (type === 'bus' || type === 'train' || type === 'plane') {
+    panelTicket.style.display = 'block';
+    // Add first leg if empty
+    const legs = document.getElementById('vehicle-ticket-legs');
+    if (legs && legs.children.length === 0) addTicketLeg();
+    calcTicketTotal();
+  } else {
+    panelHolder.style.display = 'block';
+  }
   calculateExpenses();
 };
 
-window.removeRouteRow = (button) => {
-  button.parentElement.parentElement.remove();
+window.calcDistanceCost = () => {
+  const km       = parseFloat(document.getElementById('veh-dist-km')?.value) || 0;
+  const roundtrip = document.getElementById('veh-dist-roundtrip')?.checked;
+  const total    = km * 4 * (roundtrip ? 2 : 1);
+  const txtEl    = document.getElementById('veh-dist-total-txt');
+  const hidEl    = document.getElementById('veh-dist-total');
+  if (txtEl) txtEl.textContent = total.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (hidEl) hidEl.value = total;
   calculateExpenses();
 };
+
+let ticketLegCounter = 0;
+window.addTicketLeg = () => {
+  const container = document.getElementById('vehicle-ticket-legs');
+  if (!container) return;
+  const id = ++ticketLegCounter;
+  const div = document.createElement('div');
+  div.id = `ticket-leg-${id}`;
+  div.style.cssText = 'border:1px solid #e2e8f0; border-radius:8px; padding:12px; margin-bottom:12px; background:#f8fafc;';
+  div.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <span style="font-size:0.82rem; font-weight:700; color:#475569;">เส้นทางที่ ${id}</span>
+      <button type="button" class="btn btn-outline btn-xs" onclick="removeTicketLeg(${id})" style="border-color:var(--danger);color:var(--danger);">❌ ลบ</button>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:10px;">
+      <div>
+        <label style="font-size:0.78rem; font-weight:600; color:#64748b;">ต้นทาง</label>
+        <input type="text" class="form-input form-input-sm ticket-leg-from" placeholder="เช่น น่าน">
+      </div>
+      <div>
+        <label style="font-size:0.78rem; font-weight:600; color:#64748b;">ปลายทาง</label>
+        <input type="text" class="form-input form-input-sm ticket-leg-to" placeholder="เช่น กรุงเทพฯ">
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:12px;">
+      <div>
+        <label style="font-size:0.78rem; font-weight:600; color:#64748b;">วัน-เวลาออก (ไป)</label>
+        <input type="datetime-local" class="form-input form-input-sm ticket-leg-depart">
+      </div>
+      <div>
+        <label style="font-size:0.78rem; font-weight:600; color:#64748b;">ราคาตั๋วขาไป (บาท)</label>
+        <input type="number" class="form-input form-input-sm ticket-leg-price-go" placeholder="0" min="0" oninput="calcTicketTotal()">
+      </div>
+      <div>
+        <label style="font-size:0.78rem; font-weight:600; color:#64748b;">วัน-เวลากลับ</label>
+        <input type="datetime-local" class="form-input form-input-sm ticket-leg-return">
+      </div>
+      <div>
+        <label style="font-size:0.78rem; font-weight:600; color:#64748b;">ราคาตั๋วขากลับ (บาท)</label>
+        <input type="number" class="form-input form-input-sm ticket-leg-price-back" placeholder="0" min="0" oninput="calcTicketTotal()">
+      </div>
+    </div>
+  `;
+  container.appendChild(div);
+  calcTicketTotal();
+};
+
+window.removeTicketLeg = (id) => {
+  const el = document.getElementById(`ticket-leg-${id}`);
+  if (el) el.remove();
+  calcTicketTotal();
+};
+
+window.calcTicketTotal = () => {
+  let total = 0;
+  document.querySelectorAll('.ticket-leg-price-go, .ticket-leg-price-back').forEach(inp => {
+    total += parseFloat(inp.value) || 0;
+  });
+  const txtEl = document.getElementById('veh-ticket-total-txt');
+  const hidEl = document.getElementById('veh-ticket-total');
+  if (txtEl) txtEl.textContent = total.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (hidEl) hidEl.value = total;
+  calculateExpenses();
+};
+
+// Legacy stubs kept for backward compatibility
+window.addRouteRow = () => {};
+window.removeRouteRow = () => {};
+
 
 // Toggle extra vehicle fields
 window.toggleVehicleFields = () => {
@@ -2575,12 +2658,15 @@ window.toggleLoanForm = () => {
 
 // Calculate expenses
 window.calculateExpenses = () => {
-  // 1. Vehicle costs from table
+  // 1. Vehicle costs from new panels
+  const vehicleType = document.getElementById('travel-vehicle-type-select')?.value || '';
   let routeTotal = 0;
-  document.querySelectorAll('.travel-route-cost').forEach(input => {
-    routeTotal += parseFloat(input.value) || 0;
-  });
-  
+  if (vehicleType === 'gov_car' || vehicleType === 'personal_car') {
+    routeTotal = parseFloat(document.getElementById('veh-dist-total')?.value) || 0;
+  } else if (vehicleType === 'bus' || vehicleType === 'train' || vehicleType === 'plane') {
+    routeTotal = parseFloat(document.getElementById('veh-ticket-total')?.value) || 0;
+  }
+
   // 2. Allowance
   const rateAllow = parseFloat(document.getElementById('travel-rate-allowance').value) || 0;
   const daysAllow = parseFloat(document.getElementById('travel-days-allowance').value) || 0;
@@ -2701,14 +2787,21 @@ async function initTravelPage() {
   const accList = document.getElementById('travel-accompanied-list');
   if (accList) accList.innerHTML = '';
   
-  const routesBody = document.getElementById('travel-routes-tbody');
-  if (routesBody) routesBody.innerHTML = '';
+  // Reset vehicle panels
+  const vehicleSelect = document.getElementById('travel-vehicle-type-select');
+  if (vehicleSelect) vehicleSelect.value = '';
+  const panelDist   = document.getElementById('vehicle-panel-distance');
+  const panelTicket = document.getElementById('vehicle-panel-ticket');
+  const panelHolder = document.getElementById('vehicle-panel-placeholder');
+  if (panelDist)   panelDist.style.display   = 'none';
+  if (panelTicket) panelTicket.style.display = 'none';
+  if (panelHolder) panelHolder.style.display = 'block';
+  const ticketLegs = document.getElementById('vehicle-ticket-legs');
+  if (ticketLegs)  ticketLegs.innerHTML = '';
+  ticketLegCounter = 0;
   
   // Reset tabs
   switchTravelTab('travel-tab-memo');
-  
-  // Add initial route row
-  addRouteRow();
   
   await loadTravelHistory();
 }
@@ -2834,21 +2927,39 @@ async function handleTravelSubmit(e) {
     }
   });
 
+  // Collect vehicle transport data from new panels
+  const vehicleTypeVal = document.getElementById('travel-vehicle-type-select')?.value || '';
+  const vehicleData = { type: vehicleTypeVal, routeTotal: 0 };
   const routes = [];
-  document.querySelectorAll('#travel-routes-tbody tr').forEach(row => {
-    const fromInput = row.querySelector('.route-from');
-    const toInput = row.querySelector('.route-to');
-    const vehicleInput = row.querySelector('.route-vehicle');
-    const costInput = row.querySelector('.route-cost');
-    if (fromInput && fromInput.value.trim()) {
-      routes.push({
-        from: fromInput.value.trim(),
-        to: toInput ? toInput.value.trim() : '',
-        vehicle: vehicleInput ? vehicleInput.value : '',
-        cost: costInput ? parseFloat(costInput.value) || 0 : 0
+
+  if (vehicleTypeVal === 'gov_car' || vehicleTypeVal === 'personal_car') {
+    const km = parseFloat(document.getElementById('veh-dist-km')?.value) || 0;
+    const roundtrip = document.getElementById('veh-dist-roundtrip')?.checked;
+    const total = km * 4 * (roundtrip ? 2 : 1);
+    vehicleData.from = document.getElementById('veh-dist-from')?.value || '';
+    vehicleData.to = document.getElementById('veh-dist-to')?.value || '';
+    vehicleData.km = km;
+    vehicleData.roundtrip = roundtrip;
+    vehicleData.total = total;
+    vehicleData.routeTotal = total;
+    routes.push({ from: vehicleData.from, to: vehicleData.to, vehicle: vehicleTypeVal, cost: total });
+  } else if (vehicleTypeVal === 'bus' || vehicleTypeVal === 'train' || vehicleTypeVal === 'plane') {
+    const legs = [];
+    document.querySelectorAll('#vehicle-ticket-legs > div').forEach(legEl => {
+      legs.push({
+        from: legEl.querySelector('.ticket-leg-from')?.value || '',
+        to: legEl.querySelector('.ticket-leg-to')?.value || '',
+        departDatetime: legEl.querySelector('.ticket-leg-depart')?.value || '',
+        returnDatetime: legEl.querySelector('.ticket-leg-return')?.value || '',
+        priceGo: parseFloat(legEl.querySelector('.ticket-leg-price-go')?.value) || 0,
+        priceBack: parseFloat(legEl.querySelector('.ticket-leg-price-back')?.value) || 0
       });
-    }
-  });
+    });
+    vehicleData.legs = legs;
+    vehicleData.routeTotal = parseFloat(document.getElementById('veh-ticket-total')?.value) || 0;
+    vehicleData.total = vehicleData.routeTotal;
+    legs.forEach(l => routes.push({ from: l.from, to: l.to, vehicle: vehicleTypeVal, cost: l.priceGo + l.priceBack }));
+  }
 
   const detailsObj = {
     docDate: document.getElementById('travel-doc-date')?.value || '',
@@ -2856,17 +2967,18 @@ async function handleTravelSubmit(e) {
     department: document.getElementById('travel-department')?.value || '',
     travelers,
     routes,
+    vehicleData,
     allowance: {
       days: parseFloat(document.getElementById('travel-days-allowance')?.value) || 0,
       rate: parseFloat(document.getElementById('travel-rate-allowance')?.value) || 0,
-      total: parseFloat(document.getElementById('travel-total-allowance')?.value) || 0
+      total: parseFloat(document.getElementById('travel-total-allowance-txt')?.textContent?.replace(/,/g,'')) || 0
     },
     rent: {
       days: parseFloat(document.getElementById('travel-days-rent')?.value) || 0,
       rate: parseFloat(document.getElementById('travel-rate-rent')?.value) || 0,
-      total: parseFloat(document.getElementById('travel-total-rent')?.value) || 0
+      total: parseFloat(document.getElementById('travel-total-rent-txt')?.textContent?.replace(/,/g,'')) || 0
     },
-    hasLoan: document.getElementById('chk-travel-loan')?.checked || false,
+    hasLoan: document.getElementById('travel-has-loan')?.checked || false,
     loan: {
       docNo: document.getElementById('travel-loan-doc-no')?.value || '',
       loanAmount: parseFloat(document.getElementById('travel-loan-amount')?.value) || 0,

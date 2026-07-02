@@ -1106,27 +1106,68 @@
 
                 <!-- Expense Table Section 1: Vehicles -->
                 <div style="border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; margin-bottom:20px;">
-                  <div style="background:#e2e8f0; padding:10px 16px; display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-weight:600; color:#1e293b; font-size:0.9rem;">1. ค่าพาหนะในการเดินทาง (รถไฟ รถประจำทาง เครื่องบิน รถรับจ้าง ฯลฯ)</span>
-                    <button type="button" class="btn btn-primary btn-xs" onclick="addRouteRow()">➕ เพิ่มเส้นทาง</button>
+                  <div style="background:#e2e8f0; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <span style="font-weight:600; color:#1e293b; font-size:0.9rem;">1. ค่าพาหนะในการเดินทาง</span>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <label style="font-size:0.82rem; font-weight:600; color:#475569;">ประเภทพาหนะ:</label>
+                      <select id="travel-vehicle-type-select" class="form-input" style="width:auto; padding:6px 12px; font-size:0.85rem;" onchange="onVehicleTypeChange()">
+                        <option value="">-- เลือกพาหนะ --</option>
+                        <option value="gov_car">🚌 รถวิทยาลัย</option>
+                        <option value="personal_car">🚗 รถส่วนตัว</option>
+                        <option value="bus">🚌 รถโดยสารประจำทาง</option>
+                        <option value="train">🚂 รถไฟ</option>
+                        <option value="plane">✈️ เครื่องบิน</option>
+                      </select>
+                    </div>
                   </div>
-                  <div class="table-container">
-                    <table class="custom-table travel-dynamic-table" style="margin:0; font-size:0.85rem;">
-                      <thead>
-                        <tr>
-                          <th>จาก (ต้นทาง)</th>
-                          <th>ถึง (ปลายทาง)</th>
-                          <th style="width:100px;">น้ำหนัก (กก.)</th>
-                          <th style="width:100px;">ปริมาตร (ลบ.ม.)</th>
-                          <th style="width:140px;">จำนวนเงิน (บาท)</th>
-                          <th>หมายเหตุ</th>
-                          <th style="width:60px;"></th>
-                        </tr>
-                      </thead>
-                      <tbody id="travel-routes-tbody">
-                        <!-- Route rows injected here -->
-                      </tbody>
-                    </table>
+
+                  <!-- Panel: gov_car / personal_car -->
+                  <div id="vehicle-panel-distance" style="display:none; padding:16px;">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:16px; align-items:end;">
+                      <div>
+                        <label style="font-size:0.8rem; font-weight:600; color:#475569;">ต้นทาง</label>
+                        <input type="text" id="veh-dist-from" class="form-input" placeholder="เช่น น่าน">
+                      </div>
+                      <div>
+                        <label style="font-size:0.8rem; font-weight:600; color:#475569;">ปลายทาง</label>
+                        <input type="text" id="veh-dist-to" class="form-input" placeholder="เช่น เชียงใหม่">
+                      </div>
+                      <div>
+                        <label style="font-size:0.8rem; font-weight:600; color:#475569;">ระยะทางรวม (กิโลเมตร)</label>
+                        <input type="number" id="veh-dist-km" class="form-input" placeholder="0" min="0" oninput="calcDistanceCost()">
+                      </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:12px; align-items:center;">
+                      <div style="font-size:0.82rem; color:#64748b;">
+                        อัตรา: <strong>4 บาท/กิโลเมตร</strong> (ไป-กลับ คิดระยะทาง × 2)
+                        <div style="margin-top:4px;">
+                          <label><input type="checkbox" id="veh-dist-roundtrip" checked onchange="calcDistanceCost()"> คิดไป-กลับ</label>
+                        </div>
+                      </div>
+                      <div style="text-align:right; font-weight:700; color:#0f766e; font-size:1rem;">
+                        ค่าพาหนะรวม: <span id="veh-dist-total-txt">0.00</span> บาท
+                        <input type="hidden" id="veh-dist-total" value="0">
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Panel: bus / train / plane (multi-leg) -->
+                  <div id="vehicle-panel-ticket" style="display:none; padding:16px;">
+                    <div id="vehicle-ticket-legs">
+                      <!-- legs injected here -->
+                    </div>
+                    <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center;">
+                      <button type="button" class="btn btn-primary btn-sm" onclick="addTicketLeg()">➕ เพิ่มเส้นทาง</button>
+                      <div style="font-weight:700; color:#0f766e; font-size:1rem;">
+                        ค่าพาหนะรวม: <span id="veh-ticket-total-txt">0.00</span> บาท
+                        <input type="hidden" id="veh-ticket-total" value="0">
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Placeholder when no vehicle selected -->
+                  <div id="vehicle-panel-placeholder" style="padding:20px; text-align:center; color:#94a3b8; font-size:0.9rem;">
+                    ← กรุณาเลือกประเภทพาหนะก่อน
                   </div>
                 </div>
 
