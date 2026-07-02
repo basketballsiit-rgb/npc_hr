@@ -102,6 +102,21 @@ CREATE TABLE IF NOT EXISTS travel_reports (
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 7.5 Table for Travel clearances (เคลียร์เงินยืมไปราชการ)
+CREATE TABLE IF NOT EXISTS travel_clearances (
+    clearanceId VARCHAR(50) PRIMARY KEY,
+    reportId VARCHAR(50) NOT NULL,
+    travelId VARCHAR(50) NOT NULL,
+    userId VARCHAR(50) NOT NULL,
+    fullName VARCHAR(100) NOT NULL,
+    totalSpent DECIMAL(10, 2) DEFAULT 0.00,
+    totalBorrowed DECIMAL(10, 2) DEFAULT 0.00,
+    status VARCHAR(50) DEFAULT 'รอการตรวจสอบ',
+    details TEXT NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
 -- 8. Table for Training Records (บันทึกการอบรม)
 CREATE TABLE IF NOT EXISTS training_data (
     trainingId VARCHAR(50) PRIMARY KEY,

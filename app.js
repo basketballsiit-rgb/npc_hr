@@ -2786,6 +2786,58 @@ async function handleTravelSubmit(e) {
     return;
   }
   
+  const travelers = [];
+  document.querySelectorAll('.travel-traveler-row').forEach(row => {
+    const nameInput = row.querySelector('.traveler-name');
+    const posInput = row.querySelector('.traveler-position');
+    if (nameInput && nameInput.value.trim()) {
+      travelers.push({
+        name: nameInput.value.trim(),
+        position: posInput ? posInput.value.trim() : ''
+      });
+    }
+  });
+
+  const routes = [];
+  document.querySelectorAll('#travel-routes-tbody tr').forEach(row => {
+    const fromInput = row.querySelector('.route-from');
+    const toInput = row.querySelector('.route-to');
+    const vehicleInput = row.querySelector('.route-vehicle');
+    const costInput = row.querySelector('.route-cost');
+    if (fromInput && fromInput.value.trim()) {
+      routes.push({
+        from: fromInput.value.trim(),
+        to: toInput ? toInput.value.trim() : '',
+        vehicle: vehicleInput ? vehicleInput.value : '',
+        cost: costInput ? parseFloat(costInput.value) || 0 : 0
+      });
+    }
+  });
+
+  const detailsObj = {
+    docDate: document.getElementById('travel-doc-date')?.value || '',
+    requesterName: document.getElementById('travel-requester-name')?.value || '',
+    department: document.getElementById('travel-department')?.value || '',
+    travelers,
+    routes,
+    allowance: {
+      days: parseFloat(document.getElementById('travel-days-allowance')?.value) || 0,
+      rate: parseFloat(document.getElementById('travel-rate-allowance')?.value) || 0,
+      total: parseFloat(document.getElementById('travel-total-allowance')?.value) || 0
+    },
+    rent: {
+      days: parseFloat(document.getElementById('travel-days-rent')?.value) || 0,
+      rate: parseFloat(document.getElementById('travel-rate-rent')?.value) || 0,
+      total: parseFloat(document.getElementById('travel-total-rent')?.value) || 0
+    },
+    hasLoan: document.getElementById('chk-travel-loan')?.checked || false,
+    loan: {
+      docNo: document.getElementById('travel-loan-doc-no')?.value || '',
+      loanAmount: parseFloat(document.getElementById('travel-loan-amount')?.value) || 0,
+      thaiBathText: document.getElementById('travel-loan-thai-bath')?.value || ''
+    }
+  };
+  
   showLoading('กำลังยื่นคำขอไปราชการ...');
   try {
     const res = await fetch(`${API_BASE_URL}/api/travel`, {
@@ -2800,7 +2852,8 @@ async function handleTravelSubmit(e) {
         endDate,
         totalDays,
         budget,
-        vehicleType
+        vehicleType,
+        details: JSON.stringify(detailsObj)
       })
     });
     
@@ -2946,25 +2999,378 @@ window.removeReportPhoto = (index) => {
   });
 };
 
+let reportsHistoryList = [];
+let clearancesList = [];
+
+window.toggleClearanceSubform = (subformId, isChecked) => {
+  const el = document.getElementById(subformId);
+  if (!el) return;
+  if (isChecked) {
+    el.classList.remove('hidden');
+  } else {
+    el.classList.add('hidden');
+  }
+  recalculateClearanceTotals();
+};
+
+window.hideClearanceModal = () => {
+  document.getElementById('clearance-modal').classList.add('hidden');
+};
+
+window.openClearanceModal = (reportId, travelId, budget) => {
+  document.getElementById('clearance-report-id').value = reportId;
+  document.getElementById('clearance-travel-id').value = travelId;
+  
+  // Reset checks & inputs
+  document.getElementById('chk-doc-replace').checked = false;
+  document.getElementById('chk-doc-lodging').checked = false;
+  document.getElementById('chk-doc-fuel').checked = false;
+  
+  document.getElementById('subform-replace').classList.add('hidden');
+  document.getElementById('subform-lodging').classList.add('hidden');
+  document.getElementById('subform-fuel').classList.add('hidden');
+  
+  document.querySelectorAll('.replace-amount').forEach(inp => inp.value = 0);
+  document.querySelectorAll('.replace-desc').forEach(inp => inp.value = '');
+  
+  document.getElementById('clearance-lodging-province').value = '';
+  document.getElementById('clearance-lodging-nights').value = 0;
+  document.getElementById('clearance-lodging-rate').value = 0;
+  
+  document.getElementById('clearance-fuel-plate').value = '';
+  document.getElementById('clearance-fuel-km').value = 0;
+
+  document.getElementById('clearance-borrowed-amt').textContent = budget.toLocaleString('en-US', { minimumFractionDigits: 2 });
+  document.getElementById('clearance-total-borrowed').textContent = budget.toFixed(2);
+  
+  // Find matching report details
+  const report = reportsHistoryList.find(r => r.reportId === reportId);
+  let contractNo = 'บช. / [เว้นว่าง]';
+  let travelers = [];
+  
+  if (report && report.travelRequestDetails) {
+    try {
+      const reqDetails = JSON.parse(report.travelRequestDetails);
+      if (reqDetails.loan && reqDetails.loan.docNo) {
+        contractNo = reqDetails.loan.docNo;
+      }
+      if (reqDetails.travelers && reqDetails.travelers.length > 0) {
+        travelers = reqDetails.travelers;
+      }
+    } catch(e) {}
+  }
+  
+  document.getElementById('clearance-contract-no').textContent = contractNo;
+
+  // Rebuild travelers table
+  const tbody = document.getElementById('clearance-travelers-table-body');
+  tbody.innerHTML = '';
+  
+  // 1. Add main reporter
+  const reporterName = report ? report.fullName : currentUser.fullName;
+  addTravelerClearanceRow(reporterName, 'ผู้รายงาน');
+  
+  // 2. Add accompanying travelers
+  travelers.forEach(t => {
+    addTravelerClearanceRow(t.name, t.position);
+  });
+  
+  recalculateClearanceTotals();
+  document.getElementById('clearance-modal').classList.remove('hidden');
+};
+
+function addTravelerClearanceRow(name, position) {
+  const tbody = document.getElementById('clearance-travelers-table-body');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>
+      <div style="font-weight:600; color:var(--neutral-800);">${name}</div>
+      <div style="font-size:10px; color:var(--neutral-500);">${position}</div>
+      <input type="hidden" class="cl-trav-name" value="${name}">
+      <input type="hidden" class="cl-trav-pos" value="${position}">
+    </td>
+    <td><input type="number" class="form-input cl-trav-allowance" value="0" style="padding:4px; font-size:12px; width:80px;" onchange="recalculateClearanceTotals()"></td>
+    <td><input type="number" class="form-input cl-trav-rent" value="0" style="padding:4px; font-size:12px; width:80px;" onchange="recalculateClearanceTotals()"></td>
+    <td><input type="number" class="form-input cl-trav-vehicle" value="0" style="padding:4px; font-size:12px; width:80px;" onchange="recalculateClearanceTotals()"></td>
+    <td><input type="number" class="form-input cl-trav-other" value="0" style="padding:4px; font-size:12px; width:80px;" onchange="recalculateClearanceTotals()"></td>
+    <td style="text-align:right; font-weight:700; color:var(--neutral-800); padding-right:8px;"><span class="cl-trav-row-total">0.00</span></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+window.recalculateClearanceTotals = () => {
+  let grandSpent = 0;
+  
+  // 1. Calculate traveler table rows
+  document.querySelectorAll('#clearance-travelers-table-body tr').forEach(tr => {
+    const allowance = parseFloat(tr.querySelector('.cl-trav-allowance').value) || 0;
+    const rent = parseFloat(tr.querySelector('.cl-trav-rent').value) || 0;
+    const vehicle = parseFloat(tr.querySelector('.cl-trav-vehicle').value) || 0;
+    const other = parseFloat(tr.querySelector('.cl-trav-other').value) || 0;
+    
+    const rowTotal = allowance + rent + vehicle + other;
+    tr.querySelector('.cl-trav-row-total').textContent = rowTotal.toLocaleString('en-US', { minimumFractionDigits: 2 });
+    grandSpent += rowTotal;
+  });
+  
+  // 2. Add replace subform if checked
+  if (document.getElementById('chk-doc-replace').checked) {
+    document.querySelectorAll('.replace-amount').forEach(inp => {
+      grandSpent += parseFloat(inp.value) || 0;
+    });
+  }
+  
+  // 3. Add lodging subform if checked
+  if (document.getElementById('chk-doc-lodging').checked) {
+    const nights = parseFloat(document.getElementById('clearance-lodging-nights').value) || 0;
+    const rate = parseFloat(document.getElementById('clearance-lodging-rate').value) || 0;
+    grandSpent += (nights * rate);
+  }
+  
+  // 4. Add fuel subform if checked
+  if (document.getElementById('chk-doc-fuel').checked) {
+    const km = parseFloat(document.getElementById('clearance-fuel-km').value) || 0;
+    grandSpent += (km * 4);
+  }
+  
+  document.getElementById('clearance-total-spent').textContent = grandSpent.toFixed(2);
+  
+  const budget = parseFloat(document.getElementById('clearance-total-borrowed').textContent) || 0;
+  const diff = grandSpent - budget;
+  const diffText = document.getElementById('clearance-diff-text');
+  
+  if (diff > 0) {
+    diffText.style.color = '#ef4444';
+    diffText.textContent = `จ่ายสมทบเพิ่ม: ${diff.toLocaleString('en-US', { minimumFractionDigits: 2 })} บาท`;
+  } else if (diff < 0) {
+    diffText.style.color = '#f59e0b';
+    diffText.textContent = `เงินเหลือส่งคืน: ${Math.abs(diff).toLocaleString('en-US', { minimumFractionDigits: 2 })} บาท`;
+  } else {
+    diffText.style.color = '#0d9488';
+    diffText.textContent = `ยอดเงินเคลียร์พอดี`;
+  }
+};
+
+window.handleClearanceSubmit = async (e) => {
+  e.preventDefault();
+  const reportId = document.getElementById('clearance-report-id').value;
+  const travelId = document.getElementById('clearance-travel-id').value;
+  
+  const totalBorrowed = parseFloat(document.getElementById('clearance-total-borrowed').textContent) || 0;
+  const totalSpent = parseFloat(document.getElementById('clearance-total-spent').textContent) || 0;
+  
+  // Gather travelers list
+  const travelers = [];
+  document.querySelectorAll('#clearance-travelers-table-body tr').forEach(tr => {
+    const name = tr.querySelector('.cl-trav-name').value;
+    const position = tr.querySelector('.cl-trav-pos').value;
+    const allowance = parseFloat(tr.querySelector('.cl-trav-allowance').value) || 0;
+    const rent = parseFloat(tr.querySelector('.cl-trav-rent').value) || 0;
+    const vehicle = parseFloat(tr.querySelector('.cl-trav-vehicle').value) || 0;
+    const other = parseFloat(tr.querySelector('.cl-trav-other').value) || 0;
+    const total = allowance + rent + vehicle + other;
+    
+    travelers.push({ name, position, allowance, rent, vehicle, other, total });
+  });
+  
+  // Gather subforms
+  const hasReplace = document.getElementById('chk-doc-replace').checked;
+  const replaceItems = [];
+  if (hasReplace) {
+    const descs = document.querySelectorAll('.replace-desc');
+    const amts = document.querySelectorAll('.replace-amount');
+    descs.forEach((dInp, idx) => {
+      const desc = dInp.value.trim();
+      const amt = parseFloat(amts[idx].value) || 0;
+      if (desc || amt > 0) {
+        replaceItems.push({ desc, amt });
+      }
+    });
+  }
+  
+  const hasLodging = document.getElementById('chk-doc-lodging').checked;
+  const lodging = {
+    province: document.getElementById('clearance-lodging-province').value.trim(),
+    nights: parseFloat(document.getElementById('clearance-lodging-nights').value) || 0,
+    rate: parseFloat(document.getElementById('clearance-lodging-rate').value) || 0,
+    total: (parseFloat(document.getElementById('clearance-lodging-nights').value) || 0) * (parseFloat(document.getElementById('clearance-lodging-rate').value) || 0)
+  };
+  
+  const hasFuel = document.getElementById('chk-doc-fuel').checked;
+  const fuel = {
+    plate: document.getElementById('clearance-fuel-plate').value.trim(),
+    km: parseFloat(document.getElementById('clearance-fuel-km').value) || 0,
+    total: (parseFloat(document.getElementById('clearance-fuel-km').value) || 0) * 4
+  };
+  
+  const details = {
+    hasReplace,
+    replaceItems,
+    hasLodging,
+    lodging,
+    hasFuel,
+    fuel,
+    travelers
+  };
+  
+  showLoading('กำลังบันทึกและยื่นเอกสารเคลียร์เงิน...');
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/travel-clearance`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        reportId,
+        travelId,
+        userId: currentUser.userId,
+        fullName: currentUser.fullName,
+        totalSpent,
+        totalBorrowed,
+        details: JSON.stringify(details)
+      })
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      Swal.fire('สำเร็จ', data.message, 'success');
+      hideClearanceModal();
+      initTravelReportPage();
+    } else {
+      showError(data.message);
+    }
+  } catch (err) {
+    showError('เกิดข้อผิดพลาด: ' + err.message);
+  }
+};
+
+window.approveClearance = async (clearanceId, status) => {
+  const confirmText = status === 'อนุมัติแล้ว' ? 'อนุมัติการเคลียร์เงินยืมรายการนี้?' : 'ปฏิเสธการเคลียร์เงินยืมรายการนี้?';
+  const result = await Swal.fire({
+    title: 'ยืนยันการดำเนินการ',
+    text: confirmText,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'ยืนยัน',
+    cancelButtonText: 'ยกเลิก'
+  });
+  
+  if (result.isConfirmed) {
+    showLoading('กำลังบันทึกข้อมูล...');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/travel-clearance/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clearanceId, status })
+      });
+      const data = await res.json();
+      if (data.success) {
+        Swal.fire('สำเร็จ', data.message, 'success');
+        initTravelReportPage();
+      } else {
+        showError(data.message);
+      }
+    } catch (err) {
+      showError('เกิดข้อผิดพลาด: ' + err.message);
+    }
+  }
+};
+
+window.printClearance = (reportId) => {
+  window.open(`print_clearance_template.html?reportId=${reportId}`, '_blank');
+};
+
 async function loadTravelReportsHistory() {
   try {
+    reportsHistoryList = [];
+    clearancesList = [];
+    
+    // Fetch clearances first
+    const clearanceUrl = currentUser.role === 'admin'
+      ? `${API_BASE_URL}/api/travel-clearance`
+      : `${API_BASE_URL}/api/travel-clearance?userId=${currentUser.userId}`;
+    const clRes = await fetch(clearanceUrl);
+    clearancesList = await clRes.json();
+    
+    const clMap = {};
+    clearancesList.forEach(cl => {
+      clMap[cl.reportId] = cl;
+    });
+
     const url = currentUser.role === 'admin'
       ? `${API_BASE_URL}/api/travel-report`
       : `${API_BASE_URL}/api/travel-report?userId=${currentUser.userId}`;
       
     const res = await fetch(url);
-    const reports = await res.json();
+    reportsHistoryList = await res.json();
     
     const tbody = document.getElementById('travel-report-table-body');
     if (!tbody) return;
     tbody.innerHTML = '';
     
-    if (reports.length === 0) {
+    if (reportsHistoryList.length === 0) {
       tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding:16px; color:var(--neutral-400);">ไม่มีประวัติรายงานราชการ</td></tr>`;
       return;
     }
     
-    reports.forEach(r => {
+    reportsHistoryList.forEach(r => {
+      let budgetActionHtml = '';
+      
+      // Check if original travel had budget > 0 (meaning loan was borrowed)
+      let reqDetails = null;
+      if (r.travelRequestDetails) {
+        try {
+          reqDetails = JSON.parse(r.travelRequestDetails);
+        } catch(e) {}
+      }
+      
+      const hasOriginalLoan = parseFloat(r.budget) > 0 || (reqDetails && reqDetails.hasLoan);
+      
+      if (hasOriginalLoan) {
+        const originalBudget = parseFloat(r.budget) || (reqDetails && reqDetails.loan ? parseFloat(reqDetails.loan.loanAmount) : 0);
+        const cl = clMap[r.reportId];
+        
+        if (!cl) {
+          budgetActionHtml = `
+            <div style="margin-top:6px;">
+              <button type="button" class="btn btn-primary btn-xs" onclick="openClearanceModal('${r.reportId}', '${r.travelId}', ${originalBudget})" style="background:#0d9488; border-color:#0d9488; display:inline-flex; align-items:center; gap:4px; padding:3px 8px;">💰 เคลียร์เงินยืม</button>
+            </div>
+          `;
+        } else if (cl.status === 'รอการตรวจสอบ') {
+          if (currentUser.role === 'admin') {
+            budgetActionHtml = `
+              <div style="margin-top:6px; display:flex; flex-direction:column; gap:4px; align-items:center;">
+                <span class="badge" style="background:#f59e0b; color:white; font-size:10px; padding:2px 6px; border-radius:4px;">⏳ รอตรวจเคลียร์เงิน</span>
+                <div style="display:flex; gap:4px;">
+                  <button type="button" class="btn btn-primary btn-xs" onclick="approveClearance('${cl.clearanceId}', 'อนุมัติแล้ว')" style="background:#10b981; border-color:#10b981; padding:2px 4px; font-size:10px;">อนุมัติ</button>
+                  <button type="button" class="btn btn-danger btn-xs" onclick="approveClearance('${cl.clearanceId}', 'ปฏิเสธ')" style="background:#ef4444; border-color:#ef4444; color:white; padding:2px 4px; font-size:10px;">ปฏิเสธ</button>
+                </div>
+                <button type="button" class="btn btn-outline btn-xs" onclick="printClearance('${r.reportId}')" style="padding:2px 4px; font-size:10px;">🖨️ ใบเคลียร์เงิน</button>
+              </div>
+            `;
+          } else {
+            budgetActionHtml = `
+              <div style="margin-top:6px; display:flex; flex-direction:column; gap:4px; align-items:center;">
+                <span class="badge" style="background:#f59e0b; color:white; font-size:10px; padding:2px 6px; border-radius:4px;">⏳ รอตรวจเคลียร์เงิน</span>
+                <button type="button" class="btn btn-outline btn-xs" onclick="printClearance('${r.reportId}')" style="padding:3px 6px; font-size:10px;">🖨️ ใบเคลียร์เงิน</button>
+              </div>
+            `;
+          }
+        } else if (cl.status === 'อนุมัติแล้ว') {
+          budgetActionHtml = `
+            <div style="margin-top:6px; display:flex; flex-direction:column; gap:4px; align-items:center;">
+              <span class="badge" style="background:#10b981; color:white; font-size:10px; padding:2px 6px; border-radius:4px;">✅ เคลียร์เงินสำเร็จ</span>
+              <button type="button" class="btn btn-outline btn-xs" onclick="printClearance('${r.reportId}')" style="padding:3px 6px; font-size:10px;">🖨️ ใบเคลียร์เงิน</button>
+            </div>
+          `;
+        } else if (cl.status === 'ปฏิเสธ') {
+          budgetActionHtml = `
+            <div style="margin-top:6px; display:flex; flex-direction:column; gap:4px; align-items:center;">
+              <span class="badge" style="background:#ef4444; color:white; font-size:10px; padding:2px 6px; border-radius:4px;">❌ ปฏิเสธการเคลียร์</span>
+              <button type="button" class="btn btn-primary btn-xs" onclick="openClearanceModal('${r.reportId}', '${r.travelId}', ${originalBudget})" style="background:#0d9488; border-color:#0d9488; display:inline-flex; align-items:center; gap:4px; padding:3px 8px;">💰 เคลียร์ใหม่</button>
+            </div>
+          `;
+        }
+      }
+
       tbody.innerHTML += `
         <tr>
           <td>
@@ -2982,7 +3388,10 @@ async function loadTravelReportsHistory() {
             <div style="font-size:11px; color:var(--neutral-500);">${formatDate(r.createdAt)}</div>
           </td>
           <td style="text-align:center;">
-            <button type="button" class="btn btn-outline btn-xs" onclick="printTravelReport('${r.reportId}')" style="display:inline-flex; align-items:center; gap:4px; padding:4px 8px;">🖨️ พิมพ์รายงาน</button>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+              <button type="button" class="btn btn-outline btn-xs" onclick="printTravelReport('${r.reportId}')" style="display:inline-flex; align-items:center; gap:4px; padding:4px 8px;">🖨️ พิมพ์รายงาน</button>
+              ${budgetActionHtml}
+            </div>
           </td>
         </tr>
       `;

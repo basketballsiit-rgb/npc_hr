@@ -1633,6 +1633,143 @@
     </div>
   </div>
 
+  <!-- Travel Loan Clearance Modal -->
+  <div id="clearance-modal" class="login-modal-overlay hidden" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+    <div class="glass-card" style="width: 90%; max-width: 900px; max-height: 90vh; overflow-y: auto; background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border-radius: 16px; padding: 24px; position: relative;">
+      <button onclick="hideClearanceModal()" style="position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--neutral-500); hover:color: var(--neutral-800);">&times;</button>
+      
+      <h3 style="font-size: 1.3rem; font-weight: 700; color: #0891b2; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+        <span>💰 เอกสารเคลียร์เงินยืมไปราชการ</span>
+      </h3>
+      <p style="font-size: 0.85rem; color: var(--neutral-500); margin-bottom: 20px;">สัญญายืมเงินเดิมเลขที่: <span id="clearance-contract-no" class="bold">-</span> | จำนวนเงินยืมตามสัญญา: <span id="clearance-borrowed-amt" class="bold">-</span> บาท</p>
+      
+      <form id="clearance-form" onsubmit="handleClearanceSubmit(event)" style="display: flex; flex-direction: column; gap: 20px;">
+        <input type="hidden" id="clearance-report-id">
+        <input type="hidden" id="clearance-travel-id">
+        
+        <!-- Checklist of proof documents to check/toggle -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px;">
+          <span style="font-weight: 700; color: #334155; font-size: 0.95rem; display: block; margin-bottom: 12px;">เลือกเอกสารหลักฐานเพิ่มเติมที่ต้องการจัดทำ</span>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
+              <input type="checkbox" id="chk-doc-replace" onchange="toggleClearanceSubform('subform-replace', this.checked)">
+              <span>ใบรับรองแทนใบเสร็จ (บก. 42)</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
+              <input type="checkbox" id="chk-doc-lodging" onchange="toggleClearanceSubform('subform-lodging', this.checked)">
+              <span>ใบรับรองค่าที่พักเหมาจ่าย</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
+              <input type="checkbox" id="chk-doc-fuel" onchange="toggleClearanceSubform('subform-fuel', this.checked)">
+              <span>ใบแนบค่าชดเชยน้ำมัน</span>
+            </label>
+          </div>
+          <span style="display: block; font-size: 11px; color: #0d9488; margin-top: 8px;">* หมายเหตุ: ระบบจะจัดทำ <strong>"หลักฐานการจ่ายเงินเดินทางไปราชการ (บก. 111)"</strong> ให้เป็นใบหน้าสรุปทุกครั้งโดยอัตโนมัติ</span>
+        </div>
+
+        <!-- Subform 1: ใบรับรองแทนใบเสร็จ (บก. 42) -->
+        <div id="subform-replace" class="hidden" style="border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; background: #fff;">
+          <h4 style="font-weight: 700; color: #0891b2; font-size: 0.95rem; margin-bottom: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom:6px;">📄 รายละเอียดใบรับรองแทนใบเสร็จ (บก. 42)</h4>
+          <div style="display: flex; flex-direction: column; gap: 8px;" id="replace-rows-container">
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+              <input type="text" class="form-input replace-desc" placeholder="เช่น ค่ารถโดยสารประจำทางจากอำเภอเมืองน่าน ไปอำเภอเวียงสา" value="">
+              <input type="number" class="form-input replace-amount" placeholder="จำนวนเงิน" value="0" onchange="recalculateClearanceTotals()">
+            </div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+              <input type="text" class="form-input replace-desc" placeholder="เช่น ค่ารถจักรยานยนต์รับจ้างจากบ้านพัก ไปสถานีขนส่งผู้โดยสาร" value="">
+              <input type="number" class="form-input replace-amount" placeholder="จำนวนเงิน" value="0" onchange="recalculateClearanceTotals()">
+            </div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+              <input type="text" class="form-input replace-desc" placeholder="รายละเอียดอื่นๆ..." value="">
+              <input type="number" class="form-input replace-amount" placeholder="จำนวนเงิน" value="0" onchange="recalculateClearanceTotals()">
+            </div>
+          </div>
+        </div>
+
+        <!-- Subform 2: ใบรับรองค่าที่พักเหมาจ่าย -->
+        <div id="subform-lodging" class="hidden" style="border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; background: #fff;">
+          <h4 style="font-weight: 700; color: #0891b2; font-size: 0.95rem; margin-bottom: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom:6px;">🏨 ใบรับรองค่าที่พักเหมาจ่าย</h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">ไปปฏิบัติราชการที่จังหวัด</label>
+              <input type="text" id="clearance-lodging-province" class="form-input" placeholder="ระบุชื่อจังหวัด...">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">จำนวนคืนที่พักแรม</label>
+              <input type="number" id="clearance-lodging-nights" class="form-input" value="0" min="0" onchange="recalculateClearanceTotals()">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">อัตราเหมาจ่ายต่อคืน (บาท)</label>
+              <input type="number" id="clearance-lodging-rate" class="form-input" value="0" min="0" onchange="recalculateClearanceTotals()">
+            </div>
+          </div>
+        </div>
+
+        <!-- Subform 3: ใบแนบค่าชดเชยน้ำมัน -->
+        <div id="subform-fuel" class="hidden" style="border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; background: #fff;">
+          <h4 style="font-weight: 700; color: #0891b2; font-size: 0.95rem; margin-bottom: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom:6px;">⛽ ใบแนบค่าชดเชยน้ำมัน</h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">หมายเลขทะเบียนรถ</label>
+              <input type="text" id="clearance-fuel-plate" class="form-input" placeholder="เช่น กข-1234 น่าน...">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">ระยะทางไป-กลับรวม (กิโลเมตร)</label>
+              <input type="number" id="clearance-fuel-km" class="form-input" value="0" min="0" onchange="recalculateClearanceTotals()">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">อัตราจ่ายชดเชยน้ำมัน</label>
+              <input type="text" class="form-input" value="กิโลเมตรละ 4 บาท" readonly style="background:#f1f5f9;">
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary Form: หลักฐานการจ่ายเงินเดินทางไปราชการ (บก. 111) -->
+        <div style="border: 1px solid #cbd5e1; padding: 16px; border-radius: 8px; background: #f0fdfa;">
+          <h4 style="font-weight: 700; color: #0f766e; font-size: 0.95rem; margin-bottom: 12px; border-bottom: 1px solid #ccfbf1; padding-bottom:6px;">📊 รายการชำระเงินจริงเพื่อทำใบสรุป บก. 111 (แยกตามรายบุคคล)</h4>
+          <div class="table-container" style="margin-bottom: 15px;">
+            <table class="custom-table" style="font-size: 0.85rem; width:100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background: #e6fffa;">
+                  <th>ชื่อ-นามสกุล</th>
+                  <th>เบี้ยเลี้ยง (บาท)</th>
+                  <th>ค่าที่พัก (บาท)</th>
+                  <th>พาหนะ (บาท)</th>
+                  <th>อื่นๆ (บาท)</th>
+                  <th style="text-align:right;">รวมจริง (บาท)</th>
+                </tr>
+              </thead>
+              <tbody id="clearance-travelers-table-body">
+                <!-- Traveler rows dynamically injected here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Bottom Total Clearance Status Card -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; background: #f8fafc; border: 1px solid #cbd5e1; padding: 16px; border-radius: 8px;">
+          <div>
+            <div style="font-size: 0.8rem; color: var(--neutral-500);">ยอดรวมสัญญายืมเงิน:</div>
+            <div style="font-size: 1.2rem; font-weight: 700; color: var(--neutral-800);"><span id="clearance-total-borrowed">0.00</span> บาท</div>
+          </div>
+          <div>
+            <div style="font-size: 0.8rem; color: var(--neutral-500);">ค่าใช้จ่ายรวมจริงทั้งหมด:</div>
+            <div style="font-size: 1.2rem; font-weight: 700; color: #0f766e;"><span id="clearance-total-spent">0.00</span> บาท</div>
+          </div>
+          <div>
+            <div style="font-size: 0.8rem; color: var(--neutral-500);">สถานะเคลียร์ยอดเงิน:</div>
+            <div id="clearance-diff-text" style="font-size: 1.15rem; font-weight: 700; color: #0891b2;">ยอดเงินพอดี</div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid #cbd5e1; padding-top: 16px;">
+          <button type="button" class="btn btn-outline" onclick="hideClearanceModal()">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary" style="background:#0891b2; border-color:#0891b2;">💾 บันทึกและยื่นเอกสารเคลียร์เงิน</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Load Custom JS logic -->
   <script src="app.js?v=6.0"></script>
 </body>

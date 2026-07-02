@@ -1597,6 +1597,64 @@ app.get('/api/travel-report', async (req, res) => {
   }
 });
 
+// --- 2.5 Travel Clearance APIs ---
+app.post('/api/travel-clearance', async (req, res) => {
+  const { reportId, travelId, userId, fullName, totalSpent, totalBorrowed, details } = req.body;
+  if (!reportId || !travelId || !userId || !fullName || details === undefined) {
+    return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
+  }
+
+  const clearanceId = require('crypto').randomUUID();
+  try {
+    // Delete any existing clearance for this report to overwrite/update
+    await db.query('DELETE FROM travel_clearances WHERE reportId = ?', [reportId]);
+
+    await db.query(
+      `INSERT INTO travel_clearances (clearanceId, reportId, travelId, userId, fullName, totalSpent, totalBorrowed, details, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'รอการตรวจสอบ')`,
+      [clearanceId, reportId, travelId, userId, fullName, totalSpent || 0.00, totalBorrowed || 0.00, details]
+    );
+    res.json({ success: true, message: 'ส่งเอกสารเคลียร์เงินยืมสำเร็จ' });
+  } catch (err) {
+    console.error('Error submitting travel clearance:', err.message);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาด: ' + err.message });
+  }
+});
+
+app.get('/api/travel-clearance', async (req, res) => {
+  const { userId, reportId, clearanceId } = req.query;
+  try {
+    let rows;
+    if (clearanceId) {
+      [rows] = await db.query('SELECT * FROM travel_clearances WHERE clearanceId = ?', [clearanceId]);
+    } else if (reportId) {
+      [rows] = await db.query('SELECT * FROM travel_clearances WHERE reportId = ?', [reportId]);
+    } else if (userId) {
+      [rows] = await db.query('SELECT * FROM travel_clearances WHERE userId = ? ORDER BY createdAt DESC', [userId]);
+    } else {
+      [rows] = await db.query('SELECT * FROM travel_clearances ORDER BY createdAt DESC');
+    }
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching travel clearances:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/travel-clearance/approve', async (req, res) => {
+  const { clearanceId, status } = req.body; // status: 'อนุมัติแล้ว', 'ปฏิเสธ'
+  if (!clearanceId || !status) {
+    return res.status(400).json({ success: false, message: 'ข้อมูลไม่ครบถ้วน' });
+  }
+  try {
+    await db.query('UPDATE travel_clearances SET status = ? WHERE clearanceId = ?', [status, clearanceId]);
+    res.json({ success: true, message: `ดำเนินการ '${status}' เรียบร้อย` });
+  } catch (err) {
+    console.error('Error approving travel clearance:', err.message);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาด: ' + err.message });
+  }
+});
+
 app.post('/api/training', async (req, res) => {
   const { userId, fullName, courseName, organizer, hours, location } = req.body;
   const startDate = normalizeDateToAD(req.body.startDate);

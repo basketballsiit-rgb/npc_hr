@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เอกสารเคลียร์เงินยืม - วิทยาลัยสารพัดช่างน่าน</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'TH Sarabun PSK', 'TH Sarabun New', 'Sarabun', sans-serif;
+      background: #ffffff;
+      color: #000000;
+      margin: 0;
+      padding: 0;
+      font-size: 15pt;
+      line-height: 1.25;
+    }
+    
+    .a4-page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      padding: 15mm 15mm 10mm 20mm;
+      box-sizing: border-box;
+      position: relative;
+      background: #ffffff;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .header-title {
+      text-align: center;
+      font-weight: bold;
+      font-size: 16pt;
+      margin-bottom: 5px;
+    }
+
+    .doc-line {
+      margin-bottom: 6px;
+      text-align: justify;
+      text-justify: inter-word;
+    }
+
+    .underline-dotted {
+      border-bottom: 1px dotted #000;
+      padding: 0 4px;
+      display: inline-block;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    .text-right {
+      text-align: right;
+    }
+
+    .bold {
+      font-weight: bold;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    table.print-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+      font-size: 13pt;
+    }
+
+    table.print-table th, table.print-table td {
+      border: 1px solid #000;
+      padding: 4px 6px;
+    }
+
+    /* Print settings */
+    @media print {
+      @page {
+        size: A4;
+        margin: 0;
+      }
+      body {
+        background: #ffffff;
+        font-family: 'TH Sarabun PSK', 'TH Sarabun New', 'Sarabun', sans-serif;
+        font-size: 15pt;
+        line-height: 1.25;
+        margin: 0;
+      }
+      .a4-page {
+        width: 100%;
+        height: auto;
+        padding: 15mm 15mm 10mm 20mm !important;
+        margin: 0;
+        box-shadow: none;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+
+    .no-print-bar {
+      background: #f1f5f9;
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #cbd5e1;
+    }
+
+    .btn-print {
+      background: #0d9488;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      font-size: 15px;
+      font-family: inherit;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .btn-print:hover {
+      background: #0f766e;
+    }
+
+    .loader {
+      text-align: center;
+      padding: 50px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="no-print-bar no-print">
+    <button class="btn-print" onclick="window.print()">🖨️ สั่งพิมพ์เอกสารเคลียร์เงิน / บันทึกเป็น PDF</button>
+  </div>
+
+  <div id="loading-spinner" class="loader">
+    กำลังโหลดข้อมูลเอกสารเคลียร์เงินยืม...
+  </div>
+
+  <div id="print-content" class="hidden">
+    
+    <!-- PAGE 1: บก. 111 (Mandatory Page) -->
+    <div class="a4-page" id="page-by111">
+      <div class="header-title" style="font-size: 18pt;">หลักฐานการจ่ายเงินค่าใช้จ่ายในการเดินทางไปราชการ</div>
+      <div class="text-center bold" style="font-size: 15pt; margin-bottom: 4px;">ชื่อส่วนราชการ วิทยาลัยสารพัดช่างน่าน จังหวัดน่าน</div>
+      <div class="text-center" style="font-size: 14pt; margin-bottom: 15px;">
+        ประกอบใบเบิกค่าใช้จ่ายในการเดินทางของ <span id="by111-reporter" class="underline-dotted" style="min-width: 180px;">........................</span> ลงวันที่ <span id="by111-doc-date" class="underline-dotted" style="min-width: 140px;">........................</span>
+      </div>
+
+      <table class="print-table" style="text-align: center;">
+        <thead>
+          <tr>
+            <th rowspan="2" style="width: 5%;">ลำดับ<br>ที่</th>
+            <th rowspan="2" style="width: 25%;">ชื่อ - สกุล</th>
+            <th rowspan="2" style="width: 15%;">ตำแหน่ง</th>
+            <th colspan="4">ค่าใช้จ่าย</th>
+            <th rowspan="2" style="width: 10%;">รวม</th>
+            <th rowspan="2" style="width: 15%;">ลายมือชื่อ<br>ผู้รับเงิน</th>
+            <th rowspan="2" style="width: 10%;">วัน เดือน ปี<br>ที่รับเงิน</th>
+            <th rowspan="2" style="width: 5%;">หมาย<br>เหตุ</th>
+          </tr>
+          <tr>
+            <th>เบี้ยเลี้ยง</th>
+            <th>ค่าที่พัก</th>
+            <th>ค่าพาหนะ</th>
+            <th>อื่นๆ</th>
+          </tr>
+        </thead>
+        <tbody id="by111-table-body">
+          <!-- Traveler rows dynamically loaded -->
+        </tbody>
+      </table>
+
+      <div class="doc-line" style="margin-top: 15px;">
+        จำนวนเงินรวมทั้งสิ้น (ตัวอักษร) <span id="by111-total-text" class="bold underline-dotted" style="min-width: 320px;">............................................................</span>
+      </div>
+
+      <div class="doc-line">
+        ตามสัญญายืมเงินเลขที่ <span id="by111-contract-no" class="underline-dotted" style="min-width: 150px;">........................</span> ลงวันที่ <span id="by111-contract-date" class="underline-dotted" style="min-width: 150px;">........................</span>
+      </div>
+
+      <table style="width: 100%; border: none; margin-top: 40px; font-size: 15pt;">
+        <tr>
+          <td style="width: 50%;"></td>
+          <td style="text-align: center; width: 50%;">
+            <div>ลงชื่อ ....................................................... ผู้จ่ายเงิน</div>
+            <div style="margin-top: 4px;">( <span id="by111-sig-name">......................................................</span> )</div>
+            <div style="margin-top: 4px;">ตำแหน่ง <span id="by111-sig-pos">......................................................</span></div>
+            <div style="margin-top: 4px;">วันที่ ........ เดือน ........................... พ.ศ. ............</div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- PAGE 2: ใบรับรองแทนใบเสร็จ บก. 42 (Optional) -->
+    <div class="a4-page page-break hidden" id="page-by42">
+      <div class="header-title" style="font-size: 18pt; margin-bottom: 15px;">ใบรับรองแทนใบเสร็จรับเงิน</div>
+      <div class="text-right" style="margin-bottom: 20px;">
+        ส่วนราชการ <span class="bold">วิทยาลัยสารพัดช่างน่าน</span>
+      </div>
+
+      <table class="print-table">
+        <thead>
+          <tr style="text-align: center;">
+            <th style="width: 15%;">วัน เดือน ปี</th>
+            <th style="width: 55%;">รายละเอียดรายจ่าย</th>
+            <th style="width: 20%;">จำนวนเงิน (บาท)</th>
+            <th style="width: 10%;">หมายเหตุ</th>
+          </tr>
+        </thead>
+        <tbody id="by42-table-body">
+          <!-- Loaded items -->
+        </tbody>
+      </table>
+
+      <div class="doc-line" style="margin-top: 15px; text-indent: 1cm;">
+        รวมเงินสะกดเป็นตัวอักษร (<span id="by42-total-text" class="bold">............................................................</span>)
+      </div>
+
+      <div class="doc-line" style="margin-top: 25px; text-indent: 1.5cm; line-height: 1.4;">
+        ข้าพเจ้า <span id="by42-user-name" class="underline-dotted" style="min-width: 180px;">........................</span> ตำแหน่ง <span id="by42-user-pos" class="underline-dotted" style="min-width: 150px;">........................</span> สังกัด <span class="bold">วิทยาลัยสารพัดช่างน่าน</span>
+        ขอรับรองว่า รายจ่ายข้างต้นนี้ไม่อาจเรียกเก็บใบเสร็จรับเงินจากผู้รับได้ และข้าพเจ้าได้จ่ายไปในงานราชการโดยแท้
+      </div>
+
+      <table style="width: 100%; border: none; margin-top: 40px; font-size: 15pt;">
+        <tr>
+          <td style="width: 50%;"></td>
+          <td style="text-align: center; width: 50%;">
+            <div>(ลงชื่อ) .......................................................</div>
+            <div style="margin-top: 4px;">( <span id="by42-sig-name">......................................................</span> )</div>
+            <div style="margin-top: 4px;">ตำแหน่ง <span id="by42-sig-pos">......................................................</span></div>
+            <div style="margin-top: 4px;">วันที่ ........ เดือน ........................... พ.ศ. ............</div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- PAGE 3: ใบรับรองค่าที่พักเหมาจ่าย (Optional) -->
+    <div class="a4-page page-break hidden" id="page-lodging">
+      <div class="header-title" style="font-size: 18pt; margin-bottom: 25px;">ใบรับรองการเบิกค่าที่พักเหมาจ่าย</div>
+      
+      <div class="text-right" style="margin-bottom: 20px;">
+        ส่วนราชการ <span class="bold">วิทยาลัยสารพัดช่างน่าน</span>
+      </div>
+
+      <div class="doc-line" style="text-indent: 1.5cm; line-height: 1.45; margin-bottom: 12px;">
+        ข้าพเจ้า <span id="lodging-user-name" class="underline-dotted" style="min-width: 180px;">........................</span> ตำแหน่ง <span id="lodging-user-pos" class="underline-dotted" style="min-width: 180px;">........................</span>
+        ได้รับอนุญาตให้ไปราชการที่จังหวัด <span id="lodging-province" class="underline-dotted" style="min-width: 150px;">........................</span>
+        ตั้งแต่วันที่ <span id="lodging-start-date" class="underline-dotted" style="min-width: 120px;">........................</span> ถึงวันที่ <span id="lodging-end-date" class="underline-dotted" style="min-width: 120px;">........................</span>
+        และข้าพเจ้าจำเป็นต้องพักแรมที่จังหวัด <span id="lodging-stay-province" class="underline-dotted" style="min-width: 120px;">........................</span>
+        รวม <span id="lodging-nights" class="underline-dotted" style="min-width: 50px; text-align: center;">....</span> คืน
+      </div>
+
+      <div class="doc-line" style="text-indent: 1.5cm; margin-bottom: 12px;">
+        จึงขอเบิกค่าที่พักแรมในลักษณะเหมาจ่าย ดังนี้
+      </div>
+
+      <div class="doc-line" style="text-indent: 2.5cm; margin-bottom: 12px;">
+        ค่าที่พักแรมรวม <span id="lodging-nights-total" class="underline-dotted" style="min-width: 50px; text-align: center;">....</span> คืน ๆ ละ <span id="lodging-rate" class="underline-dotted" style="min-width: 80px; text-align: center;">....</span> บาท รวมเป็นเงิน <span id="lodging-total" class="underline-dotted" style="min-width: 100px; text-align: center;">....</span> บาท
+        (<span id="lodging-total-text" class="bold">............................................................</span>)
+      </div>
+
+      <div class="doc-line" style="text-indent: 1.5cm; line-height: 1.45; margin-top: 25px;">
+        ข้าพเจ้า ขอรับรองว่า ข้อความดังกล่าวข้างต้นเป็นความจริงและปฏิบัติตามระเบียบของทางราชการ ตามมาตรา 17 แห่งพระราชกฤษฎีกาค่าใช้จ่ายในการเดินทางไปราชการ (ฉบับที่ 7) พ.ศ. 2548 ทุกประการ
+      </div>
+
+      <table style="width: 100%; border: none; margin-top: 50px; font-size: 15pt;">
+        <tr>
+          <td style="width: 50%;"></td>
+          <td style="text-align: center; width: 50%;">
+            <div>(ลงชื่อ) .......................................................</div>
+            <div style="margin-top: 4px;">( <span id="lodging-sig-name">......................................................</span> )</div>
+            <div style="margin-top: 4px;">วันที่ ........ เดือน ........................... พ.ศ. ............</div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- PAGE 4: ใบแนบค่าชดเชยน้ำมัน (Optional) -->
+    <div class="a4-page page-break hidden" id="page-fuel">
+      <div class="header-title" style="font-size: 18pt;">ใบแนบค่าชดเชยน้ำมัน</div>
+      <div class="text-center" style="font-size: 14pt; margin-bottom: 10px;">
+        หมายเลขทะเบียนรถยนต์/รถจักรยานยนต์ <span id="fuel-plate" class="underline-dotted" style="min-width: 180px;">........................</span>
+      </div>
+      <div class="text-right" style="margin-bottom: 15px;">
+        ส่วนราชการ <span class="bold">วิทยาลัยสารพัดช่างน่าน</span>
+      </div>
+
+      <table class="print-table">
+        <thead>
+          <tr style="text-align: center;">
+            <th style="width: 15%;">วัน,เดือน,ปี</th>
+            <th style="width: 55%;">รายละเอียดการจ่าย</th>
+            <th style="width: 20%;">จำนวนเงิน (บาท)</th>
+            <th style="width: 10%;">หมายเหตุ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td id="fuel-date" style="text-align: center;">-</td>
+            <td>
+              เดินทางออกจาก ( <span id="fuel-chk-home">&nbsp;</span> ) บ้านพัก ( <span id="fuel-chk-college">&nbsp;</span> ) วิทยาลัยสารพัดช่างน่าน อ.เมือง จ.น่าน 
+              ถึง <span id="fuel-destination" class="bold">-</span> ไปกลับ จำนวน <span id="fuel-km" class="bold">-</span> กิโลเมตร ละ 4 บาท เป็นเงิน
+            </td>
+            <td style="text-align: right; font-weight: bold;" id="fuel-total">-</td>
+            <td style="text-align: center;">ชดเชยน้ำมัน</td>
+          </tr>
+          <tr style="font-weight: bold; background: #fafafa;">
+            <td colspan="2" style="text-align: right;">รวมทั้งสิ้น</td>
+            <td style="text-align: right;" id="fuel-total-grand">-</td>
+            <td>บาท</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="doc-line" style="margin-top: 15px; text-indent: 1cm;">
+        รวมเงินสะกดเป็นตัวอักษร (<span id="fuel-total-text" class="bold">............................................................</span>)
+      </div>
+
+      <div class="doc-line" style="margin-top: 25px; text-indent: 1.5cm; line-height: 1.4;">
+        ข้าพเจ้า <span id="fuel-user-name" class="underline-dotted" style="min-width: 180px;">........................</span> ตำแหน่ง <span id="fuel-user-pos" class="underline-dotted" style="min-width: 180px;">........................</span>
+        ขอรับรองว่ารายการดังกล่าวข้างต้นนี้เป็นไปตามรายงานการเดินทางไปราชการโดยแท้
+      </div>
+
+      <table style="width: 100%; border: none; margin-top: 40px; font-size: 15pt;">
+        <tr>
+          <td style="width: 50%;"></td>
+          <td style="text-align: center; width: 50%;">
+            <div>(ลงชื่อ) .......................................................</div>
+            <div style="margin-top: 4px;">( <span id="fuel-sig-name">......................................................</span> )</div>
+            <div style="margin-top: 4px;">ตำแหน่ง <span id="fuel-sig-pos">......................................................</span></div>
+            <div style="margin-top: 4px;">วันที่ ........ เดือน ........................... พ.ศ. ............</div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+  </div>
+
+  <script>
+    const API_BASE_URL = !window.location.origin.includes('service.npc.ac.th')
+      ? `http://${window.location.hostname || 'localhost'}:5000`
+      : 'https://service.npc.ac.th/npc_eleve_backend';
+
+    function formatDateThai(dateStr) {
+      if (!dateStr) return '......';
+      const months = [
+        'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+      ];
+      try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
+      } catch (e) {
+        return dateStr;
+      }
+    }
+
+    function numToThaiBath(num) {
+      const txtNum = ['ศูนย์', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
+      const txtUnit = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
+      let number = parseFloat(num).toFixed(2);
+      let [integerPart, decimalPart] = number.split('.');
+      let bahtText = '';
+      
+      if (parseFloat(number) === 0) return 'ศูนย์บาทถ้วน';
+
+      // Integer part
+      let len = integerPart.length;
+      for (let i = 0; i < len; i++) {
+        let digit = parseInt(integerPart.charAt(i));
+        let pos = len - i - 1;
+        if (digit !== 0) {
+          if (pos === 1 && digit === 2) bahtText += 'ยี่';
+          else if (pos === 1 && digit === 1) bahtText += '';
+          else if (pos === 0 && digit === 1 && len > 1) bahtText += 'เอ็ด';
+          else bahtText += txtNum[digit];
+          bahtText += txtUnit[pos];
+        }
+      }
+      bahtText += 'บาท';
+
+      // Decimal part
+      if (parseInt(decimalPart) === 0) {
+        bahtText += 'ถ้วน';
+      } else {
+        let decLen = decimalPart.length;
+        for (let i = 0; i < decLen; i++) {
+          let digit = parseInt(decimalPart.charAt(i));
+          let pos = decLen - i - 1;
+          if (digit !== 0) {
+            if (pos === 1 && digit === 2) bahtText += 'ยี่';
+            else if (pos === 1 && digit === 1) bahtText += '';
+            else if (pos === 0 && digit === 1 && decLen > 1) bahtText += 'เอ็ด';
+            else bahtText += txtNum[digit];
+            bahtText += txtUnit[pos];
+          }
+        }
+        bahtText += 'สตางค์';
+      }
+      return bahtText;
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const reportId = urlParams.get('reportId');
+      
+      if (!reportId) {
+        document.getElementById('loading-spinner').innerHTML = '❌ ไม่พบรหัสรายงาน (reportId) ในลิงก์';
+        return;
+      }
+
+      try {
+        // 1. Fetch clearance details
+        const clResponse = await fetch(`${API_BASE_URL}/api/travel-clearance?reportId=${reportId}`);
+        if (!clResponse.ok) {
+          throw new Error('ไม่สามารถดึงข้อมูลเอกสารเคลียร์เงินยืมได้');
+        }
+        
+        const clearances = await clResponse.json();
+        if (clearances.length === 0) {
+          throw new Error('ยังไม่ได้จัดทำเอกสารเคลียร์เงินสำหรับรายงานนี้');
+        }
+        
+        const cl = clearances[0];
+        const clDetails = JSON.parse(cl.details);
+        
+        // 2. Fetch report details to get travel metadata
+        const repResponse = await fetch(`${API_BASE_URL}/api/travel-report?reportId=${reportId}`);
+        if (!repResponse.ok) {
+          throw new Error('ไม่สามารถดึงข้อมูลรายงานการไปราชการได้');
+        }
+        const reports = await repResponse.json();
+        const report = reports[0];
+        let reqDetails = null;
+        if (report && report.travelRequestDetails) {
+          try { reqDetails = JSON.parse(report.travelRequestDetails); } catch(e) {}
+        }
+
+        // --- PAGE 1: บก. 111 ---
+        document.getElementById('by111-reporter').textContent = cl.fullName;
+        document.getElementById('by111-doc-date').textContent = formatDateThai(cl.createdAt);
+        document.getElementById('by111-sig-name').textContent = cl.fullName;
+        document.getElementById('by111-sig-pos').textContent = 'ครู';
+
+        let contractNo = '........................';
+        let contractDate = '........................';
+        if (reqDetails && reqDetails.loan) {
+          contractNo = reqDetails.loan.docNo || contractNo;
+          contractDate = formatDateThai(reqDetails.docDate) || contractDate;
+        }
+        document.getElementById('by111-contract-no').textContent = contractNo;
+        document.getElementById('by111-contract-date').textContent = contractDate;
+
+        const by111Tbody = document.getElementById('by111-table-body');
+        by111Tbody.innerHTML = '';
+        
+        let sumAllowance = 0, sumRent = 0, sumVehicle = 0, sumOther = 0, sumGrand = 0;
+        clDetails.travelers.forEach((t, index) => {
+          sumAllowance += parseFloat(t.allowance) || 0;
+          sumRent += parseFloat(t.rent) || 0;
+          sumVehicle += parseFloat(t.vehicle) || 0;
+          sumOther += parseFloat(t.other) || 0;
+          sumGrand += parseFloat(t.total) || 0;
+          
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td style="text-align: left; font-weight: bold;">${t.name}</td>
+            <td>${t.position || '-'}</td>
+            <td>${parseFloat(t.allowance) > 0 ? parseFloat(t.allowance).toLocaleString() : '-'}</td>
+            <td>${parseFloat(t.rent) > 0 ? parseFloat(t.rent).toLocaleString() : '-'}</td>
+            <td>${parseFloat(t.vehicle) > 0 ? parseFloat(t.vehicle).toLocaleString() : '-'}</td>
+            <td>${parseFloat(t.other) > 0 ? parseFloat(t.other).toLocaleString() : '-'}</td>
+            <td style="font-weight: bold; text-align: right;">${parseFloat(t.total).toLocaleString()}</td>
+            <td></td>
+            <td></td>
+            <td></td>
+          `;
+          by111Tbody.appendChild(tr);
+        });
+
+        // Add summary row
+        const sumTr = document.createElement('tr');
+        sumTr.style.fontWeight = 'bold';
+        sumTr.style.background = '#fafafa';
+        sumTr.innerHTML = `
+          <td colspan="3">รวม</td>
+          <td>${sumAllowance > 0 ? sumAllowance.toLocaleString() : '-'}</td>
+          <td>${sumRent > 0 ? sumRent.toLocaleString() : '-'}</td>
+          <td>${sumVehicle > 0 ? sumVehicle.toLocaleString() : '-'}</td>
+          <td>${sumOther > 0 ? sumOther.toLocaleString() : '-'}</td>
+          <td style="text-align: right;">${sumGrand.toLocaleString()}</td>
+          <td colspan="3"></td>
+        `;
+        by111Tbody.appendChild(sumTr);
+        
+        document.getElementById('by111-total-text').textContent = numToThaiBath(sumGrand);
+
+        // --- PAGE 2: บก. 42 (Optional) ---
+        if (clDetails.hasReplace) {
+          document.getElementById('page-by42').classList.remove('hidden');
+          document.getElementById('by42-user-name').textContent = cl.fullName;
+          document.getElementById('by42-sig-name').textContent = cl.fullName;
+          document.getElementById('by42-sig-pos').textContent = 'ครู';
+          document.getElementById('by42-user-pos').textContent = 'ครู';
+
+          const by42Tbody = document.getElementById('by42-table-body');
+          by42Tbody.innerHTML = '';
+          
+          let cl42Total = 0;
+          clDetails.replaceItems.forEach(item => {
+            cl42Total += parseFloat(item.amt) || 0;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td style="text-align: center;">${formatDateThai(cl.createdAt)}</td>
+              <td>${item.desc}</td>
+              <td style="text-align: right;">${parseFloat(item.amt).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+              <td>สะดวก</td>
+            `;
+            by42Tbody.appendChild(tr);
+          });
+
+          // Add sum row
+          const cl42SumRow = document.createElement('tr');
+          cl42SumRow.style.fontWeight = 'bold';
+          cl42SumRow.innerHTML = `
+            <td colspan="2" style="text-align: right;">รวมทั้งสิ้น</td>
+            <td style="text-align: right;">${cl42Total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+            <td>บาท</td>
+          `;
+          by42Tbody.appendChild(cl42SumRow);
+          document.getElementById('by42-total-text').textContent = numToThaiBath(cl42Total);
+        }
+
+        // --- PAGE 3: Lodging (Optional) ---
+        if (clDetails.hasLodging) {
+          document.getElementById('page-lodging').classList.remove('hidden');
+          document.getElementById('lodging-user-name').textContent = cl.fullName;
+          document.getElementById('lodging-sig-name').textContent = cl.fullName;
+          document.getElementById('lodging-user-pos').textContent = 'ครู';
+
+          document.getElementById('lodging-province').textContent = report.destination;
+          document.getElementById('lodging-stay-province').textContent = clDetails.lodging.province || report.destination;
+          document.getElementById('lodging-start-date').textContent = formatDateThai(report.startDate);
+          document.getElementById('lodging-end-date').textContent = formatDateThai(report.endDate);
+          document.getElementById('lodging-nights').textContent = clDetails.lodging.nights;
+          document.getElementById('lodging-nights-total').textContent = clDetails.lodging.nights;
+          document.getElementById('lodging-rate').textContent = parseFloat(clDetails.lodging.rate).toLocaleString();
+          document.getElementById('lodging-total').textContent = parseFloat(clDetails.lodging.total).toLocaleString();
+          document.getElementById('lodging-total-text').textContent = numToThaiBath(clDetails.lodging.total);
+        }
+
+        // --- PAGE 4: Fuel (Optional) ---
+        if (clDetails.hasFuel) {
+          document.getElementById('page-fuel').classList.remove('hidden');
+          document.getElementById('fuel-user-name').textContent = cl.fullName;
+          document.getElementById('fuel-sig-name').textContent = cl.fullName;
+          document.getElementById('fuel-user-pos').textContent = 'ครู';
+          document.getElementById('fuel-sig-pos').textContent = 'ครู';
+
+          document.getElementById('fuel-plate').textContent = clDetails.fuel.plate || '................';
+          document.getElementById('fuel-date').textContent = formatDateThai(report.startDate);
+          document.getElementById('fuel-destination').textContent = report.destination;
+          document.getElementById('fuel-km').textContent = clDetails.fuel.km;
+          document.getElementById('fuel-total').textContent = parseFloat(clDetails.fuel.total).toLocaleString('en-US', { minimumFractionDigits: 2 });
+          document.getElementById('fuel-total-grand').textContent = parseFloat(clDetails.fuel.total).toLocaleString('en-US', { minimumFractionDigits: 2 });
+          document.getElementById('fuel-total-text').textContent = numToThaiBath(clDetails.fuel.total);
+          document.getElementById('fuel-chk-college').textContent = '✓';
+        }
+
+        // Hide loader and show content
+        document.getElementById('loading-spinner').classList.add('hidden');
+        document.getElementById('print-content').classList.remove('hidden');
+
+        // Auto print if parameter auto=true is present
+        if (urlParams.get('auto') === 'true') {
+          setTimeout(() => {
+            window.print();
+          }, 800);
+        }
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById('loading-spinner').innerHTML = `❌ เกิดข้อผิดพลาดในการโหลดใบเคลียร์เงิน: ${err.message}`;
+      }
+    });
+  </script>
+</body>
+</html>
