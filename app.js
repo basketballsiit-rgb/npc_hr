@@ -863,34 +863,40 @@ async function loadDashboardData() {
 
       const yrDisplay = fiscalYear ? `ปีงบประมาณ ${fiscalYear}` : 'ปีงบประมาณปัจจุบัน';
 
+      const totalStaffEl = document.getElementById('stat-total-staff');
+      const approvedEl = document.getElementById('stat-approved');
+      const pendingEl = document.getElementById('stat-pending');
+      const rejectedEl = document.getElementById('stat-rejected');
+      const travelsEl = document.getElementById('stat-travels');
+
       if (currentUser && currentUser.role === 'admin') {
         if (totalLabel) totalLabel.textContent = 'บุคลากรทั้งหมด';
         if (dashboardTitle) dashboardTitle.textContent = `แดชบอร์ดข้อมูลภาพรวม${yrDisplay}`;
         if (chartTypeLabel) chartTypeLabel.textContent = `สัดส่วนประเภทการลาของบุคลากร (${yrDisplay})`;
         if (chartMonthlyLabel) chartMonthlyLabel.textContent = `สถิติจำนวนการลาสะสมรายเดือน (${yrDisplay})`;
         
-        document.getElementById('stat-total-staff').textContent = d.stats.totalStaff;
-        document.getElementById('stat-approved').textContent = d.stats.approved;
-        document.getElementById('stat-pending').textContent = d.stats.pending;
-        document.getElementById('stat-rejected').textContent = d.stats.rejected;
+        if (totalStaffEl) totalStaffEl.textContent = d.stats.totalStaff;
+        if (approvedEl) approvedEl.textContent = d.stats.approved;
+        if (pendingEl) pendingEl.textContent = d.stats.pending;
+        if (rejectedEl) rejectedEl.textContent = d.stats.rejected;
         
         const travelLabel = document.getElementById('stat-travel-label');
         if (travelLabel) travelLabel.textContent = 'ไปราชการทั้งหมด (ครั้ง)';
-        document.getElementById('stat-travels').textContent = d.stats.totalTravels;
+        if (travelsEl) travelsEl.textContent = d.stats.totalTravels;
       } else {
         if (totalLabel) totalLabel.textContent = `วันลาสะสม${yrDisplay}`;
         if (dashboardTitle) dashboardTitle.textContent = `แดชบอร์ดการลาของฉัน (${yrDisplay})`;
         if (chartTypeLabel) chartTypeLabel.textContent = `สัดส่วนประเภทการลาของฉัน (${yrDisplay})`;
         if (chartMonthlyLabel) chartMonthlyLabel.textContent = `สถิติจำนวนการลาสะสมรายเดือนของฉัน (${yrDisplay})`;
         
-        document.getElementById('stat-total-staff').textContent = formatDays(d.stats.totalStaff);
-        document.getElementById('stat-approved').textContent = formatDays(d.stats.approved);
-        document.getElementById('stat-pending').textContent = formatDays(d.stats.pending);
-        document.getElementById('stat-rejected').textContent = formatDays(d.stats.rejected);
+        if (totalStaffEl) totalStaffEl.textContent = formatDays(d.stats.totalStaff);
+        if (approvedEl) approvedEl.textContent = formatDays(d.stats.approved);
+        if (pendingEl) pendingEl.textContent = formatDays(d.stats.pending);
+        if (rejectedEl) rejectedEl.textContent = formatDays(d.stats.rejected);
         
         const travelLabel = document.getElementById('stat-travel-label');
         if (travelLabel) travelLabel.textContent = 'เดินทางไปราชการ (วัน)';
-        document.getElementById('stat-travels').textContent = formatDays(d.stats.totalTravels);
+        if (travelsEl) travelsEl.textContent = formatDays(d.stats.totalTravels);
       }
       
       // Render Charts
