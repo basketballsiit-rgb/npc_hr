@@ -2582,6 +2582,9 @@ window.onLegVehicleChange = (id) => {
   // Group B: fare/hire (taxi, van, boat, other)
   } else if (['taxi','van','boat','other_transport'].includes(type)) {
     const typeName = {taxi:'แท็กซี่/รถรับจ้าง', van:'รถตู้โดยสาร', boat:'เรือ', other_transport:'พาหนะอื่นๆ'}[type];
+    const isTaxi   = type === 'taxi';
+    // Taxi gets 200 default; others start at 0
+    const defaultAmt = isTaxi ? 200 : 0;
     fieldsEl.innerHTML = `
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:10px;">
         <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">ต้นทาง</label>
@@ -2589,12 +2592,29 @@ window.onLegVehicleChange = (id) => {
         <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">ปลายทาง</label>
           <input type="text" class="form-input form-input-sm leg-to" placeholder="เช่น โรงแรม / ที่พัก"></div>
       </div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+      <div style="display:grid; grid-template-columns:1fr auto; gap:12px; align-items:end; margin-bottom:${isTaxi ? '8' : '0'}px;">
         <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">หมายเหตุ</label>
-          <input type="text" class="form-input form-input-sm leg-note" placeholder="ระบุรายละเอียด..."></div>
+          <input type="text" class="form-input form-input-sm leg-note" id="tleg-note-${id}"
+            placeholder="ระบุรายละเอียด..."></div>
         <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">ค่าโดยสาร${typeName} (บาท)</label>
-          <input type="number" class="form-input form-input-sm leg-amount" placeholder="0" min="0" oninput="calcLegCost(${id})"></div>
-      </div>`;
+          <input type="number" class="form-input form-input-sm leg-amount" value="${defaultAmt}"
+            min="0" oninput="calcLegCost(${id})">
+          ${isTaxi ? `<div style="font-size:0.73rem;color:#64748b;margin-top:3px;">อัตราเหมาเที่ยวละ 200 บาท</div>` : ''}
+        </div>
+      </div>
+      ${isTaxi ? `
+      <div style="display:flex; align-items:center; gap:8px; background:#fefce8; border:1px solid #fde68a; border-radius:6px; padding:8px 12px;">
+        <input type="checkbox" id="tleg-luggage-${id}" onchange="onLuggageChange(${id})"
+          style="width:16px;height:16px;cursor:pointer;accent-color:#f59e0b;">
+        <label for="tleg-luggage-${id}" style="font-size:0.82rem;font-weight:600;color:#92400e;cursor:pointer;margin:0;">
+          🧳 มีสัมภาระในการเดินทาง
+        </label>
+        <span style="font-size:0.75rem;color:#b45309;">(จะบันทึกหมายเหตุให้อัตโนมัติ)</span>
+      </div>` : ''}`;
+    // Auto-calculate immediately for taxi
+    if (isTaxi) calcLegCost(id);
+
+
 
   // Group C: gov_car — km calc OR advance loan
   } else if (type === 'gov_car') {
@@ -2718,7 +2738,26 @@ window.calcLegCost = (id) => {
   calcAllLegsTotal();
 };
 
+// Handle luggage checkbox for taxi: auto-append/remove note
+window.onLuggageChange = (id) => {
+  const checkbox = document.getElementById(`tleg-luggage-${id}`);
+  const noteInput = document.getElementById(`tleg-note-${id}`);
+  if (!checkbox || !noteInput) return;
+  const LUGGAGE_TAG = 'มีสัมภาระในการเดินทาง';
+  if (checkbox.checked) {
+    // Append tag if not already present
+    const current = noteInput.value.trim();
+    if (!current.includes(LUGGAGE_TAG)) {
+      noteInput.value = current ? `${current}, ${LUGGAGE_TAG}` : LUGGAGE_TAG;
+    }
+  } else {
+    // Remove tag
+    noteInput.value = noteInput.value.replace(`, ${LUGGAGE_TAG}`, '').replace(LUGGAGE_TAG, '').trim().replace(/^,\s*/, '');
+  }
+};
+
 window.calcAllLegsTotal = () => {
+
   let grand = 0;
   document.querySelectorAll('[id^="tleg-val-"]').forEach(el => {
     grand += parseFloat(el.value) || 0;
