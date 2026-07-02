@@ -2380,10 +2380,14 @@ function calculateTravelDays() {
       if (rentDays) rentDays.value = Math.max(0, diffDays - 1);
       
       calculateExpenses();
-    } else {
-      if (daysInput) daysInput.value = 0;
+      return;
     }
   }
+  
+  if (daysInput) daysInput.value = '';
+  if (allowanceDays) allowanceDays.value = 0;
+  if (rentDays) rentDays.value = 0;
+  calculateExpenses();
 }
 
 // Tab switching for travel request form
@@ -2406,6 +2410,10 @@ window.switchTravelTab = (tabId) => {
       btn.classList.remove('active');
     }
   });
+
+  if (tabId === 'travel-tab-estimation') {
+    calculateTravelDays();
+  }
 };
 
 // Traveler dynamic rows management
