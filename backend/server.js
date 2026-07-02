@@ -907,12 +907,16 @@ app.get('/api/dashboard', async (req, res) => {
 
     let totalStaffVal = 0;
     let totalTravelsVal = 0;
+    let totalLoanBudgetVal = 0;
+    let clearedLoanBudgetVal = 0;
+    let pendingLoanBudgetVal = 0;
     let statusCountsVal = { approved: 0, pending: 0, rejected: 0 };
     let leaveTypesVal = [];
     let monthlyCountsVal = Array(12).fill(0);
     let recentLeavesVal = [];
 
     const dateFilterSql = `((startDate >= ? AND startDate <= ?) OR (startDate >= ? AND startDate <= ?))`;
+    const dateFilterSqlTd = `((td.startDate >= ? AND td.startDate <= ?) OR (td.startDate >= ? AND td.startDate <= ?))`;
 
     if (isAdmin || !userId) {
       // Admin: Aggregate stats for all staff in the current fiscal year
@@ -977,6 +981,26 @@ app.get('/api/dashboard', async (req, res) => {
         [fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
       recentLeavesVal = recentLeaves;
+
+      // Loan budget stats: total approved loans vs cleared loans in fiscal year
+      const [[adminLoanRow]] = await db.query(
+        `SELECT 
+          COALESCE(SUM(budget), 0) as totalBudget
+         FROM travel_data 
+         WHERE budget > 0 AND status = 'อนุมัติ' AND ${dateFilterSql}`,
+        [fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
+      );
+      totalLoanBudgetVal = parseFloat(adminLoanRow.totalBudget) || 0;
+
+      const [[adminClearedRow]] = await db.query(
+        `SELECT COALESCE(SUM(tc.totalSpent), 0) as clearedTotal
+         FROM travel_clearances tc
+         JOIN travel_data td ON tc.travelId = td.travelId
+         WHERE tc.status = 'อนุมัติแล้ว' AND ${dateFilterSqlTd}`,
+        [fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
+      );
+      clearedLoanBudgetVal = parseFloat(adminClearedRow.clearedTotal) || 0;
+      pendingLoanBudgetVal = Math.max(0, totalLoanBudgetVal - clearedLoanBudgetVal);
     } else {
       // Teacher: Stats for this specific user (including duplicates) in the current fiscal year
       const userIds = await getUserIdsForUser(userId);
@@ -1061,6 +1085,28 @@ app.get('/api/dashboard', async (req, res) => {
         [...userIds, fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
       recentLeavesVal = recentLeaves;
+
+      // Loan budget stats for the user
+      const userIds2 = userIds;
+      const [[userLoanRow]] = await db.query(
+        `SELECT COALESCE(SUM(budget), 0) as totalBudget
+         FROM travel_data 
+         WHERE userId IN (${userIds2.map(() => '?').join(', ')}) 
+           AND budget > 0 AND status = 'อนุมัติ' AND ${dateFilterSql}`,
+        [...userIds2, fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
+      );
+      totalLoanBudgetVal = parseFloat(userLoanRow.totalBudget) || 0;
+
+      const [[userClearedRow]] = await db.query(
+        `SELECT COALESCE(SUM(tc.totalSpent), 0) as clearedTotal
+         FROM travel_clearances tc
+         JOIN travel_data td ON tc.travelId = td.travelId
+         WHERE tc.userId IN (${userIds2.map(() => '?').join(', ')}) AND tc.status = 'อนุมัติแล้ว'
+           AND ${dateFilterSqlTd}`,
+        [...userIds2, fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
+      );
+      clearedLoanBudgetVal = parseFloat(userClearedRow.clearedTotal) || 0;
+      pendingLoanBudgetVal = Math.max(0, totalLoanBudgetVal - clearedLoanBudgetVal);
     }
 
     res.json({
@@ -1069,7 +1115,10 @@ app.get('/api/dashboard', async (req, res) => {
         approved: statusCountsVal.approved,
         pending: statusCountsVal.pending,
         rejected: statusCountsVal.rejected,
-        totalTravels: totalTravelsVal
+        totalTravels: totalTravelsVal,
+        totalLoanBudget: totalLoanBudgetVal,
+        clearedLoanBudget: clearedLoanBudgetVal,
+        pendingLoanBudget: pendingLoanBudgetVal
       },
       charts: {
         leaveTypeData: {

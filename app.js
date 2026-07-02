@@ -883,6 +883,14 @@ async function loadDashboardData() {
         const travelLabel = document.getElementById('stat-travel-label');
         if (travelLabel) travelLabel.textContent = 'ไปราชการทั้งหมด (ครั้ง)';
         if (travelsEl) travelsEl.textContent = d.stats.totalTravels;
+
+        const loanEl = document.getElementById('stat-loan-total');
+        if (loanEl) {
+          const total = parseFloat(d.stats.totalLoanBudget) || 0;
+          const cleared = parseFloat(d.stats.clearedLoanBudget) || 0;
+          const pending = parseFloat(d.stats.pendingLoanBudget) || 0;
+          loanEl.innerHTML = `<span style="font-size:0.95rem;">${total.toLocaleString('th-TH')} บาท</span><br><small style="font-size:0.7rem;color:#0d9488;font-weight:500;">เคลียร์แล้ว ${cleared.toLocaleString('th-TH')} บาท</small><br><small style="font-size:0.7rem;color:#f59e0b;font-weight:500;">ค้างเคลียร์ ${pending.toLocaleString('th-TH')} บาท</small>`;
+        }
       } else {
         if (totalLabel) totalLabel.textContent = `วันลาสะสม${yrDisplay}`;
         if (dashboardTitle) dashboardTitle.textContent = `แดชบอร์ดการลาของฉัน (${yrDisplay})`;
@@ -897,6 +905,14 @@ async function loadDashboardData() {
         const travelLabel = document.getElementById('stat-travel-label');
         if (travelLabel) travelLabel.textContent = 'เดินทางไปราชการ (วัน)';
         if (travelsEl) travelsEl.textContent = formatDays(d.stats.totalTravels);
+
+        const loanEl = document.getElementById('stat-loan-total');
+        if (loanEl) {
+          const total = parseFloat(d.stats.totalLoanBudget) || 0;
+          const cleared = parseFloat(d.stats.clearedLoanBudget) || 0;
+          const pending = parseFloat(d.stats.pendingLoanBudget) || 0;
+          loanEl.innerHTML = `<span style="font-size:0.95rem;">${total.toLocaleString('th-TH')} บาท</span><br><small style="font-size:0.7rem;color:#0d9488;font-weight:500;">เคลียร์แล้ว ${cleared.toLocaleString('th-TH')} บาท</small><br><small style="font-size:0.7rem;color:#f59e0b;font-weight:500;">ค้างเคลียร์ ${pending.toLocaleString('th-TH')} บาท</small>`;
+        }
       }
       
       // Render Charts
