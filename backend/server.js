@@ -1496,6 +1496,31 @@ app.post('/api/travel', async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'รอการอนุมัติ')`,
       [travelId, userId, fullName, subject, destination, startDate, endDate, totalDays, budget || 0, vehicleType, details || null]
     );
+
+    // Notify LINE Admin Group if configured
+    const adminGroupId = await getSettingValue('adminGroupId');
+    if (adminGroupId) {
+      const flexMessage = {
+        "type": "bubble",
+        "header": { "type": "box", "layout": "vertical", "contents": [{ "type": "text", "text": "✈️ มีคำขอไปราชการใหม่", "weight": "bold", "size": "lg", "color": "#7c3aed" }] },
+        "body": {
+          "type": "box", "layout": "vertical", "contents": [
+            { "type": "box", "layout": "baseline", "margin": "md", "contents": [{ "type": "text", "text": "ผู้ขอ:", "color": "#aaaaaa", "size": "sm", "flex": 2 }, { "type": "text", "text": fullName, "wrap": true, "color": "#666666", "size": "sm", "flex": 5 }] },
+            { "type": "box", "layout": "baseline", "margin": "md", "contents": [{ "type": "text", "text": "เรื่อง:", "color": "#aaaaaa", "size": "sm", "flex": 2 }, { "type": "text", "text": subject, "wrap": true, "color": "#666666", "size": "sm", "flex": 5 }] },
+            { "type": "box", "layout": "baseline", "margin": "md", "contents": [{ "type": "text", "text": "สถานที่:", "color": "#aaaaaa", "size": "sm", "flex": 2 }, { "type": "text", "text": destination, "wrap": true, "color": "#666666", "size": "sm", "flex": 5 }] },
+            { "type": "box", "layout": "baseline", "margin": "md", "contents": [{ "type": "text", "text": "วันที่:", "color": "#aaaaaa", "size": "sm", "flex": 2 }, { "type": "text", "text": `${formatDateThai(startDate)} ถึง ${formatDateThai(endDate)}`, "wrap": true, "color": "#666666", "size": "sm", "flex": 5 }] },
+            { "type": "box", "layout": "baseline", "margin": "md", "contents": [{ "type": "text", "text": "งบยืม:", "color": "#aaaaaa", "size": "sm", "flex": 2 }, { "type": "text", "text": `${parseFloat(budget || 0).toLocaleString()} บาท`, "wrap": true, "color": "#666666", "size": "sm", "flex": 5 }] }
+          ]
+        },
+        "footer": {
+          "type": "box", "layout": "vertical", "contents": [
+            { "type": "button", "style": "primary", "color": "#7c3aed", "action": { "type": "uri", "label": "ตรวจสอบ / อนุมัติ", "uri": `https://service.npc.ac.th/npc_eleve/` } }
+          ]
+        }
+      };
+      await sendLineFlexMessage(adminGroupId, flexMessage, "มีคำขอไปราชการใหม่รออนุมัติ");
+    }
+
     res.json({ success: true, message: 'ยื่นคำขอไปราชการสำเร็จ' });
   } catch (err) {
     console.error('Error submitting travel:', err.message);
@@ -1530,6 +1555,20 @@ app.post('/api/travel/approve', async (req, res) => {
   }
   try {
     await db.query('UPDATE travel_data SET status = ? WHERE travelId = ?', [status, travelId]);
+
+    // Notify user via LINE bot
+    const [travelRows] = await db.query('SELECT userId, subject, destination FROM travel_data WHERE travelId = ?', [travelId]);
+    if (travelRows.length > 0) {
+      const travel = travelRows[0];
+      const [userRows] = await db.query('SELECT lineUserId FROM users WHERE userId = ?', [travel.userId]);
+      if (userRows.length > 0 && userRows[0].lineUserId) {
+        const lineUserId = userRows[0].lineUserId;
+        const emoji = status === 'อนุมัติ' ? '✅' : '❌';
+        const msg = `${emoji} แจ้งเตือนการขออนุมัติเดินทางไปราชการ\n\nคำขอของคุณได้รับการพิจารณาเรียบร้อยแล้ว\n\nเรื่อง: ${travel.subject}\nปลายทาง: ${travel.destination}\nผลการพิจารณา: ${status}`;
+        await sendLinePushMessage(lineUserId, msg);
+      }
+    }
+
     res.json({ success: true, message: `ดำเนินการ '${status}' เรียบร้อย` });
   } catch (err) {
     console.error('Error approving travel:', err.message);
@@ -1614,6 +1653,29 @@ app.post('/api/travel-clearance', async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'รอการตรวจสอบ')`,
       [clearanceId, reportId, travelId, userId, fullName, totalSpent || 0.00, totalBorrowed || 0.00, details]
     );
+
+    // Notify LINE Admin Group if configured
+    const adminGroupId = await getSettingValue('adminGroupId');
+    if (adminGroupId) {
+      const flexMessage = {
+        "type": "bubble",
+        "header": { "type": "box", "layout": "vertical", "contents": [{ "type": "text", "text": "💰 มีคำขอเคลียร์เงินยืมใหม่", "weight": "bold", "size": "lg", "color": "#0d9488" }] },
+        "body": {
+          "type": "box", "layout": "vertical", "contents": [
+            { "type": "box", "layout": "baseline", "margin": "md", "contents": [{ "type": "text", "text": "ผู้ยื่น:", "color": "#aaaaaa", "size": "sm", "flex": 2 }, { "type": "text", "text": fullName, "wrap": true, "color": "#666666", "size": "sm", "flex": 5 }] },
+            { "type": "box", "layout": "baseline", "margin": "md", "contents": [{ "type": "text", "text": "ยอดเงินยืม:", "color": "#aaaaaa", "size": "sm", "flex": 2 }, { "type": "text", "text": `${parseFloat(totalBorrowed || 0).toLocaleString()} บาท`, "wrap": true, "color": "#666666", "size": "sm", "flex": 5 }] },
+            { "type": "box", "layout": "baseline", "margin": "md", "contents": [{ "type": "text", "text": "จ่ายจริงจริง:", "color": "#aaaaaa", "size": "sm", "flex": 2 }, { "type": "text", "text": `${parseFloat(totalSpent || 0).toLocaleString()} บาท`, "wrap": true, "color": "#666666", "size": "sm", "flex": 5 }] }
+          ]
+        },
+        "footer": {
+          "type": "box", "layout": "vertical", "contents": [
+            { "type": "button", "style": "primary", "color": "#0d9488", "action": { "type": "uri", "label": "ตรวจสอบ / อนุมัติ", "uri": `https://service.npc.ac.th/npc_eleve/` } }
+          ]
+        }
+      };
+      await sendLineFlexMessage(adminGroupId, flexMessage, "มีคำขอเคลียร์เงินยืมรอการอนุมัติ");
+    }
+
     res.json({ success: true, message: 'ส่งเอกสารเคลียร์เงินยืมสำเร็จ' });
   } catch (err) {
     console.error('Error submitting travel clearance:', err.message);
@@ -1648,6 +1710,20 @@ app.post('/api/travel-clearance/approve', async (req, res) => {
   }
   try {
     await db.query('UPDATE travel_clearances SET status = ? WHERE clearanceId = ?', [status, clearanceId]);
+
+    // Notify user via LINE bot
+    const [clRows] = await db.query('SELECT userId, totalSpent, totalBorrowed FROM travel_clearances WHERE clearanceId = ?', [clearanceId]);
+    if (clRows.length > 0) {
+      const cl = clRows[0];
+      const [userRows] = await db.query('SELECT lineUserId FROM users WHERE userId = ?', [cl.userId]);
+      if (userRows.length > 0 && userRows[0].lineUserId) {
+        const lineUserId = userRows[0].lineUserId;
+        const emoji = status === 'อนุมัติแล้ว' ? '✅' : '❌';
+        const msg = `${emoji} แจ้งเตือนสถานะการเคลียร์เงินยืม\n\nการยื่นเอกสารเคลียร์เงินของคุณได้รับการพิจารณาแล้ว\n\nยอดเงินยืม: ${parseFloat(cl.totalBorrowed).toLocaleString()} บาท\nจ่ายจริงทั้งหมด: ${parseFloat(cl.totalSpent).toLocaleString()} บาท\nผลการพิจารณา: ${status}`;
+        await sendLinePushMessage(lineUserId, msg);
+      }
+    }
+
     res.json({ success: true, message: `ดำเนินการ '${status}' เรียบร้อย` });
   } catch (err) {
     console.error('Error approving travel clearance:', err.message);
