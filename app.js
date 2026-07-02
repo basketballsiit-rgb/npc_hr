@@ -2841,19 +2841,113 @@ window.toggleLoanForm = () => {
   }
 };
 
+// ============================================================
+// PER-DAY ALLOWANCE SYSTEM
+// ============================================================
+let _allowanceDayCounter = 0;
+
+// Preset rate labels
+const ALLOW_RATE_OPTIONS = `
+  <option value="240">เต็ม (100%) — 240 บาท/วัน</option>
+  <option value="160">2/3 — 160 บาท/วัน</option>
+  <option value="80">1/3 — 80 บาท/วัน</option>
+  <option value="custom">กำหนดเอง</option>
+`;
+
+window.addAllowanceDay = (defaultRate = 240, defaultDate = '') => {
+  const container = document.getElementById('allowance-days-container');
+  if (!container) return;
+  const id = ++_allowanceDayCounter;
+
+  const row = document.createElement('div');
+  row.id = `aday-${id}`;
+  row.style.cssText = 'display:grid; grid-template-columns:150px 1fr 80px 90px 32px; gap:8px; align-items:center; background:#fff; border:1px solid #e2e8f0; border-radius:7px; padding:6px 8px;';
+  const isCustom = ![240, 160, 80].includes(defaultRate);
+  const selectedRate = isCustom ? 'custom' : defaultRate;
+  row.innerHTML = `
+    <input type="date" class="form-input form-input-sm aday-date" value="${defaultDate}"
+      style="font-size:0.78rem; padding:4px 6px;">
+    <select class="form-input form-input-sm aday-rate-select" style="font-size:0.78rem; padding:4px 6px;"
+      onchange="onAllowanceRateChange(${id})">
+      ${ALLOW_RATE_OPTIONS}
+    </select>
+    <input type="number" class="form-input form-input-sm aday-rate-val" value="${defaultRate}"
+      min="0" style="font-size:0.78rem; padding:4px 6px; text-align:center;"
+      ${isCustom ? '' : 'readonly'} oninput="calcAllAllowanceDays()">
+    <span id="aday-sub-${id}" style="text-align:right; font-weight:600; color:#0f766e; font-size:0.82rem;">0.00</span>
+    <button type="button" onclick="removeAllowanceDay(${id})"
+      style="background:none; border:none; color:#ef4444; font-size:1rem; cursor:pointer; padding:0; line-height:1;">✕</button>
+  `;
+  container.appendChild(row);
+
+  // Set select to correct value
+  const sel = row.querySelector('.aday-rate-select');
+  sel.value = String(selectedRate);
+
+  calcAllAllowanceDays();
+};
+
+window.removeAllowanceDay = (id) => {
+  const el = document.getElementById(`aday-${id}`);
+  if (el) el.remove();
+  calcAllAllowanceDays();
+};
+
+window.onAllowanceRateChange = (id) => {
+  const row   = document.getElementById(`aday-${id}`);
+  if (!row) return;
+  const sel   = row.querySelector('.aday-rate-select');
+  const input = row.querySelector('.aday-rate-val');
+  if (sel.value === 'custom') {
+    input.removeAttribute('readonly');
+    input.value = '';
+    input.focus();
+  } else {
+    input.setAttribute('readonly', true);
+    input.value = sel.value;
+  }
+  calcAllAllowanceDays();
+};
+
+window.calcAllAllowanceDays = () => {
+  const people = parseFloat(document.getElementById('travel-people-allowance')?.value) || 1;
+  let grand = 0;
+  document.querySelectorAll('[id^="aday-"]').forEach(row => {
+    if (!row.id.startsWith('aday-') || row.id.includes('sub')) return;
+    const rateVal = parseFloat(row.querySelector('.aday-rate-val')?.value) || 0;
+    const sub     = rateVal * people;
+    grand        += sub;
+    const subEl   = row.querySelector('[id^="aday-sub-"]');
+    if (subEl) subEl.textContent = sub.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  });
+  const txt = document.getElementById('travel-total-allowance-txt');
+  if (txt) txt.textContent = grand.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  calculateExpenses();
+};
+
+// Quick-fill: set all rows to the given rate
+window.fillAllowanceRate = (rate) => {
+  document.querySelectorAll('[id^="aday-"]').forEach(row => {
+    if (!row.id.startsWith('aday-') || row.id.includes('sub')) return;
+    const sel   = row.querySelector('.aday-rate-select');
+    const input = row.querySelector('.aday-rate-val');
+    if (sel) sel.value = String(rate);
+    if (input) { input.value = rate; input.setAttribute('readonly', true); }
+  });
+  calcAllAllowanceDays();
+};
+
 // Calculate expenses
+
 window.calculateExpenses = () => {
   // 1. Vehicle costs from multi-leg system
   const routeTotal = parseFloat(document.getElementById('travel-legs-grand')?.value) || 0;
 
-  // 2. Allowance
-  const rateAllow = parseFloat(document.getElementById('travel-rate-allowance').value) || 0;
-  const daysAllow = parseFloat(document.getElementById('travel-days-allowance').value) || 0;
-  const peopleAllow = parseFloat(document.getElementById('travel-people-allowance').value) || 0;
-  const totalAllow = rateAllow * daysAllow * peopleAllow;
-  const allowTxt = document.getElementById('travel-total-allowance-txt');
-  if (allowTxt) allowTxt.textContent = totalAllow.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  
+  // 2. Allowance — read from per-day table total
+  const totalAllow = parseFloat(
+    document.getElementById('travel-total-allowance-txt')?.textContent?.replace(/,/g, '')
+  ) || 0;
+
   // 3. Rent
   const rateRent = parseFloat(document.getElementById('travel-rate-rent').value) || 0;
   const daysRent = parseFloat(document.getElementById('travel-days-rent').value) || 0;
@@ -2977,6 +3071,15 @@ async function initTravelPage() {
 
   // Add first leg by default
   addTravelLeg();
+
+  // Reset allowance days container
+  const adaysContainer = document.getElementById('allowance-days-container');
+  if (adaysContainer) adaysContainer.innerHTML = '';
+  _allowanceDayCounter = 0;
+  const allowTxt = document.getElementById('travel-total-allowance-txt');
+  if (allowTxt) allowTxt.textContent = '0.00';
+  // Add one default day
+  addAllowanceDay(240, '');
 
   // Reset tabs
   switchTravelTab('travel-tab-memo');
