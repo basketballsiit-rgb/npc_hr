@@ -1123,32 +1123,77 @@
 
                   <!-- Panel: gov_car / personal_car -->
                   <div id="vehicle-panel-distance" style="display:none; padding:16px;">
-                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:16px; align-items:end;">
-                      <div>
-                        <label style="font-size:0.8rem; font-weight:600; color:#475569;">ต้นทาง</label>
-                        <input type="text" id="veh-dist-from" class="form-input" placeholder="เช่น น่าน">
-                      </div>
-                      <div>
-                        <label style="font-size:0.8rem; font-weight:600; color:#475569;">ปลายทาง</label>
-                        <input type="text" id="veh-dist-to" class="form-input" placeholder="เช่น เชียงใหม่">
-                      </div>
-                      <div>
-                        <label style="font-size:0.8rem; font-weight:600; color:#475569;">ระยะทางรวม (กิโลเมตร)</label>
-                        <input type="number" id="veh-dist-km" class="form-input" placeholder="0" min="0" oninput="calcDistanceCost()">
-                      </div>
+
+                    <!-- Mode toggle (gov_car only shows this) -->
+                    <div id="veh-mode-toggle" style="display:flex; gap:0; margin-bottom:14px; border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; width:fit-content;">
+                      <button type="button" id="veh-mode-btn-calc" onclick="setVehicleMode('calc')"
+                        style="padding:7px 18px; font-size:0.83rem; font-weight:600; background:#3b82f6; color:#fff; border:none; cursor:pointer;">
+                        📏 คำนวณจากระยะทาง
+                      </button>
+                      <button type="button" id="veh-mode-btn-loan" onclick="setVehicleMode('loan')"
+                        style="padding:7px 18px; font-size:0.83rem; font-weight:600; background:#f1f5f9; color:#475569; border:none; cursor:pointer; border-left:1px solid #cbd5e1;">
+                        💵 ระบุยอดยืมล่วงหน้า
+                      </button>
                     </div>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:12px; align-items:center;">
-                      <div style="font-size:0.82rem; color:#64748b;">
-                        อัตรา: <strong>4 บาท/กิโลเมตร</strong> (ไป-กลับ คิดระยะทาง × 2)
-                        <div style="margin-top:4px;">
-                          <label><input type="checkbox" id="veh-dist-roundtrip" checked onchange="calcDistanceCost()"> คิดไป-กลับ</label>
+
+                    <!-- Sub-panel A: distance calculation -->
+                    <div id="veh-subpanel-calc">
+                      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:16px; align-items:end;">
+                        <div>
+                          <label style="font-size:0.8rem; font-weight:600; color:#475569;">ต้นทาง</label>
+                          <input type="text" id="veh-dist-from" class="form-input" placeholder="เช่น น่าน">
+                        </div>
+                        <div>
+                          <label style="font-size:0.8rem; font-weight:600; color:#475569;">ปลายทาง</label>
+                          <input type="text" id="veh-dist-to" class="form-input" placeholder="เช่น เชียงใหม่">
+                        </div>
+                        <div>
+                          <label style="font-size:0.8rem; font-weight:600; color:#475569;">ระยะทางรวม (กิโลเมตร)</label>
+                          <input type="number" id="veh-dist-km" class="form-input" placeholder="0" min="0" oninput="calcDistanceCost()">
                         </div>
                       </div>
-                      <div style="text-align:right; font-weight:700; color:#0f766e; font-size:1rem;">
-                        ค่าพาหนะรวม: <span id="veh-dist-total-txt">0.00</span> บาท
-                        <input type="hidden" id="veh-dist-total" value="0">
+                      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:12px; align-items:center;">
+                        <div style="font-size:0.82rem; color:#64748b;">
+                          อัตรา: <strong>4 บาท/กิโลเมตร</strong>
+                          <div style="margin-top:4px;">
+                            <label><input type="checkbox" id="veh-dist-roundtrip" checked onchange="calcDistanceCost()"> คิดไป-กลับ (× 2)</label>
+                          </div>
+                        </div>
+                        <div style="text-align:right; font-weight:700; color:#0f766e; font-size:1rem;">
+                          ค่าพาหนะรวม: <span id="veh-dist-total-txt">0.00</span> บาท
+                        </div>
                       </div>
                     </div>
+
+                    <!-- Sub-panel B: direct loan amount -->
+                    <div id="veh-subpanel-loan" style="display:none;">
+                      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; align-items:end;">
+                        <div>
+                          <label style="font-size:0.8rem; font-weight:600; color:#475569;">ต้นทาง</label>
+                          <input type="text" id="veh-loan-from" class="form-input" placeholder="เช่น น่าน">
+                        </div>
+                        <div>
+                          <label style="font-size:0.8rem; font-weight:600; color:#475569;">ปลายทาง</label>
+                          <input type="text" id="veh-loan-to" class="form-input" placeholder="เช่น เชียงใหม่">
+                        </div>
+                      </div>
+                      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:12px; align-items:end;">
+                        <div>
+                          <label style="font-size:0.8rem; font-weight:600; color:#475569;">หมายเหตุ / วัตถุประสงค์</label>
+                          <input type="text" id="veh-loan-note" class="form-input" placeholder="เช่น ค่าน้ำมันเชื้อเพลิงรถวิทยาลัย">
+                        </div>
+                        <div>
+                          <label style="font-size:0.8rem; font-weight:600; color:#475569;">ยอดยืมล่วงหน้า (บาท)</label>
+                          <input type="number" id="veh-loan-amount" class="form-input" placeholder="0" min="0" oninput="calcDistanceCost()">
+                        </div>
+                      </div>
+                      <div style="text-align:right; font-weight:700; color:#0f766e; font-size:1rem; margin-top:10px;">
+                        ยอดยืม: <span id="veh-loan-total-txt">0.00</span> บาท
+                      </div>
+                    </div>
+
+                    <!-- Shared hidden total -->
+                    <input type="hidden" id="veh-dist-total" value="0">
                   </div>
 
                   <!-- Panel: bus / train / plane (multi-leg) -->

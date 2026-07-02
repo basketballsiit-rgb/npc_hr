@@ -2496,6 +2496,7 @@ window.onVehicleTypeChange = () => {
   const panelDist    = document.getElementById('vehicle-panel-distance');
   const panelTicket  = document.getElementById('vehicle-panel-ticket');
   const panelHolder  = document.getElementById('vehicle-panel-placeholder');
+  const modeToggle   = document.getElementById('veh-mode-toggle');
 
   // Hide all panels first
   panelDist.style.display   = 'none';
@@ -2504,6 +2505,10 @@ window.onVehicleTypeChange = () => {
 
   if (type === 'gov_car' || type === 'personal_car') {
     panelDist.style.display = 'block';
+    // Show mode toggle only for gov_car; personal_car always uses distance calc
+    if (modeToggle) modeToggle.style.display = type === 'gov_car' ? 'flex' : 'none';
+    // personal_car: always calc mode
+    if (type === 'personal_car') setVehicleMode('calc');
     calcDistanceCost();
   } else if (type === 'bus' || type === 'train' || type === 'plane') {
     panelTicket.style.display = 'block';
@@ -2517,13 +2522,43 @@ window.onVehicleTypeChange = () => {
   calculateExpenses();
 };
 
+// Toggle between distance-calc mode and direct-loan mode
+let _vehicleMode = 'calc';
+window.setVehicleMode = (mode) => {
+  _vehicleMode = mode;
+  const subCalc = document.getElementById('veh-subpanel-calc');
+  const subLoan = document.getElementById('veh-subpanel-loan');
+  const btnCalc = document.getElementById('veh-mode-btn-calc');
+  const btnLoan = document.getElementById('veh-mode-btn-loan');
+
+  if (mode === 'calc') {
+    if (subCalc) subCalc.style.display = 'block';
+    if (subLoan) subLoan.style.display = 'none';
+    if (btnCalc) { btnCalc.style.background = '#3b82f6'; btnCalc.style.color = '#fff'; }
+    if (btnLoan) { btnLoan.style.background = '#f1f5f9'; btnLoan.style.color = '#475569'; }
+  } else {
+    if (subCalc) subCalc.style.display = 'none';
+    if (subLoan) subLoan.style.display = 'block';
+    if (btnLoan) { btnLoan.style.background = '#3b82f6'; btnLoan.style.color = '#fff'; }
+    if (btnCalc) { btnCalc.style.background = '#f1f5f9'; btnCalc.style.color = '#475569'; }
+  }
+  calcDistanceCost();
+};
+
 window.calcDistanceCost = () => {
-  const km       = parseFloat(document.getElementById('veh-dist-km')?.value) || 0;
-  const roundtrip = document.getElementById('veh-dist-roundtrip')?.checked;
-  const total    = km * 4 * (roundtrip ? 2 : 1);
-  const txtEl    = document.getElementById('veh-dist-total-txt');
-  const hidEl    = document.getElementById('veh-dist-total');
-  if (txtEl) txtEl.textContent = total.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  let total = 0;
+  if (_vehicleMode === 'loan') {
+    total = parseFloat(document.getElementById('veh-loan-amount')?.value) || 0;
+    const loanTxt = document.getElementById('veh-loan-total-txt');
+    if (loanTxt) loanTxt.textContent = total.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  } else {
+    const km        = parseFloat(document.getElementById('veh-dist-km')?.value) || 0;
+    const roundtrip = document.getElementById('veh-dist-roundtrip')?.checked;
+    total           = km * 4 * (roundtrip ? 2 : 1);
+    const txtEl     = document.getElementById('veh-dist-total-txt');
+    if (txtEl) txtEl.textContent = total.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  const hidEl = document.getElementById('veh-dist-total');
   if (hidEl) hidEl.value = total;
   calculateExpenses();
 };
@@ -2799,6 +2834,8 @@ async function initTravelPage() {
   const ticketLegs = document.getElementById('vehicle-ticket-legs');
   if (ticketLegs)  ticketLegs.innerHTML = '';
   ticketLegCounter = 0;
+  _vehicleMode = 'calc';
+
   
   // Reset tabs
   switchTravelTab('travel-tab-memo');
@@ -2933,16 +2970,28 @@ async function handleTravelSubmit(e) {
   const routes = [];
 
   if (vehicleTypeVal === 'gov_car' || vehicleTypeVal === 'personal_car') {
-    const km = parseFloat(document.getElementById('veh-dist-km')?.value) || 0;
-    const roundtrip = document.getElementById('veh-dist-roundtrip')?.checked;
-    const total = km * 4 * (roundtrip ? 2 : 1);
-    vehicleData.from = document.getElementById('veh-dist-from')?.value || '';
-    vehicleData.to = document.getElementById('veh-dist-to')?.value || '';
-    vehicleData.km = km;
-    vehicleData.roundtrip = roundtrip;
-    vehicleData.total = total;
-    vehicleData.routeTotal = total;
-    routes.push({ from: vehicleData.from, to: vehicleData.to, vehicle: vehicleTypeVal, cost: total });
+    vehicleData.mode = _vehicleMode;
+    if (_vehicleMode === 'loan' && vehicleTypeVal === 'gov_car') {
+      const loanAmt = parseFloat(document.getElementById('veh-loan-amount')?.value) || 0;
+      vehicleData.from = document.getElementById('veh-loan-from')?.value || '';
+      vehicleData.to   = document.getElementById('veh-loan-to')?.value   || '';
+      vehicleData.note = document.getElementById('veh-loan-note')?.value  || '';
+      vehicleData.loanAmount = loanAmt;
+      vehicleData.total = loanAmt;
+      vehicleData.routeTotal = loanAmt;
+      routes.push({ from: vehicleData.from, to: vehicleData.to, vehicle: vehicleTypeVal, cost: loanAmt });
+    } else {
+      const km = parseFloat(document.getElementById('veh-dist-km')?.value) || 0;
+      const roundtrip = document.getElementById('veh-dist-roundtrip')?.checked;
+      const total = km * 4 * (roundtrip ? 2 : 1);
+      vehicleData.from = document.getElementById('veh-dist-from')?.value || '';
+      vehicleData.to = document.getElementById('veh-dist-to')?.value || '';
+      vehicleData.km = km;
+      vehicleData.roundtrip = roundtrip;
+      vehicleData.total = total;
+      vehicleData.routeTotal = total;
+      routes.push({ from: vehicleData.from, to: vehicleData.to, vehicle: vehicleTypeVal, cost: total });
+    }
   } else if (vehicleTypeVal === 'bus' || vehicleTypeVal === 'train' || vehicleTypeVal === 'plane') {
     const legs = [];
     document.querySelectorAll('#vehicle-ticket-legs > div').forEach(legEl => {
