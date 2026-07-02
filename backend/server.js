@@ -1650,7 +1650,7 @@ app.post('/api/travel-clearance', async (req, res) => {
 
     await db.query(
       `INSERT INTO travel_clearances (clearanceId, reportId, travelId, userId, fullName, totalSpent, totalBorrowed, details, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'รอการตรวจสอบ')`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'อนุมัติแล้ว')`,
       [clearanceId, reportId, travelId, userId, fullName, totalSpent || 0.00, totalBorrowed || 0.00, details]
     );
 
@@ -1659,7 +1659,7 @@ app.post('/api/travel-clearance', async (req, res) => {
     if (adminGroupId) {
       const flexMessage = {
         "type": "bubble",
-        "header": { "type": "box", "layout": "vertical", "contents": [{ "type": "text", "text": "💰 มีคำขอเคลียร์เงินยืมใหม่", "weight": "bold", "size": "lg", "color": "#0d9488" }] },
+        "header": { "type": "box", "layout": "vertical", "contents": [{ "type": "text", "text": "💰 เคลียร์เงินยืมสำเร็จแล้ว", "weight": "bold", "size": "lg", "color": "#10b981" }] },
         "body": {
           "type": "box", "layout": "vertical", "contents": [
             { "type": "box", "layout": "baseline", "margin": "md", "contents": [{ "type": "text", "text": "ผู้ยื่น:", "color": "#aaaaaa", "size": "sm", "flex": 2 }, { "type": "text", "text": fullName, "wrap": true, "color": "#666666", "size": "sm", "flex": 5 }] },
@@ -1669,14 +1669,14 @@ app.post('/api/travel-clearance', async (req, res) => {
         },
         "footer": {
           "type": "box", "layout": "vertical", "contents": [
-            { "type": "button", "style": "primary", "color": "#0d9488", "action": { "type": "uri", "label": "ตรวจสอบ / อนุมัติ", "uri": `https://service.npc.ac.th/npc_eleve/` } }
+            { "type": "button", "style": "primary", "color": "#10b981", "action": { "type": "uri", "label": "เปิดดูรายละเอียด", "uri": `https://service.npc.ac.th/npc_eleve/` } }
           ]
         }
       };
-      await sendLineFlexMessage(adminGroupId, flexMessage, "มีคำขอเคลียร์เงินยืมรอการอนุมัติ");
+      await sendLineFlexMessage(adminGroupId, flexMessage, "มีการเคลียร์เงินยืมสำเร็จแล้ว");
     }
 
-    res.json({ success: true, message: 'ส่งเอกสารเคลียร์เงินยืมสำเร็จ' });
+    res.json({ success: true, message: 'ส่งเอกสารเคลียร์เงินยืมและอนุมัติเรียบร้อย' });
   } catch (err) {
     console.error('Error submitting travel clearance:', err.message);
     res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาด: ' + err.message });

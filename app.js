@@ -3234,6 +3234,9 @@ window.handleClearanceSubmit = async (e) => {
       Swal.fire('สำเร็จ', data.message, 'success');
       hideClearanceModal();
       initTravelReportPage();
+      
+      // Auto-trigger printing of the clearance forms
+      printClearance(reportId);
     } else {
       showError(data.message);
     }
