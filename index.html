@@ -745,8 +745,11 @@
         <div class="glass-card">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:24px;">
             <h3 style="font-size:1.1rem; font-weight:600;">บัญชีรายชื่อบุคลากรทั้งหมด</h3>
-            <div>
-              <label for="import-excel-input" class="btn btn-primary" style="padding: 10px 20px; font-size:0.9rem;">📂 นำเข้ารายชื่อบุคลากรจาก Excel</label>
+            <div style="display:flex; gap:12px; align-items:center;">
+              <button onclick="showAddUserModal()" class="btn" style="background:var(--success); color:white; padding: 10px 20px; font-size:0.9rem; border-radius:10px; border:none; display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-weight:600; transition:all 0.2s;">
+                ➕ เพิ่มผู้ใช้งานใหม่
+              </button>
+              <label for="import-excel-input" class="btn btn-primary" style="padding: 10px 20px; font-size:0.9rem; margin:0;">📂 นำเข้ารายชื่อบุคลากรจาก Excel</label>
               <input type="file" id="import-excel-input" class="hidden" accept=".xlsx, .xls">
             </div>
           </div>
@@ -1217,6 +1220,6 @@
   </div>
 
   <!-- Load Custom JS logic -->
-  <script src="app.js?v=4.7"></script>
+  <script src="app.js?v=4.8"></script>
 </body>
 </html>

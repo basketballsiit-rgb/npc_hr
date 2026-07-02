@@ -411,6 +411,34 @@ app.post('/api/users/approve/:userId', async (req, res) => {
   }
 });
 
+// Add new user manually by admin
+app.post('/api/users', async (req, res) => {
+  const { fullName, position, username, password, role, status, staffType, lineUserId } = req.body;
+  if (!fullName || !position || !username || !password) {
+    return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน' });
+  }
+
+  try {
+    const [exists] = await db.query('SELECT userId FROM users WHERE username = ?', [username]);
+    if (exists.length > 0) {
+      return res.json({ success: false, message: 'ชื่อผู้ใช้งานนี้มีอยู่แล้วในระบบ' });
+    }
+
+    const userId = crypto.randomUUID();
+    const hashedPassword = bcrypt.hashSync(password, 10);
+    await db.query(
+      'INSERT INTO users (userId, fullName, position, username, password, role, status, lineUserId, staffType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [userId, fullName, position, username, hashedPassword, role || 'user', status || 'approved', lineUserId || null, staffType || null]
+    );
+
+    res.json({ success: true, message: 'เพิ่มผู้ใช้งานใหม่สำเร็จ' });
+  } catch (error) {
+    console.error('Create user error:', error.message);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดภายในระบบ: ' + error.message });
+  }
+});
+
+
 // Import users from Excel
 app.post('/api/users/import', async (req, res) => {
   const usersArray = req.body;
@@ -1248,12 +1276,12 @@ app.get('/api/attendance', async (req, res) => {
     );
     const attendanceMap = new Map(attendanceRecords.map(r => [r.userId, r.status]));
 
-    // 3. Fetch overlapping leaves (approved or pending) for this date
+    // 3. Fetch overlapping leaves (approved only) for this date
     const [leaves] = await db.query(
       `SELECT leaveId, userId, leaveType, status 
        FROM leave_data 
        WHERE ? BETWEEN startDate AND endDate 
-         AND status IN ('อนุมัติ', 'รอการอนุมัติ')`,
+         AND status = 'อนุมัติ'`,
       [date]
     );
     const leavesMap = new Map(leaves.map(l => [l.userId, l]));

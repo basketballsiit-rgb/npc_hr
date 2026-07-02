@@ -1798,6 +1798,118 @@ window.editUser = (u) => {
   });
 };
 
+// Show modal to add new user manually
+window.showAddUserModal = () => {
+  Swal.fire({
+    title: 'เพิ่มผู้ใช้งานใหม่',
+    html: `
+      <!-- Dummy fields to prevent browser autofill -->
+      <input type="text" style="display:none;" name="dummy-username" autocomplete="username">
+      <input type="password" style="display:none;" name="dummy-password" autocomplete="new-password">
+
+      <div style="text-align: left; display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <label class="form-label">ชื่อ-นามสกุล <span style="color:var(--danger)">*</span></label>
+          <input id="add-fn" class="form-input" placeholder="เช่น นายสมชาย ใจดี" autocomplete="off">
+        </div>
+        <div>
+          <label class="form-label">ตำแหน่ง <span style="color:var(--danger)">*</span></label>
+          <input id="add-pos" class="form-input" placeholder="เช่น ครูวิทยฐานะชำนาญการ" autocomplete="off">
+        </div>
+        <div>
+          <label class="form-label">ประเภทบุคลากร</label>
+          <select id="add-type" class="form-input">
+            <option value="ข้าราชการ">ข้าราชการ</option>
+            <option value="พนักงานราชการ">พนักงานราชการ</option>
+            <option value="ครูพิเศษสอน" selected>ครูพิเศษสอน</option>
+            <option value="เจ้าหน้าที่">เจ้าหน้าที่</option>
+            <option value="ผู้บริหาร">ผู้บริหาร</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">สิทธิ์การเข้าถึง</label>
+          <select id="add-er" class="form-input">
+            <option value="user" selected>บุคลากร (User)</option>
+            <option value="admin">ผู้ดูแลระบบ (Admin)</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">สถานะบัญชี</label>
+          <select id="add-status" class="form-input">
+            <option value="approved" selected>อนุมัติแล้ว (Approved)</option>
+            <option value="pending">รออนุมัติ (Pending)</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">ชื่อผู้ใช้ (ภาษาอังกฤษ) <span style="color:var(--danger)">*</span></label>
+          <input id="add-ru" class="form-input" placeholder="Username สำหรับเข้าสู่ระบบ" autocomplete="off">
+        </div>
+        <div>
+          <label class="form-label">รหัสผ่าน <span style="color:var(--danger)">*</span></label>
+          <input id="add-rp" type="password" class="form-input" placeholder="Password สำหรับเข้าใช้งาน" autocomplete="new-password">
+        </div>
+        <div>
+          <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>LINE User ID</span>
+            <a href="https://line.me/R/ti/p/@943jvlmv" target="_blank" style="background:#06c755; color:white; padding:4px 10px; font-size:11px; border-radius:6px; font-weight:bold; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">💬 แชทบอตขอ ID</a>
+          </label>
+          <input id="add-lid" class="form-input" placeholder="ระบุ LINE User ID (เริ่มต้นด้วย U...)" autocomplete="off">
+          <p style="font-size:10px; color:var(--text-muted); margin-top:4px;">*พิมพ์ "ขอ ID" ในห้องแชทเพื่อขอรหัสจากบอต</p>
+        </div>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'บันทึก',
+    cancelButtonText: 'ยกเลิก',
+    preConfirm: () => {
+      const fn = document.getElementById('add-fn').value;
+      const pos = document.getElementById('add-pos').value;
+      const type = document.getElementById('add-type').value;
+      const role = document.getElementById('add-er').value;
+      const status = document.getElementById('add-status').value;
+      const ru = document.getElementById('add-ru').value;
+      const rp = document.getElementById('add-rp').value;
+      const lid = document.getElementById('add-lid').value.trim();
+
+      if (!fn || !pos || !ru || !rp) {
+        Swal.showValidationMessage('กรุณากรอกข้อมูลหลักที่จำเป็น (*) ให้ครบถ้วน');
+        return false;
+      }
+      return {
+        fullName: fn,
+        position: pos,
+        staffType: type || null,
+        role: role,
+        status: status,
+        username: ru,
+        password: rp,
+        lineUserId: lid || null
+      };
+    }
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      showLoading('กำลังบันทึกข้อมูลผู้ใช้งานใหม่...');
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(result.value)
+        });
+        const r = await res.json();
+        
+        if (r.success) {
+          Swal.fire('สำเร็จ', 'เพิ่มผู้ใช้งานใหม่เรียบร้อยแล้ว', 'success');
+          loadUserManagementPage();
+        } else {
+          showError(r.message);
+        }
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+  });
+};
+
 // Import Users from Excel
 function handleImportExcel(e) {
   const file = e.target.files[0];
