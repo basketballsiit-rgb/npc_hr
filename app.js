@@ -2362,28 +2362,310 @@ async function saveAttendanceData() {
 // ==========================================
 
 function calculateTravelDays() {
-  const start = document.getElementById('travel-start-date').value;
-  const end = document.getElementById('travel-end-date').value;
+  const startInput = document.getElementById('travel-start-date');
+  const endInput = document.getElementById('travel-end-date');
   const daysInput = document.getElementById('travel-total-days');
-  if (start && end) {
-    const sDate = new Date(start);
-    const eDate = new Date(end);
+  const allowanceDays = document.getElementById('travel-days-allowance');
+  const rentDays = document.getElementById('travel-days-rent');
+  
+  if (startInput && endInput && startInput.value && endInput.value) {
+    const sDate = new Date(startInput.value);
+    const eDate = new Date(endInput.value);
     if (eDate >= sDate) {
       const diffTime = Math.abs(eDate - sDate);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-      daysInput.value = diffDays;
+      
+      if (daysInput) daysInput.value = diffDays;
+      if (allowanceDays) allowanceDays.value = diffDays;
+      if (rentDays) rentDays.value = Math.max(0, diffDays - 1);
+      
+      calculateExpenses();
     } else {
-      daysInput.value = 0;
+      if (daysInput) daysInput.value = 0;
     }
-  } else {
-    daysInput.value = '';
   }
+}
+
+// Tab switching for travel request form
+window.switchTravelTab = (tabId) => {
+  const tabs = document.querySelectorAll('.travel-tab-content');
+  const buttons = document.querySelectorAll('.travel-tab-btn');
+  
+  tabs.forEach(tab => {
+    if (tab.id === tabId) {
+      tab.classList.add('active');
+    } else {
+      tab.classList.remove('active');
+    }
+  });
+  
+  buttons.forEach(btn => {
+    if (btn.getAttribute('onclick').includes(tabId)) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+};
+
+// Traveler dynamic rows management
+window.addTravelerRow = (name = '', position = '') => {
+  const container = document.getElementById('travel-accompanied-list');
+  if (!container) return;
+  
+  const div = document.createElement('div');
+  div.className = 'travel-traveler-row';
+  div.style.display = 'flex';
+  div.style.gap = '10px';
+  div.style.alignItems = 'center';
+  div.style.marginTop = '8px';
+  
+  div.innerHTML = `
+    <input type="text" class="form-input travel-accompanied-name" placeholder="ชื่อ-นามสกุล..." value="${name}" required style="flex-grow: 1;">
+    <input type="text" class="form-input travel-accompanied-pos" placeholder="ตำแหน่ง..." value="${position}" required style="width: 200px;">
+    <button type="button" class="btn btn-outline btn-sm" onclick="removeTravelerRow(this)" style="padding: 10px; border-color:var(--danger); color:var(--danger);">❌</button>
+  `;
+  container.appendChild(div);
+  updateTravelersCount();
+};
+
+window.removeTravelerRow = (button) => {
+  button.parentElement.remove();
+  updateTravelersCount();
+};
+
+function updateTravelersCount() {
+  const rows = document.querySelectorAll('.travel-traveler-row').length;
+  const totalPeople = rows + 1;
+  const peopAllow = document.getElementById('travel-people-allowance');
+  const peopRent = document.getElementById('travel-people-rent');
+  if (peopAllow) peopAllow.value = totalPeople;
+  if (peopRent) peopRent.value = totalPeople;
+  calculateExpenses();
+}
+
+// Route dynamic rows management (Transportation estimation)
+window.addRouteRow = (from = '', to = '', weight = '', volume = '', cost = 0, remark = '') => {
+  const tbody = document.getElementById('travel-routes-tbody');
+  if (!tbody) return;
+  
+  const tr = document.createElement('tr');
+  tr.className = 'travel-route-row';
+  
+  tr.innerHTML = `
+    <td><input type="text" class="form-input form-input-sm travel-route-from" placeholder="ต้นทาง..." value="${from}" required></td>
+    <td><input type="text" class="form-input form-input-sm travel-route-to" placeholder="ปลายทาง..." value="${to}" required></td>
+    <td><input type="number" class="form-input form-input-sm travel-route-weight" placeholder="กก." value="${weight}" onchange="calculateExpenses()"></td>
+    <td><input type="number" class="form-input form-input-sm travel-route-volume" placeholder="ลบ.ม." value="${volume}" onchange="calculateExpenses()"></td>
+    <td><input type="number" class="form-input form-input-sm travel-route-cost" placeholder="จำนวนเงิน..." value="${cost || ''}" required onchange="calculateExpenses()"></td>
+    <td><input type="text" class="form-input form-input-sm travel-route-remark" placeholder="หมายเหตุ..." value="${remark}"></td>
+    <td style="text-align:center;"><button type="button" class="btn btn-outline btn-xs" onclick="removeRouteRow(this)" style="border-color:var(--danger); color:var(--danger);">❌</button></td>
+  `;
+  tbody.appendChild(tr);
+  calculateExpenses();
+};
+
+window.removeRouteRow = (button) => {
+  button.parentElement.parentElement.remove();
+  calculateExpenses();
+};
+
+// Toggle extra vehicle fields
+window.toggleVehicleFields = () => {
+  const type = document.querySelector('input[name="travel-vehicle-type"]:checked').value;
+  const extra = document.getElementById('travel-vehicle-extra-fields');
+  if (extra) {
+    if (type === 'gov' || type === 'personal') {
+      extra.style.display = 'grid';
+    } else {
+      extra.style.display = 'none';
+    }
+  }
+};
+
+// Toggle expense category fields
+window.toggleExpenseFields = () => {
+  const type = document.querySelector('input[name="travel-expense-type"]:checked').value;
+  const estTab = document.querySelectorAll('.travel-tab-btn')[1];
+  const loanTab = document.querySelectorAll('.travel-tab-btn')[2];
+  
+  if (type === 'claim') {
+    if (estTab) estTab.removeAttribute('disabled');
+  } else {
+    if (estTab) estTab.setAttribute('disabled', 'true');
+    if (loanTab) {
+      document.getElementById('travel-has-loan').checked = false;
+      toggleLoanForm();
+    }
+  }
+};
+
+// Toggle loan form fields
+window.toggleLoanForm = () => {
+  const checked = document.getElementById('travel-has-loan').checked;
+  const container = document.getElementById('travel-loan-form-container');
+  if (container) {
+    if (checked) {
+      container.style.display = 'block';
+      // Pull figures from Estimation section
+      document.getElementById('travel-loan-allowance').value = parseFloat(document.getElementById('travel-total-allowance-txt').textContent.replace(/,/g, '')) || 0;
+      document.getElementById('travel-loan-rent').value = parseFloat(document.getElementById('travel-total-rent-txt').textContent.replace(/,/g, '')) || 0;
+      
+      // Calculate total transportation cost from routes
+      let routeTotal = 0;
+      document.querySelectorAll('.travel-route-cost').forEach(input => {
+        routeTotal += parseFloat(input.value) || 0;
+      });
+      document.getElementById('travel-loan-fuel').value = routeTotal;
+      
+      // Sync purpose and location
+      document.getElementById('travel-loan-purpose').value = document.getElementById('travel-subject').value;
+      document.getElementById('travel-loan-location').value = document.getElementById('travel-destination').value;
+      
+      calculateLoanTotal();
+    } else {
+      container.style.display = 'none';
+    }
+  }
+};
+
+// Calculate expenses
+window.calculateExpenses = () => {
+  // 1. Vehicle costs from table
+  let routeTotal = 0;
+  document.querySelectorAll('.travel-route-cost').forEach(input => {
+    routeTotal += parseFloat(input.value) || 0;
+  });
+  
+  // 2. Allowance
+  const rateAllow = parseFloat(document.getElementById('travel-rate-allowance').value) || 0;
+  const daysAllow = parseFloat(document.getElementById('travel-days-allowance').value) || 0;
+  const peopleAllow = parseFloat(document.getElementById('travel-people-allowance').value) || 0;
+  const totalAllow = rateAllow * daysAllow * peopleAllow;
+  const allowTxt = document.getElementById('travel-total-allowance-txt');
+  if (allowTxt) allowTxt.textContent = totalAllow.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  
+  // 3. Rent
+  const rateRent = parseFloat(document.getElementById('travel-rate-rent').value) || 0;
+  const daysRent = parseFloat(document.getElementById('travel-days-rent').value) || 0;
+  const peopleRent = parseFloat(document.getElementById('travel-people-rent').value) || 0;
+  const totalRent = rateRent * daysRent * peopleRent;
+  const rentTxt = document.getElementById('travel-total-rent-txt');
+  if (rentTxt) rentTxt.textContent = totalRent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  
+  // 4. Other costs
+  const otherCost = parseFloat(document.getElementById('travel-other-cost').value) || 0;
+  
+  // 5. Grand total
+  const grandTotal = routeTotal + totalAllow + totalRent + otherCost;
+  const grandTxt = document.getElementById('travel-grand-total-txt');
+  if (grandTxt) grandTxt.textContent = grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  
+  // Sync loan form if active
+  const loanCheck = document.getElementById('travel-has-loan');
+  if (loanCheck && loanCheck.checked) {
+    document.getElementById('travel-loan-allowance').value = totalAllow;
+    document.getElementById('travel-loan-rent').value = totalRent;
+    document.getElementById('travel-loan-fuel').value = routeTotal;
+    calculateLoanTotal();
+  }
+};
+
+// Calculate loan total
+window.calculateLoanTotal = () => {
+  const allow = parseFloat(document.getElementById('travel-loan-allowance').value) || 0;
+  const rent = parseFloat(document.getElementById('travel-loan-rent').value) || 0;
+  const fuel = parseFloat(document.getElementById('travel-loan-fuel').value) || 0;
+  const total = allow + rent + fuel;
+  
+  const totalTxt = document.getElementById('travel-loan-total-txt');
+  const totalThaiTxt = document.getElementById('travel-loan-total-thai-txt');
+  if (totalTxt) totalTxt.textContent = total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (totalThaiTxt) totalThaiTxt.textContent = numToThaiBath(total);
+};
+
+// Helper: Convert number to Thai Baht text format
+function numToThaiBath(num) {
+  if (num === 0) return 'ศูนย์บาทถ้วน';
+  const textNum = ['ศูนย์', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า', 'สิบ'];
+  const textPosition = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
+  
+  let str = num.toFixed(2).split('.');
+  let integerPart = str[0];
+  let decimalPart = str[1];
+  
+  let resText = '';
+  
+  // Process integer part
+  let len = integerPart.length;
+  for (let i = 0; i < len; i++) {
+    let digit = parseInt(integerPart.charAt(i));
+    let pos = len - 1 - i;
+    
+    if (digit !== 0) {
+      if (pos === 0 && digit === 1 && len > 1) {
+        resText += 'เอ็ด';
+      } else if (pos === 1 && digit === 1) {
+        resText += 'สิบ';
+      } else if (pos === 1 && digit === 2) {
+        resText += 'ยี่สิบ';
+      } else {
+        resText += textNum[digit] + textPosition[pos];
+      }
+    }
+  }
+  
+  if (resText !== '') resText += 'บาท';
+  
+  // Process decimal part
+  if (parseInt(decimalPart) === 0) {
+    resText += 'ถ้วน';
+  } else {
+    let decLen = decimalPart.length;
+    for (let i = 0; i < decLen; i++) {
+      let digit = parseInt(decimalPart.charAt(i));
+      let pos = decLen - 1 - i;
+      if (digit !== 0) {
+        if (pos === 0 && digit === 1 && decLen > 1) {
+          resText += 'เอ็ด';
+        } else if (pos === 1 && digit === 1) {
+          resText += 'สิบ';
+        } else if (pos === 1 && digit === 2) {
+          resText += 'ยี่สิบ';
+        } else {
+          resText += textNum[digit] + textPosition[pos];
+        }
+      }
+    }
+    resText += 'สตางค์';
+  }
+  return resText;
 }
 
 async function initTravelPage() {
   if (!currentUser) return;
-  document.getElementById('travel-request-form').reset();
-  document.getElementById('travel-total-days').value = '';
+  const form = document.getElementById('travel-request-form');
+  if (form) form.reset();
+  
+  // Set default values
+  const docDate = document.getElementById('travel-doc-date');
+  if (docDate) docDate.value = new Date().toISOString().substring(0, 10);
+  
+  const reqName = document.getElementById('travel-requester-name');
+  if (reqName) reqName.value = currentUser.fullName;
+  
+  const accList = document.getElementById('travel-accompanied-list');
+  if (accList) accList.innerHTML = '';
+  
+  const routesBody = document.getElementById('travel-routes-tbody');
+  if (routesBody) routesBody.innerHTML = '';
+  
+  // Reset tabs
+  switchTravelTab('travel-tab-memo');
+  
+  // Add initial route row
+  addRouteRow();
+  
   await loadTravelHistory();
 }
 

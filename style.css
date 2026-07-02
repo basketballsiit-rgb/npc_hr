@@ -1407,3 +1407,51 @@ select.form-input {
   z-index: 1000000 !important;
 }
 
+/* ================================================================= */
+/* Travel Tab Components                                             */
+/* ================================================================= */
+
+.travel-tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.travel-tab-btn:hover {
+  color: var(--primary);
+}
+
+.travel-tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.travel-tab-content {
+  display: none;
+}
+
+.travel-tab-content.active {
+  display: block;
+}
+
+.travel-dynamic-table th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.travel-dynamic-table td {
+  padding: 8px;
+  vertical-align: middle;
+}
+
+
