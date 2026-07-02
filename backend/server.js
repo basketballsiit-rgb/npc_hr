@@ -906,6 +906,7 @@ app.get('/api/dashboard', async (req, res) => {
     }
 
     let totalStaffVal = 0;
+    let totalTravelsVal = 0;
     let statusCountsVal = { approved: 0, pending: 0, rejected: 0 };
     let leaveTypesVal = [];
     let monthlyCountsVal = Array(12).fill(0);
@@ -917,6 +918,12 @@ app.get('/api/dashboard', async (req, res) => {
       // Admin: Aggregate stats for all staff in the current fiscal year
       const [[{ totalStaff }]] = await db.query('SELECT COUNT(*) as totalStaff FROM users WHERE role = "user" AND status = "approved"');
       totalStaffVal = totalStaff || 0;
+
+      const [[{ totalTravels }]] = await db.query(
+        `SELECT COUNT(*) as totalTravels FROM travel_data WHERE status = 'อนุมัติ' AND ${dateFilterSql}`,
+        [fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
+      );
+      totalTravelsVal = totalTravels || 0;
 
       const [statusCounts] = await db.query(
         `SELECT 
@@ -973,6 +980,16 @@ app.get('/api/dashboard', async (req, res) => {
     } else {
       // Teacher: Stats for this specific user (including duplicates) in the current fiscal year
       const userIds = await getUserIdsForUser(userId);
+
+      const [[{ totalTravels }]] = await db.query(
+        `SELECT COALESCE(SUM(totalDays), 0) as totalTravels 
+         FROM travel_data 
+         WHERE userId IN (${userIds.map(() => '?').join(', ')}) 
+           AND status = 'อนุมัติ' 
+           AND ${dateFilterSql}`,
+        [...userIds, fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
+      );
+      totalTravelsVal = parseFloat(totalTravels) || 0;
       
       // Card 1: Total accumulated approved leave days in the current fiscal year
       const [[{ totalStaff }]] = await db.query(
@@ -1051,7 +1068,8 @@ app.get('/api/dashboard', async (req, res) => {
         totalStaff: totalStaffVal,
         approved: statusCountsVal.approved,
         pending: statusCountsVal.pending,
-        rejected: statusCountsVal.rejected
+        rejected: statusCountsVal.rejected,
+        totalTravels: totalTravelsVal
       },
       charts: {
         leaveTypeData: {

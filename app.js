@@ -873,6 +873,10 @@ async function loadDashboardData() {
         document.getElementById('stat-approved').textContent = d.stats.approved;
         document.getElementById('stat-pending').textContent = d.stats.pending;
         document.getElementById('stat-rejected').textContent = d.stats.rejected;
+        
+        const travelLabel = document.getElementById('stat-travel-label');
+        if (travelLabel) travelLabel.textContent = 'ไปราชการทั้งหมด (ครั้ง)';
+        document.getElementById('stat-travels').textContent = d.stats.totalTravels;
       } else {
         if (totalLabel) totalLabel.textContent = `วันลาสะสม${yrDisplay}`;
         if (dashboardTitle) dashboardTitle.textContent = `แดชบอร์ดการลาของฉัน (${yrDisplay})`;
@@ -883,6 +887,10 @@ async function loadDashboardData() {
         document.getElementById('stat-approved').textContent = formatDays(d.stats.approved);
         document.getElementById('stat-pending').textContent = formatDays(d.stats.pending);
         document.getElementById('stat-rejected').textContent = formatDays(d.stats.rejected);
+        
+        const travelLabel = document.getElementById('stat-travel-label');
+        if (travelLabel) travelLabel.textContent = 'เดินทางไปราชการ (วัน)';
+        document.getElementById('stat-travels').textContent = formatDays(d.stats.totalTravels);
       }
       
       // Render Charts
