@@ -6,7 +6,7 @@
   <title>ระบบบริหารงานบุคลากร - วิทยาลัยสารพัดช่างน่าน</title>
   
   <!-- Custom Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=5.0">
+  <link rel="stylesheet" href="style.css?v=6.0">
   
   <!-- External Libraries (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -1286,39 +1286,139 @@
           <button onclick="showPage('portal-page')" class="btn btn-outline btn-sm">🏠 กลับหน้าหลักพอร์ทัล</button>
         </div>
 
-        <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:24px; align-items:start;">
+        <div style="display:flex; flex-direction:column; gap:24px;">
           <!-- Form to submit report -->
           <div class="glass-card">
-            <h3 style="font-size:1.1rem; font-weight:600; margin-bottom:20px; color:#0891b2;">✍️ เขียนรายงานสรุปผลเดินทางไปราชการ</h3>
-            <form id="travel-report-form" style="display:flex; flex-direction:column; gap:16px;">
+            <h3 style="font-size:1.2rem; font-weight:700; margin-bottom:20px; color:#0891b2; display:flex; align-items:center; gap:8px;">
+              <span>📝 เขียนรายงานสรุปผลการอบรม ประชุม สัมมนาภายในประเทศ</span>
+            </h3>
+            
+            <form id="travel-report-form" style="display:flex; flex-direction:column; gap:20px;">
               <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label">เลือกรายการไปราชการที่ได้รับอนุมัติ</label>
-                <select id="report-travel-select" class="form-input" required>
+                <label class="form-label" style="font-weight:700; color:#0e7490;">เลือกรายการไปราชการที่ได้รับอนุมัติ</label>
+                <select id="report-travel-select" class="form-input" required onchange="handleReportTravelSelect(this.value)">
                   <option value="">-- กรุณาเลือกรายการ --</option>
                 </select>
               </div>
-              <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label">สรุปผลการปฏิบัติงานราชการที่สำคัญ</label>
-                <textarea id="report-detail" class="form-input" rows="4" required placeholder="กรอกรายละเอียดภารกิจที่ได้ปฏิบัติสำเร็จลุล่วง..."></textarea>
+
+              <!-- Read-only auto-filled travel request details card -->
+              <div id="report-travel-info-card" style="display:none; background:#ecfeff; border:1px solid #c5f2f7; padding:16px; border-radius:8px; margin-bottom:10px;">
+                <h4 style="font-weight:700; color:#0e7490; margin-bottom:10px; font-size:0.95rem;">📋 ข้อมูลเสนอขออนุมัติเดิม</h4>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px; font-size:0.85rem; color:#155e75;">
+                  <div><strong>เรื่อง/โครงการ:</strong> <span id="info-report-subject">-</span></div>
+                  <div><strong>สถานที่:</strong> <span id="info-report-destination">-</span></div>
+                  <div><strong>วันที่เดินทาง:</strong> <span id="info-report-dates">-</span></div>
+                  <div><strong>ประมาณการค่าใช้จ่าย:</strong> <span id="info-report-budget">-</span> บาท</div>
+                </div>
               </div>
-              <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label">ประโยชน์ที่วิทยาลัย / นักศึกษา / ราชการ ได้รับ</label>
-                <textarea id="report-benefits" class="form-input" rows="3" required placeholder="อธิบายผลประโยชน์ที่นำกลับมาพัฒนาวิทยาลัย..."></textarea>
+
+              <hr style="border:0; border-top:1px solid #e2e8f0; margin:10px 0;">
+
+              <!-- Section 1: Basic details -->
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:16px;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label">ผู้รายงาน</label>
+                  <input type="text" id="report-user-name" class="form-input" readonly placeholder="ดึงข้อมูลจากระบบ...">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label">เรื่องหรือสาขาที่ไปราชการ/ประชุม/อบรม</label>
+                  <input type="text" id="report-subject" class="form-input" required placeholder="ดึงค่าจากใบขออนุมัติ หรือแก้ไขใหม่...">
+                </div>
               </div>
-              <button type="submit" class="btn btn-primary" style="margin-top:8px;">💾 ส่งรายงานไปราชการ</button>
+
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:16px;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label">สถาบันหรือหน่วยงานที่จัดการอบรม/ประชุม/สัมมนา</label>
+                  <input type="text" id="report-organizer" class="form-input" required placeholder="ระบุชื่อหน่วยงาน/ผู้จัดโครงการ...">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label">งบประมาณค่าใช้จ่ายจริงที่ใช้ไป (บาท)</label>
+                  <input type="number" id="report-budget" class="form-input" required value="0">
+                </div>
+              </div>
+
+              <!-- Section 2: Detailed contents 8.1 - 8.4 -->
+              <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:16px; border-radius:8px;">
+                <span style="font-weight:700; color:#334155; font-size:0.95rem; display:block; margin-bottom:12px; border-bottom:1px solid #cbd5e1; padding-bottom:6px;">
+                  8. รายละเอียดทางวิชาการและประสบการณ์ที่ได้รับ (กรอกสรุปเนื้อหาเป็นข้อ ๆ)
+                </span>
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label" style="font-size:0.8rem; color:#475569;">หัวข้อรายละเอียด 8.1</label>
+                    <textarea id="report-content-8-1" class="form-input" rows="2" required placeholder="ระบุรายละเอียดหัวข้อที่ 1..."></textarea>
+                  </div>
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label" style="font-size:0.8rem; color:#475569;">หัวข้อรายละเอียด 8.2 (เว้นว่างได้)</label>
+                    <textarea id="report-content-8-2" class="form-input" rows="2" placeholder="ระบุรายละเอียดหัวข้อที่ 2..."></textarea>
+                  </div>
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label" style="font-size:0.8rem; color:#475569;">หัวข้อรายละเอียด 8.3 (เว้นว่างได้)</label>
+                    <textarea id="report-content-8-3" class="form-input" rows="2" placeholder="ระบุรายละเอียดหัวข้อที่ 3..."></textarea>
+                  </div>
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label" style="font-size:0.8rem; color:#475569;">หัวข้อรายละเอียด 8.4 (เว้นว่างได้)</label>
+                    <textarea id="report-content-8-4" class="form-input" rows="2" placeholder="ระบุรายละเอียดหัวข้อที่ 4..."></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Section 3: Obstacles 9 -->
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" style="font-weight:700;">9. ปัญหาและอุปสรรคในการอบรม/ประชุม/สัมมนา</label>
+                <textarea id="report-obstacles" class="form-input" rows="2" required placeholder="ระบุปัญหาอุปสรรค เช่น การเดินทาง ลำดับขั้นตอน หรือไม่มีอุปสรรค..."></textarea>
+              </div>
+
+              <!-- Section 4: Suggestions 10.1 - 10.3 -->
+              <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:16px; border-radius:8px;">
+                <span style="font-weight:700; color:#334155; font-size:0.95rem; display:block; margin-bottom:12px; border-bottom:1px solid #cbd5e1; padding-bottom:6px;">
+                  10. สรุปข้อคิดเห็น ประโยชน์ที่ได้รับ และข้อเสนอแนะเพื่อนำมาพัฒนา/ปรับปรุงงาน
+                </span>
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label" style="font-size:0.8rem; color:#475569;">ข้อเสนอแนะ/ประโยชน์ข้อที่ 10.1</label>
+                    <textarea id="report-suggestion-10-1" class="form-input" rows="2" required placeholder="เช่น นำทักษะการใช้งานอุปกรณ์มาถ่ายทอดในชั้นเรียน..."></textarea>
+                  </div>
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label" style="font-size:0.8rem; color:#475569;">ข้อเสนอแนะ/ประโยชน์ข้อที่ 10.2 (เว้นว่างได้)</label>
+                    <textarea id="report-suggestion-10-2" class="form-input" rows="2" placeholder="ระบุข้อแนะนำเพิ่มเติม..."></textarea>
+                  </div>
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label" style="font-size:0.8rem; color:#475569;">ข้อเสนอแนะ/ประโยชน์ข้อที่ 10.3 (เว้นว่างได้)</label>
+                    <textarea id="report-suggestion-10-3" class="form-input" rows="2" placeholder="ระบุข้อแนะนำเพิ่มเติม..."></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Section 5: Photos upload -->
+              <div style="background:#f0fdfa; border:1px dashed #0d9488; padding:16px; border-radius:8px;">
+                <label class="form-label" style="font-weight:700; color:#0f766e;">📷 แนบภาพถ่ายประกอบการอบรม/ปฏิบัติงาน (แนบได้สูงสุด 4 ภาพ)</label>
+                <input type="file" id="report-photos" class="form-input" multiple accept="image/*" onchange="previewReportPhotos(this)" style="background:white; border-color:#0d9488;">
+                <div id="report-photo-previews" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-top:12px;">
+                  <!-- Photo previews injected here -->
+                </div>
+              </div>
+
+              <div style="border-top:1px solid #cbd5e1; padding-top:20px; display:flex; justify-content:space-between; align-items:center;">
+                <span id="report-form-error-msg" style="color:var(--danger); font-weight:600; font-size:0.9rem;"></span>
+                <button type="submit" class="btn btn-primary btn-lg" style="margin-left:auto;">💾 ส่งรายงานสรุปผลไปราชการ</button>
+              </div>
             </form>
           </div>
 
           <!-- History List -->
           <div class="glass-card">
-            <h3 style="font-size:1.1rem; font-weight:600; margin-bottom:20px; color:#0891b2;">📋 รายการรายงานราชการที่ส่งแล้ว</h3>
+            <h3 style="font-size:1.15rem; font-weight:700; margin-bottom:20px; color:#0891b2; display:flex; align-items:center; gap:8px;">
+              <span>📋 ประวัติการส่งรายงานการไปราชการของคุณ</span>
+            </h3>
             <div class="table-container" style="max-height: 400px; overflow-y: auto;">
               <table class="custom-table" style="font-size:0.85rem;">
                 <thead>
                   <tr>
                     <th>เรื่อง/ปลายทาง</th>
-                    <th>ผลรายงานย่อ</th>
-                    <th>วันที่ส่ง</th>
+                    <th>หน่วยงานผู้จัด</th>
+                    <th style="text-align:right;">งบที่ใช้ (บาท)</th>
+                    <th>วันที่ส่งรายงาน</th>
+                    <th style="width:140px; text-align:center;">พิมพ์รายงาน</th>
                   </tr>
                 </thead>
                 <tbody id="travel-report-table-body">
@@ -1329,7 +1429,7 @@
           </div>
         </div>
       </div>
-
+      
       <!-- 10. Training Records Page -->
       <div id="training-page" class="page hidden">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
@@ -1534,6 +1634,6 @@
   </div>
 
   <!-- Load Custom JS logic -->
-  <script src="app.js?v=5.0"></script>
+  <script src="app.js?v=6.0"></script>
 </body>
 </html>

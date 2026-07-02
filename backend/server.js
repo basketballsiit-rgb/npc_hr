@@ -1481,7 +1481,7 @@ app.post('/api/attendance', async (req, res) => {
 
 // --- 1. Travel Permission APIs ---
 app.post('/api/travel', async (req, res) => {
-  const { userId, fullName, subject, destination, totalDays, budget, vehicleType } = req.body;
+  const { userId, fullName, subject, destination, totalDays, budget, vehicleType, details } = req.body;
   const startDate = normalizeDateToAD(req.body.startDate);
   const endDate = normalizeDateToAD(req.body.endDate);
   
@@ -1492,9 +1492,9 @@ app.post('/api/travel', async (req, res) => {
   const travelId = require('crypto').randomUUID();
   try {
     await db.query(
-      `INSERT INTO travel_data (travelId, userId, fullName, subject, destination, startDate, endDate, totalDays, budget, vehicleType, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'รอการอนุมัติ')`,
-      [travelId, userId, fullName, subject, destination, startDate, endDate, totalDays, budget || 0, vehicleType]
+      `INSERT INTO travel_data (travelId, userId, fullName, subject, destination, startDate, endDate, totalDays, budget, vehicleType, details, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'รอการอนุมัติ')`,
+      [travelId, userId, fullName, subject, destination, startDate, endDate, totalDays, budget || 0, vehicleType, details || null]
     );
     res.json({ success: true, message: 'ยื่นคำขอไปราชการสำเร็จ' });
   } catch (err) {
@@ -1539,7 +1539,7 @@ app.post('/api/travel/approve', async (req, res) => {
 
 // --- 2. Travel Report APIs ---
 app.post('/api/travel-report', async (req, res) => {
-  const { travelId, userId, fullName, reportDetail, benefits } = req.body;
+  const { travelId, userId, fullName, reportDetail, benefits, organizer, budget, details } = req.body;
   if (!travelId || !userId || !fullName || !reportDetail || !benefits) {
     return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
   }
@@ -1547,9 +1547,9 @@ app.post('/api/travel-report', async (req, res) => {
   const reportId = require('crypto').randomUUID();
   try {
     await db.query(
-      `INSERT INTO travel_reports (reportId, travelId, userId, fullName, reportDetail, benefits)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [reportId, travelId, userId, fullName, reportDetail, benefits]
+      `INSERT INTO travel_reports (reportId, travelId, userId, fullName, reportDetail, benefits, organizer, budget, details)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [reportId, travelId, userId, fullName, reportDetail, benefits, organizer || null, budget || 0.00, details || null]
     );
     res.json({ success: true, message: 'ส่งรายงานสรุปผลไปราชการสำเร็จ' });
   } catch (err) {
@@ -1559,12 +1559,20 @@ app.post('/api/travel-report', async (req, res) => {
 });
 
 app.get('/api/travel-report', async (req, res) => {
-  const { userId } = req.query;
+  const { userId, reportId } = req.query;
   try {
     let rows;
-    if (userId) {
+    if (reportId) {
       [rows] = await db.query(
-        `SELECT r.*, t.subject, t.destination, t.startDate, t.endDate 
+        `SELECT r.*, t.subject, t.destination, t.startDate, t.endDate, t.details AS travelRequestDetails 
+         FROM travel_reports r 
+         JOIN travel_data t ON r.travelId = t.travelId 
+         WHERE r.reportId = ?`,
+        [reportId]
+      );
+    } else if (userId) {
+      [rows] = await db.query(
+        `SELECT r.*, t.subject, t.destination, t.startDate, t.endDate, t.details AS travelRequestDetails 
          FROM travel_reports r 
          JOIN travel_data t ON r.travelId = t.travelId 
          WHERE r.userId = ? ORDER BY r.createdAt DESC`,
@@ -1572,7 +1580,7 @@ app.get('/api/travel-report', async (req, res) => {
       );
     } else {
       [rows] = await db.query(
-        `SELECT r.*, t.subject, t.destination, t.startDate, t.endDate 
+        `SELECT r.*, t.subject, t.destination, t.startDate, t.endDate, t.details AS travelRequestDetails 
          FROM travel_reports r 
          JOIN travel_data t ON r.travelId = t.travelId 
          ORDER BY r.createdAt DESC`

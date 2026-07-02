@@ -2816,9 +2816,24 @@ async function handleTravelSubmit(e) {
   }
 }
 
+let reportUploadedPhotos = [];
+let approvedTravelsList = [];
+
 async function initTravelReportPage() {
   if (!currentUser) return;
-  document.getElementById('travel-report-form').reset();
+  const form = document.getElementById('travel-report-form');
+  if (form) form.reset();
+  
+  reportUploadedPhotos = [];
+  const previewContainer = document.getElementById('report-photo-previews');
+  if (previewContainer) previewContainer.innerHTML = '';
+  
+  const infoCard = document.getElementById('report-travel-info-card');
+  if (infoCard) infoCard.style.display = 'none';
+  
+  const userNameInput = document.getElementById('report-user-name');
+  if (userNameInput) userNameInput.value = currentUser.fullName;
+  
   await loadApprovedTravelsDropdown();
   await loadTravelReportsHistory();
 }
@@ -2831,14 +2846,14 @@ async function loadApprovedTravelsDropdown() {
   try {
     const res = await fetch(`${API_BASE_URL}/api/travel?userId=${currentUser.userId}`);
     const travels = await res.json();
-    const approved = travels.filter(t => t.status === 'อนุมัติ');
+    approvedTravelsList = travels.filter(t => t.status === 'อนุมัติ');
     
-    if (approved.length === 0) {
+    if (approvedTravelsList.length === 0) {
       select.innerHTML = '<option value="">-- ไม่มีประวัติเดินทางที่อนุมัติ --</option>';
       return;
     }
     
-    approved.forEach(t => {
+    approvedTravelsList.forEach(t => {
       const option = document.createElement('option');
       option.value = t.travelId;
       option.textContent = `${t.subject} ณ ${t.destination} (${formatDate(t.startDate)} - ${formatDate(t.endDate)})`;
@@ -2848,6 +2863,88 @@ async function loadApprovedTravelsDropdown() {
     console.error('Error loading approved travels for dropdown:', err);
   }
 }
+
+window.handleReportTravelSelect = (travelId) => {
+  const infoCard = document.getElementById('report-travel-info-card');
+  if (!infoCard) return;
+  
+  if (!travelId) {
+    infoCard.style.display = 'none';
+    return;
+  }
+  
+  const travel = approvedTravelsList.find(t => t.travelId === travelId);
+  if (!travel) return;
+  
+  infoCard.style.display = 'block';
+  document.getElementById('info-report-subject').textContent = travel.subject;
+  document.getElementById('info-report-destination').textContent = travel.destination;
+  document.getElementById('info-report-dates').textContent = `${formatDate(travel.startDate)} - ${formatDate(travel.endDate)}`;
+  document.getElementById('info-report-budget').textContent = parseFloat(travel.budget).toLocaleString('en-US', { minimumFractionDigits: 2 });
+  
+  // Autofill defaults
+  document.getElementById('report-subject').value = travel.subject;
+  document.getElementById('report-budget').value = travel.budget;
+};
+
+window.previewReportPhotos = (input) => {
+  const previewContainer = document.getElementById('report-photo-previews');
+  if (!previewContainer) return;
+  previewContainer.innerHTML = '';
+  reportUploadedPhotos = [];
+  
+  const files = Array.from(input.files).slice(0, 4); // max 4 photos
+  
+  files.forEach((file, index) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target.result;
+      reportUploadedPhotos.push(base64);
+      
+      const div = document.createElement('div');
+      div.className = 'photo-preview-item';
+      div.style.position = 'relative';
+      div.style.width = '140px';
+      div.style.height = '140px';
+      div.style.border = '1px solid #cbd5e1';
+      div.style.borderRadius = '6px';
+      div.style.overflow = 'hidden';
+      div.style.boxShadow = 'var(--shadow-sm)';
+      
+      div.innerHTML = `
+        <img src="${base64}" style="width:100%; height:100%; object-fit:cover;">
+        <button type="button" onclick="removeReportPhoto(${index})" style="position:absolute; top:4px; right:4px; background:rgba(239,68,68,0.9); color:white; border:none; border-radius:50%; width:22px; height:22px; font-size:10px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-sm);">✕</button>
+      `;
+      previewContainer.appendChild(div);
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
+window.removeReportPhoto = (index) => {
+  reportUploadedPhotos.splice(index, 1);
+  const previewContainer = document.getElementById('report-photo-previews');
+  if (!previewContainer) return;
+  previewContainer.innerHTML = '';
+  
+  reportUploadedPhotos.forEach((base64, idx) => {
+    const div = document.createElement('div');
+    div.className = 'photo-preview-item';
+    div.style.position = 'relative';
+    div.style.width = '140px';
+    div.style.height = '140px';
+    div.style.border = '1px solid #cbd5e1';
+    div.style.borderRadius = '6px';
+    div.style.overflow = 'hidden';
+    div.style.boxShadow = 'var(--shadow-sm)';
+    
+    div.innerHTML = `
+      <img src="${base64}" style="width:100%; height:100%; object-fit:cover;">
+      <button type="button" onclick="removeReportPhoto(${idx})" style="position:absolute; top:4px; right:4px; background:rgba(239,68,68,0.9); color:white; border:none; border-radius:50%; width:22px; height:22px; font-size:10px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-sm);">✕</button>
+    `;
+    previewContainer.appendChild(div);
+  });
+};
 
 async function loadTravelReportsHistory() {
   try {
@@ -2863,7 +2960,7 @@ async function loadTravelReportsHistory() {
     tbody.innerHTML = '';
     
     if (reports.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="3" class="text-center" style="padding:16px; color:var(--neutral-400);">ไม่มีประวัติรายงานราชการ</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding:16px; color:var(--neutral-400);">ไม่มีประวัติรายงานราชการ</td></tr>`;
       return;
     }
     
@@ -2876,13 +2973,16 @@ async function loadTravelReportsHistory() {
             ${currentUser.role === 'admin' ? `<div style="font-size:11px; color:#0369a1; font-weight:500;">ผู้เขียน: ${r.fullName}</div>` : ''}
           </td>
           <td>
-            <div style="font-weight:500; color:var(--neutral-700);">📝 รายละเอียดภารกิจ:</div>
-            <div style="font-size:12px; margin-bottom:4px; white-space:pre-line;">${r.reportDetail}</div>
-            <div style="font-weight:500; color:var(--neutral-700);">💡 ประโยชน์ได้รับ:</div>
-            <div style="font-size:12px; white-space:pre-line;">${r.benefits}</div>
+            <div style="font-weight:600; color:var(--neutral-700);">${r.organizer || '-'}</div>
+          </td>
+          <td style="text-align:right; font-weight:600; color:#0f766e;">
+            ${parseFloat(r.budget).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </td>
           <td>
             <div style="font-size:11px; color:var(--neutral-500);">${formatDate(r.createdAt)}</div>
+          </td>
+          <td style="text-align:center;">
+            <button type="button" class="btn btn-outline btn-xs" onclick="printTravelReport('${r.reportId}')" style="display:inline-flex; align-items:center; gap:4px; padding:4px 8px;">🖨️ พิมพ์รายงาน</button>
           </td>
         </tr>
       `;
@@ -2892,16 +2992,43 @@ async function loadTravelReportsHistory() {
   }
 }
 
+window.printTravelReport = (reportId) => {
+  window.open(`print_report_template.html?reportId=${reportId}`, '_blank');
+};
+
 async function handleTravelReportSubmit(e) {
   e.preventDefault();
   const travelId = document.getElementById('report-travel-select').value;
-  const reportDetail = document.getElementById('report-detail').value;
-  const benefits = document.getElementById('report-benefits').value;
+  const organizer = document.getElementById('report-organizer').value;
+  const budget = parseFloat(document.getElementById('report-budget').value) || 0;
+  
+  const content8_1 = document.getElementById('report-content-8-1').value;
+  const content8_2 = document.getElementById('report-content-8-2').value;
+  const content8_3 = document.getElementById('report-content-8-3').value;
+  const content8_4 = document.getElementById('report-content-8-4').value;
+  
+  const obstacles = document.getElementById('report-obstacles').value;
+  
+  const suggestion10_1 = document.getElementById('report-suggestion-10-1').value;
+  const suggestion10_2 = document.getElementById('report-suggestion-10-2').value;
+  const suggestion10_3 = document.getElementById('report-suggestion-10-3').value;
   
   if (!travelId) {
     Swal.fire('ข้อผิดพลาด', 'กรุณาเลือกรายการที่ไปราชการ', 'error');
     return;
   }
+  
+  const details = {
+    content8_1,
+    content8_2,
+    content8_3,
+    content8_4,
+    obstacles,
+    suggestion10_1,
+    suggestion10_2,
+    suggestion10_3,
+    photos: reportUploadedPhotos
+  };
   
   showLoading('กำลังบันทึกรายงาน...');
   try {
@@ -2912,8 +3039,11 @@ async function handleTravelReportSubmit(e) {
         travelId,
         userId: currentUser.userId,
         fullName: currentUser.fullName,
-        reportDetail,
-        benefits
+        reportDetail: content8_1,
+        benefits: suggestion10_1,
+        organizer,
+        budget,
+        details: JSON.stringify(details)
       })
     });
     

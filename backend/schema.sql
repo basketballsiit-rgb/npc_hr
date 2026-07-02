@@ -84,6 +84,7 @@ CREATE TABLE IF NOT EXISTS travel_data (
     budget DECIMAL(10, 2) DEFAULT 0.00,
     vehicleType VARCHAR(100) NOT NULL,
     status VARCHAR(50) DEFAULT 'รอการอนุมัติ',
+    details TEXT NULL,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -95,6 +96,9 @@ CREATE TABLE IF NOT EXISTS travel_reports (
     fullName VARCHAR(100) NOT NULL,
     reportDetail TEXT NOT NULL,
     benefits TEXT NOT NULL,
+    organizer VARCHAR(255) NULL,
+    budget DECIMAL(10, 2) DEFAULT 0.00,
+    details TEXT NULL,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
