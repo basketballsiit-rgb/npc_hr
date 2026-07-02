@@ -2410,7 +2410,15 @@ function calculateTravelDays() {
 window.switchTravelTab = (tabId) => {
   const tabs = document.querySelectorAll('.travel-tab-content');
   const buttons = document.querySelectorAll('.travel-tab-btn');
-  
+  const navBars = document.querySelectorAll('.travel-tab-nav');
+
+  // Tab nav mapping
+  const navMap = {
+    'travel-tab-memo':       'travel-nav-tab1',
+    'travel-tab-estimation': 'travel-nav-tab2',
+    'travel-tab-loan':       'travel-nav-tab3'
+  };
+
   tabs.forEach(tab => {
     if (tab.id === tabId) {
       tab.classList.add('active');
@@ -2418,19 +2426,31 @@ window.switchTravelTab = (tabId) => {
       tab.classList.remove('active');
     }
   });
-  
+
   buttons.forEach(btn => {
-    if (btn.getAttribute('onclick').includes(tabId)) {
+    if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(tabId)) {
       btn.classList.add('active');
     } else {
       btn.classList.remove('active');
     }
   });
 
+  // Show matching nav bar, hide others
+  navBars.forEach(nav => nav.classList.remove('active'));
+  const activeNavId = navMap[tabId];
+  if (activeNavId) {
+    const activeNav = document.getElementById(activeNavId);
+    if (activeNav) activeNav.classList.add('active');
+  }
+
   if (tabId === 'travel-tab-estimation') {
     calculateTravelDays();
   }
 };
+
+// Alias used by Next / Back buttons inside the tabs
+window.travelGoToTab = window.switchTravelTab;
+
 
 // Traveler dynamic rows management
 window.addTravelerRow = (name = '', position = '') => {

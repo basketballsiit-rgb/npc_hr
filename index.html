@@ -1075,6 +1075,14 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Tab 1 Navigation -->
+              <div class="travel-tab-nav" id="travel-nav-tab1">
+                <span></span>
+                <button type="button" class="btn btn-primary" onclick="travelGoToTab('travel-tab-estimation')">
+                  ถัดไป: 2. ประมาณการค่าใช้จ่าย →
+                </button>
+              </div>
               
               <!-- Tab 2: Expenses -->
               <div id="travel-tab-estimation" class="travel-tab-content">
@@ -1192,7 +1200,13 @@
                   <span><span id="travel-grand-total-txt">0.00</span> บาท</span>
                 </div>
               </div>
-              
+
+              <!-- Tab 2 Navigation -->
+              <div class="travel-tab-nav" id="travel-nav-tab2">
+                <button type="button" class="btn btn-secondary" onclick="travelGoToTab('travel-tab-memo')">← ย้อนกลับ: 1. บันทึกขออนุญาต</button>
+                <button type="button" class="btn btn-primary" onclick="travelGoToTab('travel-tab-loan')">ถัดไป: 3. สัญญายืมเงิน →</button>
+              </div>
+
               <!-- Tab 3: Loan Agreement -->
               <div id="travel-tab-loan" class="travel-tab-content">
                 <div style="background:#f0fdf4; border:1px solid #bbf7d0; padding:16px; border-radius:8px; margin-bottom:20px; display:flex; align-items:center; gap:12px;">
@@ -1256,12 +1270,16 @@
                   </div>
                 </div>
               </div>
-              
-              <!-- Submit Button (Sticky style or at the bottom) -->
-              <div style="border-top:1px solid #cbd5e1; padding-top:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-                <span id="travel-form-error-msg" style="color:var(--danger); font-weight:600; font-size:0.9rem;"></span>
-                <button type="submit" class="btn btn-primary btn-lg" style="margin-left:auto;">🚀 ยื่นขออนุญาตเดินทางไปราชการ</button>
+
+              <!-- Tab 3 Navigation + Submit -->
+              <div class="travel-tab-nav" id="travel-nav-tab3">
+                <button type="button" class="btn btn-secondary" onclick="travelGoToTab('travel-tab-estimation')">← ย้อนกลับ: 2. ประมาณการค่าใช้จ่าย</button>
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <span id="travel-form-error-msg" style="color:var(--danger); font-weight:600; font-size:0.9rem;"></span>
+                  <button type="submit" class="btn btn-primary btn-lg">🚀 ยื่นขออนุญาตเดินทางไปราชการ</button>
+                </div>
               </div>
+
             </form>
           </div>
  

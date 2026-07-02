@@ -1454,4 +1454,19 @@ select.form-input {
   vertical-align: middle;
 }
 
+/* Tab navigation bar (Next / Back buttons) */
+.travel-tab-nav {
+  display: none; /* hidden by default; shown by JS with the active tab */
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-top: 1px solid #cbd5e1;
+  padding-top: 20px;
+  margin-top: 20px;
+}
+
+.travel-tab-nav.active {
+  display: flex;
+}
 
