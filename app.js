@@ -1,6 +1,6 @@
-// ================================================================= */
+﻿// ================================================================= */
 //                     FRONTEND CONTROLLER (Vanilla JS)              */
-//                     ระบบบริหารงานบุคลากร วิทยาลัยสารพัดช่างน่าน             */
+//                     à¸£à¸°à¸šà¸šà¸šà¸£à¸´à¸«à¸²à¸£à¸‡à¸²à¸™à¸šà¸¸à¸„à¸¥à¸²à¸à¸£ à¸§à¸´à¸—à¸¢à¸²à¸¥à¸±à¸¢à¸ªà¸²à¸£à¸žà¸±à¸”à¸Šà¹ˆà¸²à¸‡à¸™à¹ˆà¸²à¸™             */
 // ================================================================= */
 
 
@@ -8,6 +8,52 @@
 const API_BASE_URL = window.location.hostname !== 'service.npc.ac.th'
   ? `http://${window.location.hostname || 'localhost'}:5000`
   : 'https://service.npc.ac.th/npc_eleve_backend'; // Replace with your production Node.js API domain
+
+// ---------------------------------------------------------------
+// Safe fetch wrapper â€” converts 502/HTML responses to clear errors
+// ---------------------------------------------------------------
+let _serverDown = false;
+async function safeFetch(url, options) {
+  try {
+    const res = await fetch(url, options);
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      // Server returned HTML (e.g. 502 Bad Gateway)
+      showServerDownBanner(res.status);
+      throw new Error(`à¹€à¸‹à¸´à¸£à¹Œà¸Ÿà¹€à¸§à¸­à¸£à¹Œà¹„à¸¡à¹ˆà¸žà¸£à¹‰à¸­à¸¡à¹ƒà¸Šà¹‰à¸‡à¸²à¸™ (HTTP ${res.status}) â€” à¸à¸£à¸¸à¸“à¸²à¸¥à¸­à¸‡à¹ƒà¸«à¸¡à¹ˆà¸­à¸µà¸à¸„à¸£à¸±à¹‰à¸‡à¹ƒà¸™à¸ à¸²à¸¢à¸«à¸¥à¸±à¸‡`);
+    }
+    if (!_serverDown && res.ok) hideServerDownBanner();
+    return res;
+  } catch (err) {
+    if (err.name === 'TypeError') {
+      // Network error (no connection)
+      showServerDownBanner(0);
+      throw new Error('à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¹€à¸Šà¸·à¹ˆà¸­à¸¡à¸•à¹ˆà¸­à¹€à¸‹à¸´à¸£à¹Œà¸Ÿà¹€à¸§à¸­à¸£à¹Œà¹„à¸”à¹‰ â€” à¸à¸£à¸¸à¸“à¸²à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¸à¸²à¸£à¹€à¸Šà¸·à¹ˆà¸­à¸¡à¸•à¹ˆà¸­à¸­à¸´à¸™à¹€à¸—à¸­à¸£à¹Œà¹€à¸™à¹‡à¸•');
+    }
+    throw err;
+  }
+}
+
+function showServerDownBanner(code) {
+  if (_serverDown) return;
+  _serverDown = true;
+  let banner = document.getElementById('server-down-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'server-down-banner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#dc2626;color:#fff;text-align:center;padding:10px 16px;font-size:0.88rem;font-weight:600;display:flex;justify-content:center;align-items:center;gap:12px;';
+    banner.innerHTML = `âš ï¸ à¸£à¸°à¸šà¸šà¸«à¸¥à¸±à¸‡à¸šà¹‰à¸²à¸™à¹„à¸¡à¹ˆà¸žà¸£à¹‰à¸­à¸¡à¹ƒà¸Šà¹‰à¸‡à¸²à¸™${code ? ' (HTTP ' + code + ')' : ''} â€” à¸à¸£à¸¸à¸“à¸²à¸£à¸­à¸ªà¸±à¸à¸„à¸£à¸¹à¹ˆà¹à¸¥à¹‰à¸§à¸£à¸µà¹€à¸Ÿà¸£à¸Šà¸«à¸™à¹‰à¸²à¹ƒà¸«à¸¡à¹ˆ
+      <button onclick="location.reload()" style="background:#fff;color:#dc2626;border:none;border-radius:4px;padding:4px 12px;cursor:pointer;font-weight:700;margin-left:8px;">ðŸ”„ à¸£à¸µà¹€à¸Ÿà¸£à¸Š</button>`;
+    document.body.prepend(banner);
+  }
+}
+
+function hideServerDownBanner() {
+  _serverDown = false;
+  const banner = document.getElementById('server-down-banner');
+  if (banner) banner.remove();
+}
+
 
 let currentUser = null;
 let settings = {};
@@ -60,9 +106,9 @@ async function enterModule(pageId, adminOnly) {
     if (currentUser) {
       // Check if we already have aprStaffId in the session
       if (!currentUser.aprStaffId) {
-        showLoading('กำลังเข้าสู่ระบบกิจกรรม...');
+        showLoading('à¸à¸³à¸¥à¸±à¸‡à¹€à¸‚à¹‰à¸²à¸ªà¸¹à¹ˆà¸£à¸°à¸šà¸šà¸à¸´à¸ˆà¸à¸£à¸£à¸¡...');
         try {
-          const res = await fetch(`${API_BASE_URL}/api/auth/get-apr-id?username=${currentUser.username}`);
+          const res = await safeFetch(`${API_BASE_URL}/api/auth/get-apr-id?username=${currentUser.username}`);
           const data = await res.json();
           if (data.success && data.aprStaffId) {
             currentUser.aprStaffId = data.aprStaffId;
@@ -101,7 +147,7 @@ async function enterModule(pageId, adminOnly) {
   }
   
   if (adminOnly && currentUser.role !== 'admin') {
-    Swal.fire('ปฏิเสธการเข้าถึง', 'เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถเข้าใช้งานหน้านี้ได้', 'warning');
+    Swal.fire('à¸›à¸à¸´à¹€à¸ªà¸˜à¸à¸²à¸£à¹€à¸‚à¹‰à¸²à¸–à¸¶à¸‡', 'à¹€à¸‰à¸žà¸²à¸°à¸œà¸¹à¹‰à¸”à¸¹à¹à¸¥à¸£à¸°à¸šà¸šà¹€à¸—à¹ˆà¸²à¸™à¸±à¹‰à¸™à¸—à¸µà¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¹€à¸‚à¹‰à¸²à¹ƒà¸Šà¹‰à¸‡à¸²à¸™à¸«à¸™à¹‰à¸²à¸™à¸µà¹‰à¹„à¸”à¹‰', 'warning');
     return;
   }
   
@@ -257,10 +303,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('resize', resizeCanvas);
 
   // Load Initial Settings & Session
-  showLoading('กำลังดาวน์โหลดข้อมูลเริ่มต้น...');
+  showLoading('à¸à¸³à¸¥à¸±à¸‡à¸”à¸²à¸§à¸™à¹Œà¹‚à¸«à¸¥à¸”à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹€à¸£à¸´à¹ˆà¸¡à¸•à¹‰à¸™...');
   try {
     // Fetch Settings
-    const setRes = await fetch(`${API_BASE_URL}/api/settings`);
+    const setRes = await safeFetch(`${API_BASE_URL}/api/settings`);
     settings = await setRes.json();
     
     // Check local session
@@ -275,7 +321,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadDashboardData();
     Swal.close();
   } catch (err) {
-    showError("เกิดข้อผิดพลาดในการเชื่อมต่อหลังบ้าน: " + err.message);
+    showError("à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”à¹ƒà¸™à¸à¸²à¸£à¹€à¸Šà¸·à¹ˆà¸­à¸¡à¸•à¹ˆà¸­à¸«à¸¥à¸±à¸‡à¸šà¹‰à¸²à¸™: " + err.message);
     updateUIAfterLogout();
     loadDashboardData();
   }
@@ -301,7 +347,7 @@ function processSignatureFile(file) {
     };
     reader.readAsDataURL(file);
   } else {
-    showError('กรุณาเลือกไฟล์ที่เป็นรูปภาพเท่านั้น');
+    showError('à¸à¸£à¸¸à¸“à¸²à¹€à¸¥à¸·à¸­à¸à¹„à¸Ÿà¸¥à¹Œà¸—à¸µà¹ˆà¹€à¸›à¹‡à¸™à¸£à¸¹à¸›à¸ à¸²à¸žà¹€à¸—à¹ˆà¸²à¸™à¸±à¹‰à¸™');
   }
 }
 
@@ -343,53 +389,53 @@ window.handleForgotPassword = (e) => {
   hideLoginModal();
 
   Swal.fire({
-    title: 'รีเซ็ตรหัสผ่านด้วย LINE ID',
+    title: 'à¸£à¸µà¹€à¸‹à¹‡à¸•à¸£à¸«à¸±à¸ªà¸œà¹ˆà¸²à¸™à¸”à¹‰à¸§à¸¢ LINE ID',
     html: `
       <div style="text-align: left; display:flex; flex-direction:column; gap:12px;">
         <div>
-          <label class="form-label">ชื่อผู้ใช้ (Username)</label>
-          <input id="reset-username" class="form-input" placeholder="กรอก Username ของท่าน" autocomplete="off">
+          <label class="form-label">à¸Šà¸·à¹ˆà¸­à¸œà¸¹à¹‰à¹ƒà¸Šà¹‰ (Username)</label>
+          <input id="reset-username" class="form-input" placeholder="à¸à¸£à¸­à¸ Username à¸‚à¸­à¸‡à¸—à¹ˆà¸²à¸™" autocomplete="off">
         </div>
         <div>
           <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
-            <span>LINE User ID (ที่ผูกไว้กับระบบ)</span>
-            <a href="https://line.me/R/ti/p/@943jvlmv" target="_blank" style="background:#06c755; color:white; padding:4px 10px; font-size:11px; border-radius:6px; font-weight:bold; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">💬 แชทบอตขอ ID</a>
+            <span>LINE User ID (à¸—à¸µà¹ˆà¸œà¸¹à¸à¹„à¸§à¹‰à¸à¸±à¸šà¸£à¸°à¸šà¸š)</span>
+            <a href="https://line.me/R/ti/p/@943jvlmv" target="_blank" style="background:#06c755; color:white; padding:4px 10px; font-size:11px; border-radius:6px; font-weight:bold; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">ðŸ’¬ à¹à¸Šà¸—à¸šà¸­à¸•à¸‚à¸­ ID</a>
           </label>
-          <input id="reset-lineid" class="form-input" placeholder="กรอกรหัสผู้ใช้ไลน์ (ขึ้นต้นด้วย U...)" autocomplete="off">
-          <p style="font-size:11px; color:var(--secondary); margin-top:4px;">*กดปุ่มสีเขียวเพื่อเปิดแชทกับบอต -> พิมพ์ "ขอ ID" ส่งไปในแชทเพื่อขอรหัส</p>
+          <input id="reset-lineid" class="form-input" placeholder="à¸à¸£à¸­à¸à¸£à¸«à¸±à¸ªà¸œà¸¹à¹‰à¹ƒà¸Šà¹‰à¹„à¸¥à¸™à¹Œ (à¸‚à¸¶à¹‰à¸™à¸•à¹‰à¸™à¸”à¹‰à¸§à¸¢ U...)" autocomplete="off">
+          <p style="font-size:11px; color:var(--secondary); margin-top:4px;">*à¸à¸”à¸›à¸¸à¹ˆà¸¡à¸ªà¸µà¹€à¸‚à¸µà¸¢à¸§à¹€à¸žà¸·à¹ˆà¸­à¹€à¸›à¸´à¸”à¹à¸Šà¸—à¸à¸±à¸šà¸šà¸­à¸• -> à¸žà¸´à¸¡à¸žà¹Œ "à¸‚à¸­ ID" à¸ªà¹ˆà¸‡à¹„à¸›à¹ƒà¸™à¹à¸Šà¸—à¹€à¸žà¸·à¹ˆà¸­à¸‚à¸­à¸£à¸«à¸±à¸ª</p>
         </div>
         <div>
-          <label class="form-label">รหัสผ่านใหม่ที่ต้องการตั้ง</label>
-          <input id="reset-newpassword" type="password" class="form-input" placeholder="ระบุรหัสผ่านใหม่" autocomplete="new-password">
+          <label class="form-label">à¸£à¸«à¸±à¸ªà¸œà¹ˆà¸²à¸™à¹ƒà¸«à¸¡à¹ˆà¸—à¸µà¹ˆà¸•à¹‰à¸­à¸‡à¸à¸²à¸£à¸•à¸±à¹‰à¸‡</label>
+          <input id="reset-newpassword" type="password" class="form-input" placeholder="à¸£à¸°à¸šà¸¸à¸£à¸«à¸±à¸ªà¸œà¹ˆà¸²à¸™à¹ƒà¸«à¸¡à¹ˆ" autocomplete="new-password">
         </div>
       </div>
     `,
     showCancelButton: true,
-    confirmButtonText: 'ยืนยันการเปลี่ยนรหัสผ่าน',
-    cancelButtonText: 'ยกเลิก',
+    confirmButtonText: 'à¸¢à¸·à¸™à¸¢à¸±à¸™à¸à¸²à¸£à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¸£à¸«à¸±à¸ªà¸œà¹ˆà¸²à¸™',
+    cancelButtonText: 'à¸¢à¸à¹€à¸¥à¸´à¸',
     preConfirm: () => {
       const u = document.getElementById('reset-username').value.trim();
       const lid = document.getElementById('reset-lineid').value.trim();
       const np = document.getElementById('reset-newpassword').value;
 
       if (!u || !lid || !np) {
-        Swal.showValidationMessage('กรุณากรอกข้อมูลให้ครบทุกช่อง');
+        Swal.showValidationMessage('à¸à¸£à¸¸à¸“à¸²à¸à¸£à¸­à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹ƒà¸«à¹‰à¸„à¸£à¸šà¸—à¸¸à¸à¸Šà¹ˆà¸­à¸‡');
         return false;
       }
       return { username: u, lineUserId: lid, newPassword: np };
     }
   }).then(async (result) => {
     if (result.isConfirmed) {
-      showLoading('กำลังดำเนินการตรวจสอบข้อมูล...');
+      showLoading('à¸à¸³à¸¥à¸±à¸‡à¸”à¸³à¹€à¸™à¸´à¸™à¸à¸²à¸£à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¸‚à¹‰à¸­à¸¡à¸¹à¸¥...');
       try {
-        const res = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
+        const res = await safeFetch(`${API_BASE_URL}/api/auth/reset-password`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(result.value)
         });
         const data = await res.json();
         if (data.success) {
-          Swal.fire('สำเร็จ', data.message, 'success').then(() => {
+          Swal.fire('à¸ªà¸³à¹€à¸£à¹‡à¸ˆ', data.message, 'success').then(() => {
             showLoginModal();
           });
         } else {
@@ -398,7 +444,7 @@ window.handleForgotPassword = (e) => {
           });
         }
       } catch (err) {
-        showError('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message).then(() => {
+        showError('à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”à¹ƒà¸™à¸à¸²à¸£à¹€à¸Šà¸·à¹ˆà¸­à¸¡à¸•à¹ˆà¸­: ' + err.message).then(() => {
           showLoginModal();
         });
       }
@@ -411,7 +457,7 @@ window.handleForgotPassword = (e) => {
 window.showSelfEditModal = () => {
   if (!currentUser) return;
   Swal.fire({
-    title: 'แก้ไขข้อมูลส่วนตัว',
+    title: 'à¹à¸à¹‰à¹„à¸‚à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸ªà¹ˆà¸§à¸™à¸•à¸±à¸§',
     html: `
       <!-- Dummy fields to prevent browser autofill -->
       <input type="text" style="display:none;" name="dummy-username" autocomplete="username">
@@ -419,37 +465,37 @@ window.showSelfEditModal = () => {
 
       <div style="text-align: left; display:flex; flex-direction:column; gap:12px;">
         <div>
-          <label class="form-label">ชื่อ-นามสกุล</label>
+          <label class="form-label">à¸Šà¸·à¹ˆà¸­-à¸™à¸²à¸¡à¸ªà¸à¸¸à¸¥</label>
           <input id="self-fn" class="form-input" value="${currentUser.fullName || ''}" autocomplete="off">
         </div>
         <div>
-          <label class="form-label">ตำแหน่ง</label>
+          <label class="form-label">à¸•à¸³à¹à¸«à¸™à¹ˆà¸‡</label>
           <input id="self-pos" class="form-input" value="${currentUser.position || ''}" autocomplete="off">
         </div>
         <div>
           <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
             <span>LINE User ID</span>
-            <a href="https://line.me/R/ti/p/@943jvlmv" target="_blank" style="background:#06c755; color:white; padding:4px 10px; font-size:11px; border-radius:6px; font-weight:bold; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">💬 แชทบอตขอ ID</a>
+            <a href="https://line.me/R/ti/p/@943jvlmv" target="_blank" style="background:#06c755; color:white; padding:4px 10px; font-size:11px; border-radius:6px; font-weight:bold; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">ðŸ’¬ à¹à¸Šà¸—à¸šà¸­à¸•à¸‚à¸­ ID</a>
           </label>
-          <input id="self-lid" class="form-input" value="${currentUser.lineUserId || ''}" placeholder="ระบุ LINE User ID (เริ่มต้นด้วย U...)" autocomplete="off">
-          <p style="font-size:10px; color:var(--text-muted); margin-top:4px;">*พิมพ์ "ขอ ID" ในห้องแชทเพื่อขอรหัสจากบอต</p>
+          <input id="self-lid" class="form-input" value="${currentUser.lineUserId || ''}" placeholder="à¸£à¸°à¸šà¸¸ LINE User ID (à¹€à¸£à¸´à¹ˆà¸¡à¸•à¹‰à¸™à¸”à¹‰à¸§à¸¢ U...)" autocomplete="off">
+          <p style="font-size:10px; color:var(--text-muted); margin-top:4px;">*à¸žà¸´à¸¡à¸žà¹Œ "à¸‚à¸­ ID" à¹ƒà¸™à¸«à¹‰à¸­à¸‡à¹à¸Šà¸—à¹€à¸žà¸·à¹ˆà¸­à¸‚à¸­à¸£à¸«à¸±à¸ªà¸ˆà¸²à¸à¸šà¸­à¸•</p>
         </div>
         <div>
-          <label class="form-label">รหัสผ่านใหม่ (ปล่อยว่างหากไม่ต้องการเปลี่ยน)</label>
-          <input id="self-eps" type="password" class="form-input" placeholder="กรอกรหัสผ่านใหม่" autocomplete="new-password">
+          <label class="form-label">à¸£à¸«à¸±à¸ªà¸œà¹ˆà¸²à¸™à¹ƒà¸«à¸¡à¹ˆ (à¸›à¸¥à¹ˆà¸­à¸¢à¸§à¹ˆà¸²à¸‡à¸«à¸²à¸à¹„à¸¡à¹ˆà¸•à¹‰à¸­à¸‡à¸à¸²à¸£à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™)</label>
+          <input id="self-eps" type="password" class="form-input" placeholder="à¸à¸£à¸­à¸à¸£à¸«à¸±à¸ªà¸œà¹ˆà¸²à¸™à¹ƒà¸«à¸¡à¹ˆ" autocomplete="new-password">
         </div>
       </div>
     `,
     showCancelButton: true,
-    confirmButtonText: 'บันทึก',
-    cancelButtonText: 'ยกเลิก',
+    confirmButtonText: 'à¸šà¸±à¸™à¸—à¸¶à¸',
+    cancelButtonText: 'à¸¢à¸à¹€à¸¥à¸´à¸',
     preConfirm: () => {
       const fn = document.getElementById('self-fn').value.trim();
       const pos = document.getElementById('self-pos').value.trim();
       const lid = document.getElementById('self-lid').value.trim();
       const ps = document.getElementById('self-eps').value;
       if (!fn || !pos) {
-        Swal.showValidationMessage('กรุณากรอกชื่อและตำแหน่งงาน');
+        Swal.showValidationMessage('à¸à¸£à¸¸à¸“à¸²à¸à¸£à¸­à¸à¸Šà¸·à¹ˆà¸­à¹à¸¥à¸°à¸•à¸³à¹à¸«à¸™à¹ˆà¸‡à¸‡à¸²à¸™');
         return false;
       }
       return { fullName: fn, position: pos, lineUserId: lid, password: ps };
@@ -462,9 +508,9 @@ window.showSelfEditModal = () => {
         staffType: currentUser.staffType
       };
 
-      showLoading('กำลังบันทึกข้อมูล...');
+      showLoading('à¸à¸³à¸¥à¸±à¸‡à¸šà¸±à¸™à¸—à¸¶à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥...');
       try {
-        const res = await fetch(`${API_BASE_URL}/api/users/${currentUser.userId}`, {
+        const res = await safeFetch(`${API_BASE_URL}/api/users/${currentUser.userId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -480,12 +526,12 @@ window.showSelfEditModal = () => {
           // Refresh UI
           updateUIAfterLogin();
 
-          Swal.fire('สำเร็จ', 'อัปเดตข้อมูลส่วนตัวเรียบร้อยแล้ว', 'success');
+          Swal.fire('à¸ªà¸³à¹€à¸£à¹‡à¸ˆ', 'à¸­à¸±à¸›à¹€à¸”à¸•à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸ªà¹ˆà¸§à¸™à¸•à¸±à¸§à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§', 'success');
         } else {
           showError(data.message);
         }
       } catch (err) {
-        showError('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message);
+        showError('à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”à¹ƒà¸™à¸à¸²à¸£à¹€à¸Šà¸·à¹ˆà¸­à¸¡à¸•à¹ˆà¸­: ' + err.message);
       }
     }
   });
@@ -496,9 +542,9 @@ window.handleCustomLogin = async (e) => {
   const u = document.getElementById('login-u').value;
   const p = document.getElementById('login-p').value;
   
-  showLoading('กำลังเข้าสู่ระบบ...');
+  showLoading('à¸à¸³à¸¥à¸±à¸‡à¹€à¸‚à¹‰à¸²à¸ªà¸¹à¹ˆà¸£à¸°à¸šà¸š...');
   try {
-    const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    const res = await safeFetch(`${API_BASE_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: u, password: p })
@@ -513,7 +559,7 @@ window.handleCustomLogin = async (e) => {
       
       Swal.fire({
         icon: 'success',
-        title: 'เข้าสู่ระบบสำเร็จ',
+        title: 'à¹€à¸‚à¹‰à¸²à¸ªà¸¹à¹ˆà¸£à¸°à¸šà¸šà¸ªà¸³à¹€à¸£à¹‡à¸ˆ',
         showConfirmButton: false,
         timer: 1500
       });
@@ -529,54 +575,54 @@ window.handleCustomLogin = async (e) => {
       showError(data.message);
     }
   } catch (err) {
-    showError('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์: ' + err.message);
+    showError('à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”à¹ƒà¸™à¸à¸²à¸£à¹€à¸Šà¸·à¹ˆà¸­à¸¡à¸•à¹ˆà¸­à¹€à¸‹à¸´à¸£à¹Œà¸Ÿà¹€à¸§à¸­à¸£à¹Œ: ' + err.message);
   }
 };
 
 function showRegisterModal() {
   Swal.fire({
-    title: 'ลงทะเบียนเข้าใช้งาน',
+    title: 'à¸¥à¸‡à¸—à¸°à¹€à¸šà¸µà¸¢à¸™à¹€à¸‚à¹‰à¸²à¹ƒà¸Šà¹‰à¸‡à¸²à¸™',
     html: `
       <div style="text-align: left; display:flex; flex-direction:column; gap:12px;">
         <div>
-          <label class="form-label">ชื่อ-นามสกุล</label>
-          <input id="reg-fn" class="form-input" placeholder="เช่น นายสมชาย ใจดี">
+          <label class="form-label">à¸Šà¸·à¹ˆà¸­-à¸™à¸²à¸¡à¸ªà¸à¸¸à¸¥</label>
+          <input id="reg-fn" class="form-input" placeholder="à¹€à¸Šà¹ˆà¸™ à¸™à¸²à¸¢à¸ªà¸¡à¸Šà¸²à¸¢ à¹ƒà¸ˆà¸”à¸µ">
         </div>
         <div>
-          <label class="form-label">ตำแหน่ง</label>
-          <input id="reg-pos" class="form-input" placeholder="เช่น ครูวิทยฐานะชำนาญการพิเศษ">
+          <label class="form-label">à¸•à¸³à¹à¸«à¸™à¹ˆà¸‡</label>
+          <input id="reg-pos" class="form-input" placeholder="à¹€à¸Šà¹ˆà¸™ à¸„à¸£à¸¹à¸§à¸´à¸—à¸¢à¸à¸²à¸™à¸°à¸Šà¸³à¸™à¸²à¸à¸à¸²à¸£à¸žà¸´à¹€à¸¨à¸©">
         </div>
         <div>
-          <label class="form-label">ประเภทบุคลากร</label>
+          <label class="form-label">à¸›à¸£à¸°à¹€à¸ à¸—à¸šà¸¸à¸„à¸¥à¸²à¸à¸£</label>
           <select id="reg-type" class="form-input">
-            <option value="ผู้บริหาร">ผู้บริหาร</option>
-            <option value="ข้าราชการ">ข้าราชการ</option>
-            <option value="พนักงานราชการ">พนักงานราชการ</option>
-            <option value="ครูพิเศษสอน" selected>ครูพิเศษสอน</option>
-            <option value="เจ้าหน้าที่">เจ้าหน้าที่</option>
+            <option value="à¸œà¸¹à¹‰à¸šà¸£à¸´à¸«à¸²à¸£">à¸œà¸¹à¹‰à¸šà¸£à¸´à¸«à¸²à¸£</option>
+            <option value="à¸‚à¹‰à¸²à¸£à¸²à¸Šà¸à¸²à¸£">à¸‚à¹‰à¸²à¸£à¸²à¸Šà¸à¸²à¸£</option>
+            <option value="à¸žà¸™à¸±à¸à¸‡à¸²à¸™à¸£à¸²à¸Šà¸à¸²à¸£">à¸žà¸™à¸±à¸à¸‡à¸²à¸™à¸£à¸²à¸Šà¸à¸²à¸£</option>
+            <option value="à¸„à¸£à¸¹à¸žà¸´à¹€à¸¨à¸©à¸ªà¸­à¸™" selected>à¸„à¸£à¸¹à¸žà¸´à¹€à¸¨à¸©à¸ªà¸­à¸™</option>
+            <option value="à¹€à¸ˆà¹‰à¸²à¸«à¸™à¹‰à¸²à¸—à¸µà¹ˆ">à¹€à¸ˆà¹‰à¸²à¸«à¸™à¹‰à¸²à¸—à¸µà¹ˆ</option>
           </select>
         </div>
         <div>
-          <label class="form-label">ชื่อผู้ใช้ (ภาษาอังกฤษ)</label>
-          <input id="reg-ru" class="form-input" placeholder="Username สำหรับเข้าสู่ระบบ">
+          <label class="form-label">à¸Šà¸·à¹ˆà¸­à¸œà¸¹à¹‰à¹ƒà¸Šà¹‰ (à¸ à¸²à¸©à¸²à¸­à¸±à¸‡à¸à¸¤à¸©)</label>
+          <input id="reg-ru" class="form-input" placeholder="Username à¸ªà¸³à¸«à¸£à¸±à¸šà¹€à¸‚à¹‰à¸²à¸ªà¸¹à¹ˆà¸£à¸°à¸šà¸š">
         </div>
         <div>
-          <label class="form-label">รหัสผ่าน</label>
+          <label class="form-label">à¸£à¸«à¸±à¸ªà¸œà¹ˆà¸²à¸™</label>
           <input id="reg-rp" type="password" class="form-input" placeholder="Password">
         </div>
         <div>
           <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
-            <span>การเชื่อมต่อ LINE User ID (สำคัญมากเพื่อรับแจ้งเตือน)</span>
-            <a href="https://line.me/R/ti/p/@943jvlmv" target="_blank" style="background:#06c755; color:white; padding:4px 10px; font-size:11px; border-radius:6px; font-weight:bold;">💬 ขอรับรหัส LINE ID</a>
+            <span>à¸à¸²à¸£à¹€à¸Šà¸·à¹ˆà¸­à¸¡à¸•à¹ˆà¸­ LINE User ID (à¸ªà¸³à¸„à¸±à¸à¸¡à¸²à¸à¹€à¸žà¸·à¹ˆà¸­à¸£à¸±à¸šà¹à¸ˆà¹‰à¸‡à¹€à¸•à¸·à¸­à¸™)</span>
+            <a href="https://line.me/R/ti/p/@943jvlmv" target="_blank" style="background:#06c755; color:white; padding:4px 10px; font-size:11px; border-radius:6px; font-weight:bold;">ðŸ’¬ à¸‚à¸­à¸£à¸±à¸šà¸£à¸«à¸±à¸ª LINE ID</a>
           </label>
-          <input id="reg-lid" class="form-input" placeholder="กรอกรหัสผู้ใช้ไลน์ของคุณ (เริ่มต้นด้วย U...)">
-          <p style="font-size:10px; color:var(--secondary); margin-top:4px;">*กดปุ่มเขียวแอดบอทไลน์ -> พิมพ์คำว่า "ขอ ID" ในช่องแชท -> นำรหัสที่ได้มาวางช่องนี้</p>
+          <input id="reg-lid" class="form-input" placeholder="à¸à¸£à¸­à¸à¸£à¸«à¸±à¸ªà¸œà¸¹à¹‰à¹ƒà¸Šà¹‰à¹„à¸¥à¸™à¹Œà¸‚à¸­à¸‡à¸„à¸¸à¸“ (à¹€à¸£à¸´à¹ˆà¸¡à¸•à¹‰à¸™à¸”à¹‰à¸§à¸¢ U...)">
+          <p style="font-size:10px; color:var(--secondary); margin-top:4px;">*à¸à¸”à¸›à¸¸à¹ˆà¸¡à¹€à¸‚à¸µà¸¢à¸§à¹à¸­à¸”à¸šà¸­à¸—à¹„à¸¥à¸™à¹Œ -> à¸žà¸´à¸¡à¸žà¹Œà¸„à¸³à¸§à¹ˆà¸² "à¸‚à¸­ ID" à¹ƒà¸™à¸Šà¹ˆà¸­à¸‡à¹à¸Šà¸— -> à¸™à¸³à¸£à¸«à¸±à¸ªà¸—à¸µà¹ˆà¹„à¸”à¹‰à¸¡à¸²à¸§à¸²à¸‡à¸Šà¹ˆà¸­à¸‡à¸™à¸µà¹‰</p>
         </div>
       </div>
     `,
-    confirmButtonText: 'ลงทะเบียน',
+    confirmButtonText: 'à¸¥à¸‡à¸—à¸°à¹€à¸šà¸µà¸¢à¸™',
     showCancelButton: true,
-    cancelButtonText: 'ยกเลิก',
+    cancelButtonText: 'à¸¢à¸à¹€à¸¥à¸´à¸',
     preConfirm: () => {
       const fn = document.getElementById('reg-fn').value;
       const pos = document.getElementById('reg-pos').value;
@@ -586,15 +632,15 @@ function showRegisterModal() {
       const lid = document.getElementById('reg-lid').value.trim();
 
       if (!fn || !pos || !ru || !rp) {
-        Swal.showValidationMessage('กรุณากรอกข้อมูลหลักให้ครบถ้วน');
+        Swal.showValidationMessage('à¸à¸£à¸¸à¸“à¸²à¸à¸£à¸­à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸«à¸¥à¸±à¸à¹ƒà¸«à¹‰à¸„à¸£à¸šà¸–à¹‰à¸§à¸™');
       }
       return { fullName: fn, position: pos, staffType: type, username: ru, password: rp, lineUserId: lid };
     }
   }).then(async (result) => {
     if (result.isConfirmed) {
-      showLoading('กำลังลงทะเบียน...');
+      showLoading('à¸à¸³à¸¥à¸±à¸‡à¸¥à¸‡à¸—à¸°à¹€à¸šà¸µà¸¢à¸™...');
       try {
-        const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+        const res = await safeFetch(`${API_BASE_URL}/api/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(result.value)
@@ -604,15 +650,15 @@ function showRegisterModal() {
         if (data.success) {
           Swal.fire({
             icon: 'success',
-            title: 'ลงทะเบียนสำเร็จ',
+            title: 'à¸¥à¸‡à¸—à¸°à¹€à¸šà¸µà¸¢à¸™à¸ªà¸³à¹€à¸£à¹‡à¸ˆ',
             text: data.message,
-            confirmButtonText: 'ตกลง'
+            confirmButtonText: 'à¸•à¸à¸¥à¸‡'
           });
         } else {
           showError(data.message);
         }
       } catch (err) {
-        showError('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message);
+        showError('à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”à¹ƒà¸™à¸à¸²à¸£à¹€à¸Šà¸·à¹ˆà¸­à¸¡à¸•à¹ˆà¸­: ' + err.message);
       }
     }
   });
@@ -624,7 +670,7 @@ function handleLogout() {
   updateUIAfterLogout();
   Swal.fire({
     icon: 'info',
-    title: 'ออกจากระบบเรียบร้อย',
+    title: 'à¸­à¸­à¸à¸ˆà¸²à¸à¸£à¸°à¸šà¸šà¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢',
     showConfirmButton: false,
     timer: 1500
   });
@@ -645,10 +691,10 @@ function updateUIAfterLogin() {
       <div id="user-dropdown" class="user-dropdown hidden">
         <div class="user-dropdown-header">
           <p class="user-dropdown-name">${currentUser.fullName}</p>
-          <span class="user-dropdown-role">${currentUser.role === 'admin' ? 'ผู้ดูแลระบบ' : 'บุคลากร'}</span>
+          <span class="user-dropdown-role">${currentUser.role === 'admin' ? 'à¸œà¸¹à¹‰à¸”à¸¹à¹à¸¥à¸£à¸°à¸šà¸š' : 'à¸šà¸¸à¸„à¸¥à¸²à¸à¸£'}</span>
         </div>
         <div id="user-dropdown-items"></div>
-        <button id="logout-btn" class="user-dropdown-item logout">ออกจากระบบ</button>
+        <button id="logout-btn" class="user-dropdown-item logout">à¸­à¸­à¸à¸ˆà¸²à¸à¸£à¸°à¸šà¸š</button>
       </div>
     </div>
   `;
@@ -663,12 +709,12 @@ function updateUIAfterLogin() {
     btn.style.cssText = 'padding: 6px 12px; font-size: 0.9rem; font-weight: bold; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px;';
     
     if (currentUser.role === 'admin') {
-      btn.innerHTML = `<span>⚖️</span> <span class="shortcut-text">อนุมัติการลา</span>`;
+      btn.innerHTML = `<span>âš–ï¸</span> <span class="shortcut-text">à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´à¸à¸²à¸£à¸¥à¸²</span>`;
       btn.onclick = () => {
         enterModule('approval-page', true);
       };
     } else {
-      btn.innerHTML = `<span>📅</span> <span class="shortcut-text">ระบบการยื่นลา</span>`;
+      btn.innerHTML = `<span>ðŸ“…</span> <span class="shortcut-text">à¸£à¸°à¸šà¸šà¸à¸²à¸£à¸¢à¸·à¹ˆà¸™à¸¥à¸²</span>`;
       btn.onclick = () => {
         enterModule('dashboard-page', false);
       };
@@ -693,7 +739,7 @@ function updateUIAfterLogin() {
   // Update welcome message
   const welcomeEl = document.getElementById('portal-user-welcome');
   if (welcomeEl) {
-    welcomeEl.innerHTML = `👤 สวัสดีคุณ <strong>${currentUser.fullName}</strong> (${currentUser.role === 'admin' ? 'ผู้ดูแลระบบ' : 'บุคลากร'}) | ยินดีต้อนรับเข้าสู่ระบบ`;
+    welcomeEl.innerHTML = `ðŸ‘¤ à¸ªà¸§à¸±à¸ªà¸”à¸µà¸„à¸¸à¸“ <strong>${currentUser.fullName}</strong> (${currentUser.role === 'admin' ? 'à¸œà¸¹à¹‰à¸”à¸¹à¹à¸¥à¸£à¸°à¸šà¸š' : 'à¸šà¸¸à¸„à¸¥à¸²à¸à¸£'}) | à¸¢à¸´à¸™à¸”à¸µà¸•à¹‰à¸­à¸™à¸£à¸±à¸šà¹€à¸‚à¹‰à¸²à¸ªà¸¹à¹ˆà¸£à¸°à¸šà¸š`;
   }
   
   buildNavigation();
@@ -712,7 +758,7 @@ function updateUIAfterLogout() {
   // Update welcome message
   const welcomeEl = document.getElementById('portal-user-welcome');
   if (welcomeEl) {
-    welcomeEl.innerHTML = `👤 ยินดีต้อนรับผู้เยี่ยมชม | กรุณาเข้าสู่ระบบเพื่อใช้งานระบบบริหารงานบุคคล`;
+    welcomeEl.innerHTML = `ðŸ‘¤ à¸¢à¸´à¸™à¸”à¸µà¸•à¹‰à¸­à¸™à¸£à¸±à¸šà¸œà¸¹à¹‰à¹€à¸¢à¸µà¹ˆà¸¢à¸¡à¸Šà¸¡ | à¸à¸£à¸¸à¸“à¸²à¹€à¸‚à¹‰à¸²à¸ªà¸¹à¹ˆà¸£à¸°à¸šà¸šà¹€à¸žà¸·à¹ˆà¸­à¹ƒà¸Šà¹‰à¸‡à¸²à¸™à¸£à¸°à¸šà¸šà¸šà¸£à¸´à¸«à¸²à¸£à¸‡à¸²à¸™à¸šà¸¸à¸„à¸„à¸¥`;
   }
 
   buildNavigation();
@@ -725,23 +771,23 @@ function buildNavigation() {
   if (mobileNav) mobileNav.innerHTML = '';
 
   let menuItems = [
-    { text: 'หน้าหลักพอร์ทัล', icon: '🏠', page: 'portal-page', action: () => showPage('portal-page') }
+    { text: 'à¸«à¸™à¹‰à¸²à¸«à¸¥à¸±à¸à¸žà¸­à¸£à¹Œà¸—à¸±à¸¥', icon: 'ðŸ ', page: 'portal-page', action: () => showPage('portal-page') }
   ];
 
   if (currentUser) {
     // Add Portal Links
-    menuItems.push({ text: 'ระบบการยื่นลา', icon: '📅', page: 'dashboard-page', action: loadDashboardData });
-    menuItems.push({ text: 'ระบบขอไปราชการ', icon: '✈️', page: 'travel-page', action: initTravelPage });
-    menuItems.push({ text: 'ระบบรายงานราชการ', icon: '📝', page: 'travel-report-page', action: initTravelReportPage });
-    menuItems.push({ text: 'ระบบบันทึกอบรม', icon: '🎓', page: 'training-page', action: initTrainingPage });
+    menuItems.push({ text: 'à¸£à¸°à¸šà¸šà¸à¸²à¸£à¸¢à¸·à¹ˆà¸™à¸¥à¸²', icon: 'ðŸ“…', page: 'dashboard-page', action: loadDashboardData });
+    menuItems.push({ text: 'à¸£à¸°à¸šà¸šà¸‚à¸­à¹„à¸›à¸£à¸²à¸Šà¸à¸²à¸£', icon: 'âœˆï¸', page: 'travel-page', action: initTravelPage });
+    menuItems.push({ text: 'à¸£à¸°à¸šà¸šà¸£à¸²à¸¢à¸‡à¸²à¸™à¸£à¸²à¸Šà¸à¸²à¸£', icon: 'ðŸ“', page: 'travel-report-page', action: initTravelReportPage });
+    menuItems.push({ text: 'à¸£à¸°à¸šà¸šà¸šà¸±à¸™à¸—à¸¶à¸à¸­à¸šà¸£à¸¡', icon: 'ðŸŽ“', page: 'training-page', action: initTrainingPage });
 
     if (currentUser.role === 'admin') {
       menuItems.push(
-        { text: 'เช็คชื่อปฏิบัติงาน', icon: '⏱️', page: 'attendance-page', action: initAttendancePage },
-        { text: 'พิจารณาอนุมัติการลา', icon: '⚖️', page: 'approval-page', action: loadApprovalPage },
-        { text: 'รายงานสรุปการลา', icon: '📊', page: 'report-page', action: loadReportPage },
-        { text: 'จัดการผู้ใช้งาน', icon: '⚙️', page: 'user-management-page', action: loadUserManagementPage },
-        { text: 'ตั้งค่าปีงบประมาณ', icon: '🔧', page: 'admin-settings-page', action: loadAdminSettingsPage }
+        { text: 'à¹€à¸Šà¹‡à¸„à¸Šà¸·à¹ˆà¸­à¸›à¸à¸´à¸šà¸±à¸•à¸´à¸‡à¸²à¸™', icon: 'â±ï¸', page: 'attendance-page', action: initAttendancePage },
+        { text: 'à¸žà¸´à¸ˆà¸²à¸£à¸“à¸²à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´à¸à¸²à¸£à¸¥à¸²', icon: 'âš–ï¸', page: 'approval-page', action: loadApprovalPage },
+        { text: 'à¸£à¸²à¸¢à¸‡à¸²à¸™à¸ªà¸£à¸¸à¸›à¸à¸²à¸£à¸¥à¸²', icon: 'ðŸ“Š', page: 'report-page', action: loadReportPage },
+        { text: 'à¸ˆà¸±à¸”à¸à¸²à¸£à¸œà¸¹à¹‰à¹ƒà¸Šà¹‰à¸‡à¸²à¸™', icon: 'âš™ï¸', page: 'user-management-page', action: loadUserManagementPage },
+        { text: 'à¸•à¸±à¹‰à¸‡à¸„à¹ˆà¸²à¸›à¸µà¸‡à¸šà¸›à¸£à¸°à¸¡à¸²à¸“', icon: 'ðŸ”§', page: 'admin-settings-page', action: loadAdminSettingsPage }
       );
     }
   }
@@ -802,7 +848,7 @@ function buildNavigation() {
       editProfileBtn.style.borderBottom = '1px solid var(--neutral-200)';
       editProfileBtn.style.paddingBottom = '10px';
       editProfileBtn.style.marginBottom = '6px';
-      editProfileBtn.innerHTML = `<span style="margin-right: 8px;">👤</span> แก้ไขข้อมูลส่วนตัว / รหัสผ่าน`;
+      editProfileBtn.innerHTML = `<span style="margin-right: 8px;">ðŸ‘¤</span> à¹à¸à¹‰à¹„à¸‚à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸ªà¹ˆà¸§à¸™à¸•à¸±à¸§ / à¸£à¸«à¸±à¸ªà¸œà¹ˆà¸²à¸™`;
       editProfileBtn.onclick = () => {
         showSelfEditModal();
       };
@@ -825,10 +871,10 @@ function buildNavigation() {
 
 // --- Dashboard Loading ---
 
-// Helper to format days count nicely (e.g. 2.5 วัน, 1 วัน, 0 วัน)
+// Helper to format days count nicely (e.g. 2.5 à¸§à¸±à¸™, 1 à¸§à¸±à¸™, 0 à¸§à¸±à¸™)
 function formatDays(val) {
   const num = parseFloat(val) || 0;
-  return num.toFixed(1).replace('.0', '') + ' วัน';
+  return num.toFixed(1).replace('.0', '') + ' à¸§à¸±à¸™';
 }
 
 async function loadDashboardData() {
@@ -851,7 +897,7 @@ async function loadDashboardData() {
     if (queryParams.length > 0) {
       url += `?${queryParams.join('&')}`;
     }
-    const res = await fetch(url);
+    const res = await safeFetch(url);
     const d = await res.json();
     
     if (d && d.stats) {
@@ -861,7 +907,7 @@ async function loadDashboardData() {
       const chartTypeLabel = document.getElementById('chart-type-label');
       const chartMonthlyLabel = document.getElementById('chart-monthly-label');
 
-      const yrDisplay = fiscalYear ? `ปีงบประมาณ ${fiscalYear}` : 'ปีงบประมาณปัจจุบัน';
+      const yrDisplay = fiscalYear ? `à¸›à¸µà¸‡à¸šà¸›à¸£à¸°à¸¡à¸²à¸“ ${fiscalYear}` : 'à¸›à¸µà¸‡à¸šà¸›à¸£à¸°à¸¡à¸²à¸“à¸›à¸±à¸ˆà¸ˆà¸¸à¸šà¸±à¸™';
 
       const totalStaffEl = document.getElementById('stat-total-staff');
       const approvedEl = document.getElementById('stat-approved');
@@ -870,10 +916,10 @@ async function loadDashboardData() {
       const travelsEl = document.getElementById('stat-travels');
 
       if (currentUser && currentUser.role === 'admin') {
-        if (totalLabel) totalLabel.textContent = 'บุคลากรทั้งหมด';
-        if (dashboardTitle) dashboardTitle.textContent = `แดชบอร์ดข้อมูลภาพรวม${yrDisplay}`;
-        if (chartTypeLabel) chartTypeLabel.textContent = `สัดส่วนประเภทการลาของบุคลากร (${yrDisplay})`;
-        if (chartMonthlyLabel) chartMonthlyLabel.textContent = `สถิติจำนวนการลาสะสมรายเดือน (${yrDisplay})`;
+        if (totalLabel) totalLabel.textContent = 'à¸šà¸¸à¸„à¸¥à¸²à¸à¸£à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”';
+        if (dashboardTitle) dashboardTitle.textContent = `à¹à¸”à¸Šà¸šà¸­à¸£à¹Œà¸”à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸ à¸²à¸žà¸£à¸§à¸¡${yrDisplay}`;
+        if (chartTypeLabel) chartTypeLabel.textContent = `à¸ªà¸±à¸”à¸ªà¹ˆà¸§à¸™à¸›à¸£à¸°à¹€à¸ à¸—à¸à¸²à¸£à¸¥à¸²à¸‚à¸­à¸‡à¸šà¸¸à¸„à¸¥à¸²à¸à¸£ (${yrDisplay})`;
+        if (chartMonthlyLabel) chartMonthlyLabel.textContent = `à¸ªà¸–à¸´à¸•à¸´à¸ˆà¸³à¸™à¸§à¸™à¸à¸²à¸£à¸¥à¸²à¸ªà¸°à¸ªà¸¡à¸£à¸²à¸¢à¹€à¸”à¸·à¸­à¸™ (${yrDisplay})`;
         
         if (totalStaffEl) totalStaffEl.textContent = d.stats.totalStaff;
         if (approvedEl) approvedEl.textContent = d.stats.approved;
@@ -881,7 +927,7 @@ async function loadDashboardData() {
         if (rejectedEl) rejectedEl.textContent = d.stats.rejected;
         
         const travelLabel = document.getElementById('stat-travel-label');
-        if (travelLabel) travelLabel.textContent = 'ไปราชการทั้งหมด (ครั้ง)';
+        if (travelLabel) travelLabel.textContent = 'à¹„à¸›à¸£à¸²à¸Šà¸à¸²à¸£à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸” (à¸„à¸£à¸±à¹‰à¸‡)';
         if (travelsEl) travelsEl.textContent = d.stats.totalTravels;
 
         const loanEl = document.getElementById('stat-loan-total');
@@ -889,13 +935,13 @@ async function loadDashboardData() {
           const total = parseFloat(d.stats.totalLoanBudget) || 0;
           const cleared = parseFloat(d.stats.clearedLoanBudget) || 0;
           const pending = parseFloat(d.stats.pendingLoanBudget) || 0;
-          loanEl.innerHTML = `<span style="font-size:0.95rem;">${total.toLocaleString('th-TH')} บาท</span><br><small style="font-size:0.7rem;color:#0d9488;font-weight:500;">เคลียร์แล้ว ${cleared.toLocaleString('th-TH')} บาท</small><br><small style="font-size:0.7rem;color:#f59e0b;font-weight:500;">ค้างเคลียร์ ${pending.toLocaleString('th-TH')} บาท</small>`;
+          loanEl.innerHTML = `<span style="font-size:0.95rem;">${total.toLocaleString('th-TH')} à¸šà¸²à¸—</span><br><small style="font-size:0.7rem;color:#0d9488;font-weight:500;">à¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œà¹à¸¥à¹‰à¸§ ${cleared.toLocaleString('th-TH')} à¸šà¸²à¸—</small><br><small style="font-size:0.7rem;color:#f59e0b;font-weight:500;">à¸„à¹‰à¸²à¸‡à¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œ ${pending.toLocaleString('th-TH')} à¸šà¸²à¸—</small>`;
         }
       } else {
-        if (totalLabel) totalLabel.textContent = `วันลาสะสม${yrDisplay}`;
-        if (dashboardTitle) dashboardTitle.textContent = `แดชบอร์ดการลาของฉัน (${yrDisplay})`;
-        if (chartTypeLabel) chartTypeLabel.textContent = `สัดส่วนประเภทการลาของฉัน (${yrDisplay})`;
-        if (chartMonthlyLabel) chartMonthlyLabel.textContent = `สถิติจำนวนการลาสะสมรายเดือนของฉัน (${yrDisplay})`;
+        if (totalLabel) totalLabel.textContent = `à¸§à¸±à¸™à¸¥à¸²à¸ªà¸°à¸ªà¸¡${yrDisplay}`;
+        if (dashboardTitle) dashboardTitle.textContent = `à¹à¸”à¸Šà¸šà¸­à¸£à¹Œà¸”à¸à¸²à¸£à¸¥à¸²à¸‚à¸­à¸‡à¸‰à¸±à¸™ (${yrDisplay})`;
+        if (chartTypeLabel) chartTypeLabel.textContent = `à¸ªà¸±à¸”à¸ªà¹ˆà¸§à¸™à¸›à¸£à¸°à¹€à¸ à¸—à¸à¸²à¸£à¸¥à¸²à¸‚à¸­à¸‡à¸‰à¸±à¸™ (${yrDisplay})`;
+        if (chartMonthlyLabel) chartMonthlyLabel.textContent = `à¸ªà¸–à¸´à¸•à¸´à¸ˆà¸³à¸™à¸§à¸™à¸à¸²à¸£à¸¥à¸²à¸ªà¸°à¸ªà¸¡à¸£à¸²à¸¢à¹€à¸”à¸·à¸­à¸™à¸‚à¸­à¸‡à¸‰à¸±à¸™ (${yrDisplay})`;
         
         if (totalStaffEl) totalStaffEl.textContent = formatDays(d.stats.totalStaff);
         if (approvedEl) approvedEl.textContent = formatDays(d.stats.approved);
@@ -903,7 +949,7 @@ async function loadDashboardData() {
         if (rejectedEl) rejectedEl.textContent = formatDays(d.stats.rejected);
         
         const travelLabel = document.getElementById('stat-travel-label');
-        if (travelLabel) travelLabel.textContent = 'เดินทางไปราชการ (วัน)';
+        if (travelLabel) travelLabel.textContent = 'à¹€à¸”à¸´à¸™à¸—à¸²à¸‡à¹„à¸›à¸£à¸²à¸Šà¸à¸²à¸£ (à¸§à¸±à¸™)';
         if (travelsEl) travelsEl.textContent = formatDays(d.stats.totalTravels);
 
         const loanEl = document.getElementById('stat-loan-total');
@@ -911,7 +957,7 @@ async function loadDashboardData() {
           const total = parseFloat(d.stats.totalLoanBudget) || 0;
           const cleared = parseFloat(d.stats.clearedLoanBudget) || 0;
           const pending = parseFloat(d.stats.pendingLoanBudget) || 0;
-          loanEl.innerHTML = `<span style="font-size:0.95rem;">${total.toLocaleString('th-TH')} บาท</span><br><small style="font-size:0.7rem;color:#0d9488;font-weight:500;">เคลียร์แล้ว ${cleared.toLocaleString('th-TH')} บาท</small><br><small style="font-size:0.7rem;color:#f59e0b;font-weight:500;">ค้างเคลียร์ ${pending.toLocaleString('th-TH')} บาท</small>`;
+          loanEl.innerHTML = `<span style="font-size:0.95rem;">${total.toLocaleString('th-TH')} à¸šà¸²à¸—</span><br><small style="font-size:0.7rem;color:#0d9488;font-weight:500;">à¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œà¹à¸¥à¹‰à¸§ ${cleared.toLocaleString('th-TH')} à¸šà¸²à¸—</small><br><small style="font-size:0.7rem;color:#f59e0b;font-weight:500;">à¸„à¹‰à¸²à¸‡à¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œ ${pending.toLocaleString('th-TH')} à¸šà¸²à¸—</small>`;
         }
       }
       
@@ -923,7 +969,7 @@ async function loadDashboardData() {
       if (tb) {
         tb.innerHTML = '';
         if (!d.recentLeaves.length) {
-          tb.innerHTML = `<tr><td colspan="6" class="text-center" style="color:var(--neutral-400); padding:24px;">ไม่มีข้อมูลคำขอลาล่าสุด</td></tr>`;
+          tb.innerHTML = `<tr><td colspan="6" class="text-center" style="color:var(--neutral-400); padding:24px;">à¹„à¸¡à¹ˆà¸¡à¸µà¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸„à¸³à¸‚à¸­à¸¥à¸²à¸¥à¹ˆà¸²à¸ªà¸¸à¸”</td></tr>`;
         } else {
           d.recentLeaves.forEach(l => {
             tb.innerHTML += `
@@ -934,7 +980,7 @@ async function loadDashboardData() {
                 <td style="text-align: center; font-weight: bold;">${l.totalDays}</td>
                 <td>${renderBadge(l.status)}</td>
                 <td>
-                  ${l.pdfUrl ? `<a href="${l.pdfUrl}" target="_blank" style="color:var(--primary); font-weight:600;">พิมพ์ใบลา</a>` : '-'}
+                  ${l.pdfUrl ? `<a href="${l.pdfUrl}" target="_blank" style="color:var(--primary); font-weight:600;">à¸žà¸´à¸¡à¸žà¹Œà¹ƒà¸šà¸¥à¸²</a>` : '-'}
                 </td>
               </tr>
             `;
@@ -957,21 +1003,21 @@ async function prepareLeaveForm() {
   signaturePad.clear();
   
   // Prefill School Name and Details
-  document.getElementById('form-school-name').value = settings.schoolName || 'วิทยาลัยสารพัดช่างน่าน';
+  document.getElementById('form-school-name').value = settings.schoolName || 'à¸§à¸´à¸—à¸¢à¸²à¸¥à¸±à¸¢à¸ªà¸²à¸£à¸žà¸±à¸”à¸Šà¹ˆà¸²à¸‡à¸™à¹ˆà¸²à¸™';
   document.getElementById('form-request-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('form-user-name').value = currentUser.fullName;
   document.getElementById('form-user-position').value = currentUser.position;
 
   // Retrieve last approved leave to auto fill history table
   try {
-    const res = await fetch(`${API_BASE_URL}/api/leaves/last-approved/${currentUser.userId}`);
+    const res = await safeFetch(`${API_BASE_URL}/api/leaves/last-approved/${currentUser.userId}`);
     const l = await res.json();
     
     const sel = document.getElementById('form-last-leave-type');
     if (l) {
       // Find and select matching leave type
       let found = false;
-      const targetText = "ได้ " + l.leaveType;
+      const targetText = "à¹„à¸”à¹‰ " + l.leaveType;
       for (let i = 0; i < sel.options.length; i++) {
         if (sel.options[i].text === targetText) {
           sel.selectedIndex = i;
@@ -987,7 +1033,7 @@ async function prepareLeaveForm() {
       document.getElementById('form-last-end-date').value = l.endDate ? l.endDate.split('T')[0] : '';
       document.getElementById('form-last-total-days').value = l.totalDays;
     } else {
-      sel.value = "ไม่ได้ลาในรอบครึ่งปีก่อน";
+      sel.value = "à¹„à¸¡à¹ˆà¹„à¸”à¹‰à¸¥à¸²à¹ƒà¸™à¸£à¸­à¸šà¸„à¸£à¸¶à¹ˆà¸‡à¸›à¸µà¸à¹ˆà¸­à¸™";
       document.getElementById('form-last-start-date').value = '';
       document.getElementById('form-last-end-date').value = '';
       document.getElementById('form-last-total-days').value = '0';
@@ -1028,10 +1074,10 @@ async function calculateLeaveDays() {
     return;
   }
 
-  document.getElementById('form-total-days').value = 'คำนวณ...';
+  document.getElementById('form-total-days').value = 'à¸„à¸³à¸™à¸§à¸“...';
   
   try {
-    const res = await fetch(`${API_BASE_URL}/api/leaves/calculate-days`, {
+    const res = await safeFetch(`${API_BASE_URL}/api/leaves/calculate-days`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ startDate: s, endDate: e, leaveType: t, isHalfDay })
@@ -1062,7 +1108,7 @@ async function updateLeaveStatsTable() {
   const currDays = parseFloat(document.getElementById('form-total-days').value) || 0;
 
   // Use end of current fiscal year (Sep 30) as beforeDate
-  // so "ลามาแล้ว" always shows the full fiscal year count
+  // so "à¸¥à¸²à¸¡à¸²à¹à¸¥à¹‰à¸§" always shows the full fiscal year count
   const today = new Date();
   const todayMonth = today.getMonth(); // 0-indexed; 9 = October
   // Fiscal year ends Sep 30. If current month is Oct-Dec, fiscal year ends this year's Sep 30 (next year).
@@ -1071,38 +1117,38 @@ async function updateLeaveStatsTable() {
   const beforeDate = `${fiscalEndYear}-09-30`;
   
   try {
-    const res = await fetch(`${API_BASE_URL}/api/leaves/stats/${currentUser.userId}?beforeDate=${beforeDate}`);
+    const res = await safeFetch(`${API_BASE_URL}/api/leaves/stats/${currentUser.userId}?beforeDate=${beforeDate}`);
     const stats = await res.json();
     
-    // 1. Sick Leave (ลาป่วย)
-    const prevSickCount = stats["ป่วย"].count;
-    const prevSickDays = stats["ป่วย"].days;
-    const currSickCount = t === 'ลาป่วย' && currDays > 0 ? 1 : 0;
-    const currSickDays = t === 'ลาป่วย' ? currDays : 0;
+    // 1. Sick Leave (à¸¥à¸²à¸›à¹ˆà¸§à¸¢)
+    const prevSickCount = stats["à¸›à¹ˆà¸§à¸¢"].count;
+    const prevSickDays = stats["à¸›à¹ˆà¸§à¸¢"].days;
+    const currSickCount = t === 'à¸¥à¸²à¸›à¹ˆà¸§à¸¢' && currDays > 0 ? 1 : 0;
+    const currSickDays = t === 'à¸¥à¸²à¸›à¹ˆà¸§à¸¢' ? currDays : 0;
     
-    document.getElementById('stats-sick-prev').textContent = `${prevSickCount} ครั้ง / ${prevSickDays.toFixed(1).replace('.0', '')} วัน`;
-    document.getElementById('stats-sick-curr').textContent = `${currSickCount} ครั้ง / ${currSickDays.toFixed(1).replace('.0', '')} วัน`;
-    document.getElementById('stats-sick-total').textContent = `${prevSickCount + currSickCount} ครั้ง / ${(prevSickDays + currSickDays).toFixed(1).replace('.0', '')} วัน`;
+    document.getElementById('stats-sick-prev').textContent = `${prevSickCount} à¸„à¸£à¸±à¹‰à¸‡ / ${prevSickDays.toFixed(1).replace('.0', '')} à¸§à¸±à¸™`;
+    document.getElementById('stats-sick-curr').textContent = `${currSickCount} à¸„à¸£à¸±à¹‰à¸‡ / ${currSickDays.toFixed(1).replace('.0', '')} à¸§à¸±à¸™`;
+    document.getElementById('stats-sick-total').textContent = `${prevSickCount + currSickCount} à¸„à¸£à¸±à¹‰à¸‡ / ${(prevSickDays + currSickDays).toFixed(1).replace('.0', '')} à¸§à¸±à¸™`;
     
-    // 2. Personal Leave (ลากิจส่วนตัว)
-    const prevPersCount = stats["กิจ"].count;
-    const prevPersDays = stats["กิจ"].days;
-    const currPersCount = t === 'ลากิจส่วนตัว' && currDays > 0 ? 1 : 0;
-    const currPersDays = t === 'ลากิจส่วนตัว' ? currDays : 0;
+    // 2. Personal Leave (à¸¥à¸²à¸à¸´à¸ˆà¸ªà¹ˆà¸§à¸™à¸•à¸±à¸§)
+    const prevPersCount = stats["à¸à¸´à¸ˆ"].count;
+    const prevPersDays = stats["à¸à¸´à¸ˆ"].days;
+    const currPersCount = t === 'à¸¥à¸²à¸à¸´à¸ˆà¸ªà¹ˆà¸§à¸™à¸•à¸±à¸§' && currDays > 0 ? 1 : 0;
+    const currPersDays = t === 'à¸¥à¸²à¸à¸´à¸ˆà¸ªà¹ˆà¸§à¸™à¸•à¸±à¸§' ? currDays : 0;
     
-    document.getElementById('stats-personal-prev').textContent = `${prevPersCount} ครั้ง / ${prevPersDays.toFixed(1).replace('.0', '')} วัน`;
-    document.getElementById('stats-personal-curr').textContent = `${currPersCount} ครั้ง / ${currPersDays.toFixed(1).replace('.0', '')} วัน`;
-    document.getElementById('stats-personal-total').textContent = `${prevPersCount + currPersCount} ครั้ง / ${(prevPersDays + currPersDays).toFixed(1).replace('.0', '')} วัน`;
+    document.getElementById('stats-personal-prev').textContent = `${prevPersCount} à¸„à¸£à¸±à¹‰à¸‡ / ${prevPersDays.toFixed(1).replace('.0', '')} à¸§à¸±à¸™`;
+    document.getElementById('stats-personal-curr').textContent = `${currPersCount} à¸„à¸£à¸±à¹‰à¸‡ / ${currPersDays.toFixed(1).replace('.0', '')} à¸§à¸±à¸™`;
+    document.getElementById('stats-personal-total').textContent = `${prevPersCount + currPersCount} à¸„à¸£à¸±à¹‰à¸‡ / ${(prevPersDays + currPersDays).toFixed(1).replace('.0', '')} à¸§à¸±à¸™`;
     
-    // 3. Maternity Leave (ลาคลอดบุตร)
-    const prevMatCount = stats["คลอด"].count;
-    const prevMatDays = stats["คลอด"].days;
-    const currMatCount = t === 'ลาคลอดบุตร' && currDays > 0 ? 1 : 0;
-    const currMatDays = t === 'ลาคลอดบุตร' ? currDays : 0;
+    // 3. Maternity Leave (à¸¥à¸²à¸„à¸¥à¸­à¸”à¸šà¸¸à¸•à¸£)
+    const prevMatCount = stats["à¸„à¸¥à¸­à¸”"].count;
+    const prevMatDays = stats["à¸„à¸¥à¸­à¸”"].days;
+    const currMatCount = t === 'à¸¥à¸²à¸„à¸¥à¸­à¸”à¸šà¸¸à¸•à¸£' && currDays > 0 ? 1 : 0;
+    const currMatDays = t === 'à¸¥à¸²à¸„à¸¥à¸­à¸”à¸šà¸¸à¸•à¸£' ? currDays : 0;
     
-    document.getElementById('stats-maternity-prev').textContent = `${prevMatCount} ครั้ง / ${prevMatDays.toFixed(1).replace('.0', '')} วัน`;
-    document.getElementById('stats-maternity-curr').textContent = `${currMatCount} ครั้ง / ${currMatDays.toFixed(1).replace('.0', '')} วัน`;
-    document.getElementById('stats-maternity-total').textContent = `${prevMatCount + currMatCount} ครั้ง / ${(prevMatDays + currMatDays).toFixed(1).replace('.0', '')} วัน`;
+    document.getElementById('stats-maternity-prev').textContent = `${prevMatCount} à¸„à¸£à¸±à¹‰à¸‡ / ${prevMatDays.toFixed(1).replace('.0', '')} à¸§à¸±à¸™`;
+    document.getElementById('stats-maternity-curr').textContent = `${currMatCount} à¸„à¸£à¸±à¹‰à¸‡ / ${currMatDays.toFixed(1).replace('.0', '')} à¸§à¸±à¸™`;
+    document.getElementById('stats-maternity-total').textContent = `${prevMatCount + currMatCount} à¸„à¸£à¸±à¹‰à¸‡ / ${(prevMatDays + currMatDays).toFixed(1).replace('.0', '')} à¸§à¸±à¸™`;
     
   } catch (err) {
     console.error('Error updating leave stats table:', err);
@@ -1114,7 +1160,7 @@ async function handleLeaveSubmit(e) {
   e.preventDefault();
   
   if (signaturePad.isEmpty()) {
-    return showError('กรุณาลงลายมือชื่อก่อนกดยืนยันการลา');
+    return showError('à¸à¸£à¸¸à¸“à¸²à¸¥à¸‡à¸¥à¸²à¸¢à¸¡à¸·à¸­à¸Šà¸·à¹ˆà¸­à¸à¹ˆà¸­à¸™à¸à¸”à¸¢à¸·à¸™à¸¢à¸±à¸™à¸à¸²à¸£à¸¥à¸²');
   }
 
   const frontendUrl = window.location.href.split('?')[0].split('#')[0];
@@ -1142,10 +1188,10 @@ async function handleLeaveSubmit(e) {
     frontendUrl: frontendUrl // Links back to GitHub Pages
   };
 
-  showLoading('กำลังบันทึกคำขอลาและส่งแจ้งเตือน LINE...');
+  showLoading('à¸à¸³à¸¥à¸±à¸‡à¸šà¸±à¸™à¸—à¸¶à¸à¸„à¸³à¸‚à¸­à¸¥à¸²à¹à¸¥à¸°à¸ªà¹ˆà¸‡à¹à¸ˆà¹‰à¸‡à¹€à¸•à¸·à¸­à¸™ LINE...');
   
   try {
-    const res = await fetch(`${API_BASE_URL}/api/leaves`, {
+    const res = await safeFetch(`${API_BASE_URL}/api/leaves`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(leavePayload)
@@ -1155,9 +1201,9 @@ async function handleLeaveSubmit(e) {
     if (result.success) {
       Swal.fire({
         icon: 'success',
-        title: 'ยื่นใบลาสำเร็จ',
-        text: 'ระบบได้ส่งเรื่องให้หัวหน้างาน/ผู้อนุมัติ เรียบร้อยแล้ว',
-        confirmButtonText: 'ตกลง'
+        title: 'à¸¢à¸·à¹ˆà¸™à¹ƒà¸šà¸¥à¸²à¸ªà¸³à¹€à¸£à¹‡à¸ˆ',
+        text: 'à¸£à¸°à¸šà¸šà¹„à¸”à¹‰à¸ªà¹ˆà¸‡à¹€à¸£à¸·à¹ˆà¸­à¸‡à¹ƒà¸«à¹‰à¸«à¸±à¸§à¸«à¸™à¹‰à¸²à¸‡à¸²à¸™/à¸œà¸¹à¹‰à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´ à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§',
+        confirmButtonText: 'à¸•à¸à¸¥à¸‡'
       });
       showPage('history-page');
       loadHistory();
@@ -1165,7 +1211,7 @@ async function handleLeaveSubmit(e) {
       showError(result.message);
     }
   } catch (err) {
-    showError('เกิดข้อผิดพลาดในการยื่นใบลา: ' + err.message);
+    showError('à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”à¹ƒà¸™à¸à¸²à¸£à¸¢à¸·à¹ˆà¸™à¹ƒà¸šà¸¥à¸²: ' + err.message);
   }
 }
 
@@ -1180,7 +1226,7 @@ function loadHistory() {
   populateHistoryFiscalYearDropdown();
   
   if (currentUser.role === 'admin') {
-    document.getElementById('history-title').textContent = 'ประวัติการลาของบุคลากรทั้งหมด';
+    document.getElementById('history-title').textContent = 'à¸›à¸£à¸°à¸§à¸±à¸•à¸´à¸à¸²à¸£à¸¥à¸²à¸‚à¸­à¸‡à¸šà¸¸à¸„à¸¥à¸²à¸à¸£à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”';
     userColHeader.classList.remove('hidden');
     filterSec.classList.remove('hidden');
     
@@ -1201,7 +1247,7 @@ function loadHistory() {
     
     document.getElementById('filter-btn').onclick = loadHistoryData;
   } else {
-    document.getElementById('history-title').textContent = 'ประวัติการลาของข้าพเจ้า';
+    document.getElementById('history-title').textContent = 'à¸›à¸£à¸°à¸§à¸±à¸•à¸´à¸à¸²à¸£à¸¥à¸²à¸‚à¸­à¸‡à¸‚à¹‰à¸²à¸žà¹€à¸ˆà¹‰à¸²';
     userColHeader.classList.add('hidden');
     filterSec.classList.add('hidden');
   }
@@ -1210,7 +1256,7 @@ function loadHistory() {
 }
 
 async function loadHistoryData() {
-  showLoading('กำลังโหลดข้อมูลประวัติ...');
+  showLoading('à¸à¸³à¸¥à¸±à¸‡à¹‚à¸«à¸¥à¸”à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸›à¸£à¸°à¸§à¸±à¸•à¸´...');
   
   const fySelect = document.getElementById('history-fiscal-year-select');
   const filterPayload = {
@@ -1223,7 +1269,7 @@ async function loadHistoryData() {
   };
 
   try {
-    const res = await fetch(`${API_BASE_URL}/api/leaves/history`, {
+    const res = await safeFetch(`${API_BASE_URL}/api/leaves/history`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(filterPayload)
@@ -1236,7 +1282,7 @@ async function loadHistoryData() {
     tb.innerHTML = '';
     
     if (!d || !d.length) {
-      tb.innerHTML = `<tr><td colspan="6" class="text-center" style="color:var(--neutral-400); padding:24px;">ไม่พบข้อมูลประวัติการลา</td></tr>`;
+      tb.innerHTML = `<tr><td colspan="6" class="text-center" style="color:var(--neutral-400); padding:24px;">à¹„à¸¡à¹ˆà¸žà¸šà¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸›à¸£à¸°à¸§à¸±à¸•à¸´à¸à¸²à¸£à¸¥à¸²</td></tr>`;
     } else {
       d.forEach(i => {
         tb.innerHTML += `
@@ -1248,9 +1294,9 @@ async function loadHistoryData() {
             <td>${renderBadge(i.status)}</td>
             <td>
               <div style="display:flex; gap:8px;">
-                ${i.pdfUrl ? `<a href="${i.pdfUrl}" target="_blank" class="btn btn-outline btn-sm">🖨️ พิมพ์ใบลา</a>` : ''}
-                ${i.status === 'รอการอนุมัติ' ? `<button onclick="cancelLeave('${i.leaveId}')" class="btn btn-secondary btn-sm" style="padding: 4px 10px;">ยกเลิก</button>` : ''}
-                ${currentUser.role === 'admin' ? `<button onclick="deleteLeaveRecord('${i.leaveId}')" class="btn btn-secondary btn-sm" style="padding: 4px 10px; background:#f43f5e;">ลบ</button>` : ''}
+                ${i.pdfUrl ? `<a href="${i.pdfUrl}" target="_blank" class="btn btn-outline btn-sm">ðŸ–¨ï¸ à¸žà¸´à¸¡à¸žà¹Œà¹ƒà¸šà¸¥à¸²</a>` : ''}
+                ${i.status === 'à¸£à¸­à¸à¸²à¸£à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´' ? `<button onclick="cancelLeave('${i.leaveId}')" class="btn btn-secondary btn-sm" style="padding: 4px 10px;">à¸¢à¸à¹€à¸¥à¸´à¸</button>` : ''}
+                ${currentUser.role === 'admin' ? `<button onclick="deleteLeaveRecord('${i.leaveId}')" class="btn btn-secondary btn-sm" style="padding: 4px 10px; background:#f43f5e;">à¸¥à¸š</button>` : ''}
               </div>
             </td>
           </tr>
@@ -1258,25 +1304,25 @@ async function loadHistoryData() {
       });
     }
   } catch (err) {
-    showError('ไม่สามารถดึงข้อมูลประวัติการลาได้: ' + err.message);
+    showError('à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¸”à¸¶à¸‡à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸›à¸£à¸°à¸§à¸±à¸•à¸´à¸à¸²à¸£à¸¥à¸²à¹„à¸”à¹‰: ' + err.message);
   }
 }
 
 // Cancel Leave Request (by User)
 window.cancelLeave = (leaveId) => {
   Swal.fire({
-    title: 'ต้องการยกเลิกใบลา?',
-    text: "คำขอลาจะถูกยกเลิกการทำงาน",
+    title: 'à¸•à¹‰à¸­à¸‡à¸à¸²à¸£à¸¢à¸à¹€à¸¥à¸´à¸à¹ƒà¸šà¸¥à¸²?',
+    text: "à¸„à¸³à¸‚à¸­à¸¥à¸²à¸ˆà¸°à¸–à¸¹à¸à¸¢à¸à¹€à¸¥à¸´à¸à¸à¸²à¸£à¸—à¸³à¸‡à¸²à¸™",
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: 'var(--secondary)',
-    confirmButtonText: 'ยืนยันยกเลิก',
-    cancelButtonText: 'ปิด'
+    confirmButtonText: 'à¸¢à¸·à¸™à¸¢à¸±à¸™à¸¢à¸à¹€à¸¥à¸´à¸',
+    cancelButtonText: 'à¸›à¸´à¸”'
   }).then(async (result) => {
     if (result.isConfirmed) {
-      showLoading('กำลังดำเนินการยกเลิก...');
+      showLoading('à¸à¸³à¸¥à¸±à¸‡à¸”à¸³à¹€à¸™à¸´à¸™à¸à¸²à¸£à¸¢à¸à¹€à¸¥à¸´à¸...');
       try {
-        const res = await fetch(`${API_BASE_URL}/api/leaves/cancel`, {
+        const res = await safeFetch(`${API_BASE_URL}/api/leaves/cancel`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ leaveId, userId: currentUser.userId })
@@ -1284,7 +1330,7 @@ window.cancelLeave = (leaveId) => {
         const r = await res.json();
         
         if (r.success) {
-          Swal.fire('สำเร็จ', 'ยกเลิกใบลาเรียบร้อยแล้ว', 'success');
+          Swal.fire('à¸ªà¸³à¹€à¸£à¹‡à¸ˆ', 'à¸¢à¸à¹€à¸¥à¸´à¸à¹ƒà¸šà¸¥à¸²à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§', 'success');
           loadHistory();
         } else {
           showError(r.message);
@@ -1299,23 +1345,23 @@ window.cancelLeave = (leaveId) => {
 // Delete Leave Request (by Admin)
 window.deleteLeaveRecord = (leaveId) => {
   Swal.fire({
-    title: 'ต้องการลบประวัติต้นฉบับ?',
-    text: "ประวัติการลานี้รวมถึงไฟล์แนบต่างๆ บนเซิร์ฟเวอร์จะถูกลบถาวร",
+    title: 'à¸•à¹‰à¸­à¸‡à¸à¸²à¸£à¸¥à¸šà¸›à¸£à¸°à¸§à¸±à¸•à¸´à¸•à¹‰à¸™à¸‰à¸šà¸±à¸š?',
+    text: "à¸›à¸£à¸°à¸§à¸±à¸•à¸´à¸à¸²à¸£à¸¥à¸²à¸™à¸µà¹‰à¸£à¸§à¸¡à¸–à¸¶à¸‡à¹„à¸Ÿà¸¥à¹Œà¹à¸™à¸šà¸•à¹ˆà¸²à¸‡à¹† à¸šà¸™à¹€à¸‹à¸´à¸£à¹Œà¸Ÿà¹€à¸§à¸­à¸£à¹Œà¸ˆà¸°à¸–à¸¹à¸à¸¥à¸šà¸–à¸²à¸§à¸£",
     icon: 'error',
     showCancelButton: true,
     confirmButtonColor: '#ef4444',
-    confirmButtonText: 'ยืนยันลบข้อมูล',
-    cancelButtonText: 'ปิด'
+    confirmButtonText: 'à¸¢à¸·à¸™à¸¢à¸±à¸™à¸¥à¸šà¸‚à¹‰à¸­à¸¡à¸¹à¸¥',
+    cancelButtonText: 'à¸›à¸´à¸”'
   }).then(async (result) => {
     if (result.isConfirmed) {
-      showLoading('กำลังลบข้อมูล...');
+      showLoading('à¸à¸³à¸¥à¸±à¸‡à¸¥à¸šà¸‚à¹‰à¸­à¸¡à¸¹à¸¥...');
       try {
-        const res = await fetch(`${API_BASE_URL}/api/leaves/${leaveId}`, {
+        const res = await safeFetch(`${API_BASE_URL}/api/leaves/${leaveId}`, {
           method: 'DELETE'
         });
         const r = await res.json();
         if (r.success) {
-          Swal.fire('สำเร็จ', 'ลบประวัติคำขอเรียบร้อยแล้ว', 'success');
+          Swal.fire('à¸ªà¸³à¹€à¸£à¹‡à¸ˆ', 'à¸¥à¸šà¸›à¸£à¸°à¸§à¸±à¸•à¸´à¸„à¸³à¸‚à¸­à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§', 'success');
           loadHistory();
         } else {
           showError(r.message);
@@ -1331,10 +1377,10 @@ window.deleteLeaveRecord = (leaveId) => {
 
 async function loadApprovalPage() {
   if (!currentUser || currentUser.role !== 'admin') return;
-  showLoading('กำลังโหลดรายการรออนุมัติ...');
+  showLoading('à¸à¸³à¸¥à¸±à¸‡à¹‚à¸«à¸¥à¸”à¸£à¸²à¸¢à¸à¸²à¸£à¸£à¸­à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´...');
   
   try {
-    const res = await fetch(`${API_BASE_URL}/api/leaves/pending`);
+    const res = await safeFetch(`${API_BASE_URL}/api/leaves/pending`);
     const d = await res.json();
     
     Swal.close();
@@ -1342,7 +1388,7 @@ async function loadApprovalPage() {
     tb.innerHTML = '';
     
     if (!d || !d.length) {
-      tb.innerHTML = `<tr><td colspan="5" class="text-center" style="color:var(--neutral-400); padding:24px;">ไม่มีรายการใบลาที่รอการอนุมัติในขณะนี้</td></tr>`;
+      tb.innerHTML = `<tr><td colspan="5" class="text-center" style="color:var(--neutral-400); padding:24px;">à¹„à¸¡à¹ˆà¸¡à¸µà¸£à¸²à¸¢à¸à¸²à¸£à¹ƒà¸šà¸¥à¸²à¸—à¸µà¹ˆà¸£à¸­à¸à¸²à¸£à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´à¹ƒà¸™à¸‚à¸“à¸°à¸™à¸µà¹‰</td></tr>`;
     } else {
       d.forEach(l => {
         tb.innerHTML += `
@@ -1350,16 +1396,16 @@ async function loadApprovalPage() {
             <td style="font-weight: 500;">${l.fullName}</td>
             <td>${l.position}</td>
             <td style="color:var(--primary); font-weight:600;">${l.leaveType}</td>
-            <td>${formatDate(l.startDate)} - ${formatDate(l.endDate)} (รวม ${l.totalDays} วัน)</td>
+            <td>${formatDate(l.startDate)} - ${formatDate(l.endDate)} (à¸£à¸§à¸¡ ${l.totalDays} à¸§à¸±à¸™)</td>
             <td>
-              <button onclick='openApprovalModal(${JSON.stringify(l)})' class="btn btn-primary btn-sm">📄 ตรวจสอบและอนุมัติ</button>
+              <button onclick='openApprovalModal(${JSON.stringify(l)})' class="btn btn-primary btn-sm">ðŸ“„ à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¹à¸¥à¸°à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´</button>
             </td>
           </tr>
         `;
       });
     }
   } catch (err) {
-    showError('ไม่สามารถโหลดข้อมูลคำขออนุมัติได้: ' + err.message);
+    showError('à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¹‚à¸«à¸¥à¸”à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸„à¸³à¸‚à¸­à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´à¹„à¸”à¹‰: ' + err.message);
   }
 }
 
@@ -1367,44 +1413,44 @@ window.openApprovalModal = (l) => {
   const frontendUrl = window.location.href.split('?')[0].split('#')[0];
 
   Swal.fire({
-    title: 'พิจารณาคำขอลา',
+    title: 'à¸žà¸´à¸ˆà¸²à¸£à¸“à¸²à¸„à¸³à¸‚à¸­à¸¥à¸²',
     html: `
       <div style="text-align: left; background:var(--neutral-50); padding:16px; border-radius:12px; margin-bottom:16px; font-size:14px; border:1px solid var(--neutral-200);">
-        <p style="margin-bottom:6px;"><strong>ผู้ขอลา:</strong> ${l.fullName}</p>
-        <p style="margin-bottom:6px;"><strong>ประเภทการลา:</strong> ${l.leaveType}</p>
-        <p style="margin-bottom:6px;"><strong>เหตุผลการลา:</strong> ${l.reason}</p>
-        <p style="margin-bottom:6px;"><strong>ผู้สอนแทน:</strong> ${l.teacherName} (วิชา: ${l.subject})</p>
-        <p><strong>ที่อยู่ติดต่อ:</strong> ${l.contactAddress} (โทร: ${l.contactPhone})</p>
+        <p style="margin-bottom:6px;"><strong>à¸œà¸¹à¹‰à¸‚à¸­à¸¥à¸²:</strong> ${l.fullName}</p>
+        <p style="margin-bottom:6px;"><strong>à¸›à¸£à¸°à¹€à¸ à¸—à¸à¸²à¸£à¸¥à¸²:</strong> ${l.leaveType}</p>
+        <p style="margin-bottom:6px;"><strong>à¹€à¸«à¸•à¸¸à¸œà¸¥à¸à¸²à¸£à¸¥à¸²:</strong> ${l.reason}</p>
+        <p style="margin-bottom:6px;"><strong>à¸œà¸¹à¹‰à¸ªà¸­à¸™à¹à¸—à¸™:</strong> ${l.teacherName} (à¸§à¸´à¸Šà¸²: ${l.subject})</p>
+        <p><strong>à¸—à¸µà¹ˆà¸­à¸¢à¸¹à¹ˆà¸•à¸´à¸”à¸•à¹ˆà¸­:</strong> ${l.contactAddress} (à¹‚à¸—à¸£: ${l.contactPhone})</p>
       </div>
       
       <div style="text-align: left; display:flex; flex-direction:column; gap:12px;">
         <div>
-          <label class="form-label">คำสั่ง / ความเห็น</label>
+          <label class="form-label">à¸„à¸³à¸ªà¸±à¹ˆà¸‡ / à¸„à¸§à¸²à¸¡à¹€à¸«à¹‡à¸™</label>
           <select id="swal-status" class="form-input">
-            <option value="อนุมัติ">✅ อนุมัติการลา</option>
-            <option value="ไม่อนุมัติ">❌ ไม่อนุมัติการลา</option>
+            <option value="à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´">âœ… à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´à¸à¸²à¸£à¸¥à¸²</option>
+            <option value="à¹„à¸¡à¹ˆà¸­à¸™à¸¸à¸¡à¸±à¸•à¸´">âŒ à¹„à¸¡à¹ˆà¸­à¸™à¸¸à¸¡à¸±à¸•à¸´à¸à¸²à¸£à¸¥à¸²</option>
           </select>
         </div>
         
         <div id="swal-comment-div" style="display:none;">
-          <label class="form-label">หมายเหตุ (กรณีไม่อนุมัติ)</label>
-          <textarea id="swal-comment" class="form-input" placeholder="ระบุสาเหตุ..."></textarea>
+          <label class="form-label">à¸«à¸¡à¸²à¸¢à¹€à¸«à¸•à¸¸ (à¸à¸£à¸“à¸µà¹„à¸¡à¹ˆà¸­à¸™à¸¸à¸¡à¸±à¸•à¸´)</label>
+          <textarea id="swal-comment" class="form-input" placeholder="à¸£à¸°à¸šà¸¸à¸ªà¸²à¹€à¸«à¸•à¸¸..."></textarea>
         </div>
         
         <div>
-          <label class="form-label">ลงนามลายมือชื่อผู้อนุมัติ</label>
+          <label class="form-label">à¸¥à¸‡à¸™à¸²à¸¡à¸¥à¸²à¸¢à¸¡à¸·à¸­à¸Šà¸·à¹ˆà¸­à¸œà¸¹à¹‰à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´</label>
           <div style="background:white; border:2px dashed var(--neutral-400); border-radius:12px; padding:10px; width:100%;">
             <canvas id="swal-admin-sig" class="signature-canvas" style="width:100%; height:120px;"></canvas>
             <div style="text-align:right; margin-top:8px;">
-              <button type="button" id="swal-clear-sig" style="font-size:12px; color:var(--secondary); font-weight:bold; border:none; background:none; cursor:pointer;">ล้างลายเซ็น</button>
+              <button type="button" id="swal-clear-sig" style="font-size:12px; color:var(--secondary); font-weight:bold; border:none; background:none; cursor:pointer;">à¸¥à¹‰à¸²à¸‡à¸¥à¸²à¸¢à¹€à¸‹à¹‡à¸™</button>
             </div>
           </div>
         </div>
       </div>
     `,
     showCancelButton: true,
-    confirmButtonText: 'บันทึกคำสั่ง',
-    cancelButtonText: 'ปิดหน้าต่าง',
+    confirmButtonText: 'à¸šà¸±à¸™à¸—à¸¶à¸à¸„à¸³à¸ªà¸±à¹ˆà¸‡',
+    cancelButtonText: 'à¸›à¸´à¸”à¸«à¸™à¹‰à¸²à¸•à¹ˆà¸²à¸‡',
     didOpen: () => {
       const c = document.getElementById('swal-admin-sig');
       c.width = c.parentElement.offsetWidth - 20;
@@ -1415,7 +1461,7 @@ window.openApprovalModal = (l) => {
       
       document.getElementById('swal-status').onchange = (e) => {
         const commentDiv = document.getElementById('swal-comment-div');
-        if (e.target.value === 'ไม่อนุมัติ') {
+        if (e.target.value === 'à¹„à¸¡à¹ˆà¸­à¸™à¸¸à¸¡à¸±à¸•à¸´') {
           commentDiv.style.display = 'block';
         } else {
           commentDiv.style.display = 'none';
@@ -1426,12 +1472,12 @@ window.openApprovalModal = (l) => {
       const status = document.getElementById('swal-status').value;
       const comment = document.getElementById('swal-comment').value;
       
-      if (status === 'ไม่อนุมัติ' && !comment.trim()) {
-        Swal.showValidationMessage('กรุณาระบุหมายเหตุการไม่อนุมัติ');
+      if (status === 'à¹„à¸¡à¹ˆà¸­à¸™à¸¸à¸¡à¸±à¸•à¸´' && !comment.trim()) {
+        Swal.showValidationMessage('à¸à¸£à¸¸à¸“à¸²à¸£à¸°à¸šà¸¸à¸«à¸¡à¸²à¸¢à¹€à¸«à¸•à¸¸à¸à¸²à¸£à¹„à¸¡à¹ˆà¸­à¸™à¸¸à¸¡à¸±à¸•à¸´');
       }
       
       if (adminSignaturePad.isEmpty()) {
-        Swal.showValidationMessage('กรุณาเซ็นชื่อรับรอง');
+        Swal.showValidationMessage('à¸à¸£à¸¸à¸“à¸²à¹€à¸‹à¹‡à¸™à¸Šà¸·à¹ˆà¸­à¸£à¸±à¸šà¸£à¸­à¸‡');
       }
       
       return {
@@ -1445,9 +1491,9 @@ window.openApprovalModal = (l) => {
     }
   }).then(async (result) => {
     if (result.isConfirmed) {
-      showLoading('กำลังบันทึกคำสั่งอนุมัติและแจ้งเตือนผู้ลา...');
+      showLoading('à¸à¸³à¸¥à¸±à¸‡à¸šà¸±à¸™à¸—à¸¶à¸à¸„à¸³à¸ªà¸±à¹ˆà¸‡à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´à¹à¸¥à¸°à¹à¸ˆà¹‰à¸‡à¹€à¸•à¸·à¸­à¸™à¸œà¸¹à¹‰à¸¥à¸²...');
       try {
-        const res = await fetch(`${API_BASE_URL}/api/leaves/approve`, {
+        const res = await safeFetch(`${API_BASE_URL}/api/leaves/approve`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(result.value)
@@ -1457,9 +1503,9 @@ window.openApprovalModal = (l) => {
         if (r.success) {
           Swal.fire({
             icon: 'success',
-            title: 'ดำเนินการอนุมัติสำเร็จ',
-            text: `ส่งผลพิจารณาทาง LINE ไปยังผู้ลาเรียบร้อยแล้ว`,
-            confirmButtonText: 'ตกลง'
+            title: 'à¸”à¸³à¹€à¸™à¸´à¸™à¸à¸²à¸£à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´à¸ªà¸³à¹€à¸£à¹‡à¸ˆ',
+            text: `à¸ªà¹ˆà¸‡à¸œà¸¥à¸žà¸´à¸ˆà¸²à¸£à¸“à¸²à¸—à¸²à¸‡ LINE à¹„à¸›à¸¢à¸±à¸‡à¸œà¸¹à¹‰à¸¥à¸²à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§`,
+            confirmButtonText: 'à¸•à¸à¸¥à¸‡'
           });
           loadApprovalPage();
         } else {
@@ -1476,10 +1522,10 @@ window.openApprovalModal = (l) => {
 
 async function loadReportPage() {
   if (!currentUser) return;
-  showLoading('กำลังโหลดรายงาน...');
+  showLoading('à¸à¸³à¸¥à¸±à¸‡à¹‚à¸«à¸¥à¸”à¸£à¸²à¸¢à¸‡à¸²à¸™...');
   
   try {
-    const res = await fetch(`${API_BASE_URL}/api/reports/all`);
+    const res = await safeFetch(`${API_BASE_URL}/api/reports/all`);
     const data = await res.json();
     
     Swal.close();
@@ -1488,7 +1534,7 @@ async function loadReportPage() {
     tb.innerHTML = '';
     
     if (!data || !data.length) {
-      tb.innerHTML = `<tr><td colspan="6" class="text-center" style="color:var(--neutral-400); padding:24px;">ไม่มีข้อมูลประวัติคำขอทั้งหมดในระบบ</td></tr>`;
+      tb.innerHTML = `<tr><td colspan="6" class="text-center" style="color:var(--neutral-400); padding:24px;">à¹„à¸¡à¹ˆà¸¡à¸µà¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸›à¸£à¸°à¸§à¸±à¸•à¸´à¸„à¸³à¸‚à¸­à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”à¹ƒà¸™à¸£à¸°à¸šà¸š</td></tr>`;
     } else {
       data.forEach(l => {
         tb.innerHTML += `
@@ -1499,22 +1545,22 @@ async function loadReportPage() {
             <td style="text-align: center; font-weight: bold;">${l.totalDays}</td>
             <td>${renderBadge(l.status)}</td>
             <td>
-              ${l.pdfUrl ? `<a href="${l.pdfUrl}" target="_blank" style="color:var(--primary); font-weight:600;">พิมพ์ใบลา</a>` : '-'}
+              ${l.pdfUrl ? `<a href="${l.pdfUrl}" target="_blank" style="color:var(--primary); font-weight:600;">à¸žà¸´à¸¡à¸žà¹Œà¹ƒà¸šà¸¥à¸²</a>` : '-'}
             </td>
           </tr>
         `;
       });
     }
   } catch (err) {
-    showError('ไม่สามารถโหลดข้อมูลรายงานได้: ' + err.message);
+    showError('à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¹‚à¸«à¸¥à¸”à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸£à¸²à¸¢à¸‡à¸²à¸™à¹„à¸”à¹‰: ' + err.message);
   }
 }
 
 // Export excel report
 async function handleExportExcel() {
-  showLoading('กำลังดึงข้อมูลเพื่อส่งออกไฟล์ Excel...');
+  showLoading('à¸à¸³à¸¥à¸±à¸‡à¸”à¸¶à¸‡à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹€à¸žà¸·à¹ˆà¸­à¸ªà¹ˆà¸‡à¸­à¸­à¸à¹„à¸Ÿà¸¥à¹Œ Excel...');
   try {
-    const res = await fetch(`${API_BASE_URL}/api/reports/all`);
+    const res = await safeFetch(`${API_BASE_URL}/api/reports/all`);
     const data = await res.json();
     
     Swal.close();
@@ -1522,21 +1568,21 @@ async function handleExportExcel() {
     if (data && data.length) {
       // Map to Thai excel column headers
       const formatted = data.map((item, index) => ({
-        "ลำดับ": index + 1,
-        "ชื่อ-นามสกุล": item.fullName,
-        "ตำแหน่ง": item.position,
-        "วันที่ยื่นใบลา": formatDate(item.requestDate),
-        "ประเภทการลา": item.leaveType,
-        "วันเริ่มลา": formatDate(item.startDate),
-        "วันสิ้นสุดลา": formatDate(item.endDate),
-        "รวมจำนวน (วัน)": item.totalDays,
-        "สถานะ": item.status,
-        "ลิงก์เอกสารพิมพ์": item.pdfUrl || ''
+        "à¸¥à¸³à¸”à¸±à¸š": index + 1,
+        "à¸Šà¸·à¹ˆà¸­-à¸™à¸²à¸¡à¸ªà¸à¸¸à¸¥": item.fullName,
+        "à¸•à¸³à¹à¸«à¸™à¹ˆà¸‡": item.position,
+        "à¸§à¸±à¸™à¸—à¸µà¹ˆà¸¢à¸·à¹ˆà¸™à¹ƒà¸šà¸¥à¸²": formatDate(item.requestDate),
+        "à¸›à¸£à¸°à¹€à¸ à¸—à¸à¸²à¸£à¸¥à¸²": item.leaveType,
+        "à¸§à¸±à¸™à¹€à¸£à¸´à¹ˆà¸¡à¸¥à¸²": formatDate(item.startDate),
+        "à¸§à¸±à¸™à¸ªà¸´à¹‰à¸™à¸ªà¸¸à¸”à¸¥à¸²": formatDate(item.endDate),
+        "à¸£à¸§à¸¡à¸ˆà¸³à¸™à¸§à¸™ (à¸§à¸±à¸™)": item.totalDays,
+        "à¸ªà¸–à¸²à¸™à¸°": item.status,
+        "à¸¥à¸´à¸‡à¸à¹Œà¹€à¸­à¸à¸ªà¸²à¸£à¸žà¸´à¸¡à¸žà¹Œ": item.pdfUrl || ''
       }));
       
       const ws = XLSX.utils.json_to_sheet(formatted);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "ประวัติการลา");
+      XLSX.utils.book_append_sheet(wb, ws, "à¸›à¸£à¸°à¸§à¸±à¸•à¸´à¸à¸²à¸£à¸¥à¸²");
       
       // Auto fit column width
       const max_len = formatted.reduce((acc, row) => {
@@ -1548,9 +1594,9 @@ async function handleExportExcel() {
       }, []);
       ws['!cols'] = max_len.map(w => ({ w: Math.min(w + 3, 30) }));
 
-      XLSX.writeFile(wb, `รายงานสรุปการลา_${new Date().toISOString().split('T')[0]}.xlsx`);
+      XLSX.writeFile(wb, `à¸£à¸²à¸¢à¸‡à¸²à¸™à¸ªà¸£à¸¸à¸›à¸à¸²à¸£à¸¥à¸²_${new Date().toISOString().split('T')[0]}.xlsx`);
     } else {
-      showError('ไม่พบข้อมูลสำหรับจัดทำรายงาน Excel');
+      showError('à¹„à¸¡à¹ˆà¸žà¸šà¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸ªà¸³à¸«à¸£à¸±à¸šà¸ˆà¸±à¸”à¸—à¸³à¸£à¸²à¸¢à¸‡à¸²à¸™ Excel');
     }
   } catch (err) {
     showError(err.message);
@@ -1562,9 +1608,9 @@ async function handlePrintReport() {
   const s = document.getElementById('print-start-date').value;
   const e = document.getElementById('print-end-date').value;
   
-  showLoading('กำลังคำนวณสรุป...');
+  showLoading('à¸à¸³à¸¥à¸±à¸‡à¸„à¸³à¸™à¸§à¸“à¸ªà¸£à¸¸à¸›...');
   try {
-    const res = await fetch(`${API_BASE_URL}/api/reports/summary`, {
+    const res = await safeFetch(`${API_BASE_URL}/api/reports/summary`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ startDate: s, endDate: e })
@@ -1574,14 +1620,14 @@ async function handlePrintReport() {
     Swal.close();
     
     if (!data || !data.length) {
-      return showError('ไม่พบข้อมูลการลาในช่วงวันที่เลือก');
+      return showError('à¹„à¸¡à¹ˆà¸žà¸šà¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸à¸²à¸£à¸¥à¸²à¹ƒà¸™à¸Šà¹ˆà¸§à¸‡à¸§à¸±à¸™à¸—à¸µà¹ˆà¹€à¸¥à¸·à¸­à¸');
     }
     
     // Prepare HTML content for printing
     let html = `
       <html>
       <head>
-        <title>รายงานสรุปสถิติการลาบุคคล</title>
+        <title>à¸£à¸²à¸¢à¸‡à¸²à¸™à¸ªà¸£à¸¸à¸›à¸ªà¸–à¸´à¸•à¸´à¸à¸²à¸£à¸¥à¸²à¸šà¸¸à¸„à¸„à¸¥</title>
         <style>
           body { font-family: 'Sarabun', sans-serif; padding: 20px; }
           h2 { text-align: center; margin-bottom: 5px; }
@@ -1594,20 +1640,20 @@ async function handlePrintReport() {
         </style>
       </head>
       <body>
-        <h2>รายงานสรุปสถิติการอนุมัติการลา (รายบุคคล)</h2>
+        <h2>à¸£à¸²à¸¢à¸‡à¸²à¸™à¸ªà¸£à¸¸à¸›à¸ªà¸–à¸´à¸•à¸´à¸à¸²à¸£à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´à¸à¸²à¸£à¸¥à¸² (à¸£à¸²à¸¢à¸šà¸¸à¸„à¸„à¸¥)</h2>
         <div class="sub">
-          วิทยาลัยสารพัดช่างน่าน <br>
-          ${s ? `ตั้งแต่วันที่ ${formatDateThai(s)}` : ''} ${e ? `ถึงวันที่ ${formatDateThai(e)}` : ''} 
-          (เฉพาะรายการที่ได้รับการอนุมัติ)
+          à¸§à¸´à¸—à¸¢à¸²à¸¥à¸±à¸¢à¸ªà¸²à¸£à¸žà¸±à¸”à¸Šà¹ˆà¸²à¸‡à¸™à¹ˆà¸²à¸™ <br>
+          ${s ? `à¸•à¸±à¹‰à¸‡à¹à¸•à¹ˆà¸§à¸±à¸™à¸—à¸µà¹ˆ ${formatDateThai(s)}` : ''} ${e ? `à¸–à¸¶à¸‡à¸§à¸±à¸™à¸—à¸µà¹ˆ ${formatDateThai(e)}` : ''} 
+          (à¹€à¸‰à¸žà¸²à¸°à¸£à¸²à¸¢à¸à¸²à¸£à¸—à¸µà¹ˆà¹„à¸”à¹‰à¸£à¸±à¸šà¸à¸²à¸£à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´)
         </div>
         <table>
           <thead>
             <tr>
-              <th class="text-center" style="width: 50px;">ที่</th>
-              <th>ชื่อ-นามสกุล</th>
-              <th>ตำแหน่ง</th>
-              <th class="text-center" style="width: 100px;">จำนวนครั้งลา</th>
-              <th class="text-center" style="width: 100px;">รวมจำนวน (วัน)</th>
+              <th class="text-center" style="width: 50px;">à¸—à¸µà¹ˆ</th>
+              <th>à¸Šà¸·à¹ˆà¸­-à¸™à¸²à¸¡à¸ªà¸à¸¸à¸¥</th>
+              <th>à¸•à¸³à¹à¸«à¸™à¹ˆà¸‡</th>
+              <th class="text-center" style="width: 100px;">à¸ˆà¸³à¸™à¸§à¸™à¸„à¸£à¸±à¹‰à¸‡à¸¥à¸²</th>
+              <th class="text-center" style="width: 100px;">à¸£à¸§à¸¡à¸ˆà¸³à¸™à¸§à¸™ (à¸§à¸±à¸™)</th>
             </tr>
           </thead>
           <tbody>
@@ -1629,7 +1675,7 @@ async function handlePrintReport() {
           </tbody>
         </table>
         <div style="margin-top:40px; text-align:right; font-size:12px; color:#666;">
-          พิมพ์รายงานเมื่อวันที่: ${new Date().toLocaleString('th-TH')}
+          à¸žà¸´à¸¡à¸žà¹Œà¸£à¸²à¸¢à¸‡à¸²à¸™à¹€à¸¡à¸·à¹ˆà¸­à¸§à¸±à¸™à¸—à¸µà¹ˆ: ${new Date().toLocaleString('th-TH')}
         </div>
       </body>
       </html>
@@ -1653,10 +1699,10 @@ async function handlePrintReport() {
 
 async function loadUserManagementPage() {
   if (!currentUser || currentUser.role !== 'admin') return;
-  showLoading('กำลังโหลดรายชื่อผู้ใช้งาน...');
+  showLoading('à¸à¸³à¸¥à¸±à¸‡à¹‚à¸«à¸¥à¸”à¸£à¸²à¸¢à¸Šà¸·à¹ˆà¸­à¸œà¸¹à¹‰à¹ƒà¸Šà¹‰à¸‡à¸²à¸™...');
   
   try {
-    const res = await fetch(`${API_BASE_URL}/api/users`);
+    const res = await safeFetch(`${API_BASE_URL}/api/users`);
     const users = await res.json();
     
     Swal.close();
@@ -1676,33 +1722,33 @@ async function loadUserManagementPage() {
           <td>${x.username}</td>
           <td>
             <span class="badge ${x.role === 'admin' ? 'badge-pending' : 'badge-cancelled'}" style="${x.role === 'admin' ? 'background: #f3e8ff; color: #7e22ce; border-color: #e9d5ff;' : ''}">
-              ${x.role === 'admin' ? 'แอดมิน' : 'บุคลากร'}
+              ${x.role === 'admin' ? 'à¹à¸­à¸”à¸¡à¸´à¸™' : 'à¸šà¸¸à¸„à¸¥à¸²à¸à¸£'}
             </span>
           </td>
           <td>${renderBadge(x.status, true)}</td>
           <td>
             <div style="display:flex; gap:8px;">
-              ${x.status === 'pending' ? `<button onclick="approveUser('${x.userId}')" class="btn btn-primary btn-sm" style="padding:4px 10px; background:#10b981; box-shadow:none;">อนุมัติ</button>` : ''}
-              <button onclick='editUser(${JSON.stringify(x)})' class="btn btn-outline btn-sm" style="padding:4px 10px;">แก้ไข</button>
-              <button onclick="deleteUser('${x.userId}')" class="btn btn-secondary btn-sm" style="padding:4px 10px; background:#f43f5e; box-shadow:none;">ลบ</button>
+              ${x.status === 'pending' ? `<button onclick="approveUser('${x.userId}')" class="btn btn-primary btn-sm" style="padding:4px 10px; background:#10b981; box-shadow:none;">à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´</button>` : ''}
+              <button onclick='editUser(${JSON.stringify(x)})' class="btn btn-outline btn-sm" style="padding:4px 10px;">à¹à¸à¹‰à¹„à¸‚</button>
+              <button onclick="deleteUser('${x.userId}')" class="btn btn-secondary btn-sm" style="padding:4px 10px; background:#f43f5e; box-shadow:none;">à¸¥à¸š</button>
             </div>
           </td>
         </tr>
       `;
     });
   } catch (err) {
-    showError('ไม่สามารถโหลดรายชื่อบุคลากรได้: ' + err.message);
+    showError('à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¹‚à¸«à¸¥à¸”à¸£à¸²à¸¢à¸Šà¸·à¹ˆà¸­à¸šà¸¸à¸„à¸¥à¸²à¸à¸£à¹„à¸”à¹‰: ' + err.message);
   }
 }
 
 // Approve User Registration
 window.approveUser = async (userId) => {
-  showLoading('กำลังบันทึกอนุมัติบัญชี...');
+  showLoading('à¸à¸³à¸¥à¸±à¸‡à¸šà¸±à¸™à¸—à¸¶à¸à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´à¸šà¸±à¸à¸Šà¸µ...');
   try {
-    const res = await fetch(`${API_BASE_URL}/api/users/approve/${userId}`, { method: 'POST' });
+    const res = await safeFetch(`${API_BASE_URL}/api/users/approve/${userId}`, { method: 'POST' });
     const r = await res.json();
     if (r.success) {
-      Swal.fire('สำเร็จ', 'อนุมัติการใช้งานบัญชีเรียบร้อย', 'success');
+      Swal.fire('à¸ªà¸³à¹€à¸£à¹‡à¸ˆ', 'à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´à¸à¸²à¸£à¹ƒà¸Šà¹‰à¸‡à¸²à¸™à¸šà¸±à¸à¸Šà¸µà¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢', 'success');
       loadUserManagementPage();
     } else {
       showError(r.message);
@@ -1715,21 +1761,21 @@ window.approveUser = async (userId) => {
 // Delete User Account
 window.deleteUser = (userId) => {
   Swal.fire({
-    title: 'ต้องการลบบัญชีบุคลากร?',
-    text: "บัญชีและประวัติการลากรอกข้อมูลทั้งหมดของบัญชีนี้จะถูกลบถาวร",
+    title: 'à¸•à¹‰à¸­à¸‡à¸à¸²à¸£à¸¥à¸šà¸šà¸±à¸à¸Šà¸µà¸šà¸¸à¸„à¸¥à¸²à¸à¸£?',
+    text: "à¸šà¸±à¸à¸Šà¸µà¹à¸¥à¸°à¸›à¸£à¸°à¸§à¸±à¸•à¸´à¸à¸²à¸£à¸¥à¸²à¸à¸£à¸­à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”à¸‚à¸­à¸‡à¸šà¸±à¸à¸Šà¸µà¸™à¸µà¹‰à¸ˆà¸°à¸–à¸¹à¸à¸¥à¸šà¸–à¸²à¸§à¸£",
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#ef4444',
-    confirmButtonText: 'ยืนยันลบ',
-    cancelButtonText: 'ปิด'
+    confirmButtonText: 'à¸¢à¸·à¸™à¸¢à¸±à¸™à¸¥à¸š',
+    cancelButtonText: 'à¸›à¸´à¸”'
   }).then(async (result) => {
     if (result.isConfirmed) {
-      showLoading('กำลังลบบัญชี...');
+      showLoading('à¸à¸³à¸¥à¸±à¸‡à¸¥à¸šà¸šà¸±à¸à¸Šà¸µ...');
       try {
-        const res = await fetch(`${API_BASE_URL}/api/users/${userId}`, { method: 'DELETE' });
+        const res = await safeFetch(`${API_BASE_URL}/api/users/${userId}`, { method: 'DELETE' });
         const r = await res.json();
         if (r.success) {
-          Swal.fire('สำเร็จ', 'ลบบัญชีผู้ใช้เรียบร้อยแล้ว', 'success');
+          Swal.fire('à¸ªà¸³à¹€à¸£à¹‡à¸ˆ', 'à¸¥à¸šà¸šà¸±à¸à¸Šà¸µà¸œà¸¹à¹‰à¹ƒà¸Šà¹‰à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§', 'success');
           loadUserManagementPage();
         } else {
           showError(r.message);
@@ -1744,7 +1790,7 @@ window.deleteUser = (userId) => {
 // Edit User Account Details
 window.editUser = (u) => {
   Swal.fire({
-    title: 'แก้ไขข้อมูลผู้ใช้',
+    title: 'à¹à¸à¹‰à¹„à¸‚à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸œà¸¹à¹‰à¹ƒà¸Šà¹‰',
     html: `
       <!-- Dummy fields to prevent browser autofill -->
       <input type="text" style="display:none;" name="dummy-username" autocomplete="username">
@@ -1752,48 +1798,48 @@ window.editUser = (u) => {
 
       <div style="text-align: left; display:flex; flex-direction:column; gap:12px;">
         <div>
-          <label class="form-label">ชื่อ-นามสกุล</label>
+          <label class="form-label">à¸Šà¸·à¹ˆà¸­-à¸™à¸²à¸¡à¸ªà¸à¸¸à¸¥</label>
           <input id="edit-fn" class="form-input" value="${u.fullName}" autocomplete="off">
         </div>
         <div>
-          <label class="form-label">ตำแหน่ง</label>
+          <label class="form-label">à¸•à¸³à¹à¸«à¸™à¹ˆà¸‡</label>
           <input id="edit-pos" class="form-input" value="${u.position}" autocomplete="off">
         </div>
         <div>
-          <label class="form-label">ประเภทบุคลากร</label>
+          <label class="form-label">à¸›à¸£à¸°à¹€à¸ à¸—à¸šà¸¸à¸„à¸¥à¸²à¸à¸£</label>
           <select id="edit-type" class="form-input">
-            <option value="" ${!u.staffType ? 'selected' : ''}>-- ไม่ระบุ --</option>
-            <option value="ผู้บริหาร" ${u.staffType === 'ผู้บริหาร' ? 'selected' : ''}>ผู้บริหาร</option>
-            <option value="ข้าราชการ" ${u.staffType === 'ข้าราชการ' ? 'selected' : ''}>ข้าราชการ</option>
-            <option value="พนักงานราชการ" ${u.staffType === 'พนักงานราชการ' ? 'selected' : ''}>พนักงานราชการ</option>
-            <option value="ครูพิเศษสอน" ${u.staffType === 'ครูพิเศษสอน' ? 'selected' : ''}>ครูพิเศษสอน</option>
-            <option value="เจ้าหน้าที่" ${u.staffType === 'เจ้าหน้าที่' ? 'selected' : ''}>เจ้าหน้าที่</option>
+            <option value="" ${!u.staffType ? 'selected' : ''}>-- à¹„à¸¡à¹ˆà¸£à¸°à¸šà¸¸ --</option>
+            <option value="à¸œà¸¹à¹‰à¸šà¸£à¸´à¸«à¸²à¸£" ${u.staffType === 'à¸œà¸¹à¹‰à¸šà¸£à¸´à¸«à¸²à¸£' ? 'selected' : ''}>à¸œà¸¹à¹‰à¸šà¸£à¸´à¸«à¸²à¸£</option>
+            <option value="à¸‚à¹‰à¸²à¸£à¸²à¸Šà¸à¸²à¸£" ${u.staffType === 'à¸‚à¹‰à¸²à¸£à¸²à¸Šà¸à¸²à¸£' ? 'selected' : ''}>à¸‚à¹‰à¸²à¸£à¸²à¸Šà¸à¸²à¸£</option>
+            <option value="à¸žà¸™à¸±à¸à¸‡à¸²à¸™à¸£à¸²à¸Šà¸à¸²à¸£" ${u.staffType === 'à¸žà¸™à¸±à¸à¸‡à¸²à¸™à¸£à¸²à¸Šà¸à¸²à¸£' ? 'selected' : ''}>à¸žà¸™à¸±à¸à¸‡à¸²à¸™à¸£à¸²à¸Šà¸à¸²à¸£</option>
+            <option value="à¸„à¸£à¸¹à¸žà¸´à¹€à¸¨à¸©à¸ªà¸­à¸™" ${u.staffType === 'à¸„à¸£à¸¹à¸žà¸´à¹€à¸¨à¸©à¸ªà¸­à¸™' ? 'selected' : ''}>à¸„à¸£à¸¹à¸žà¸´à¹€à¸¨à¸©à¸ªà¸­à¸™</option>
+            <option value="à¹€à¸ˆà¹‰à¸²à¸«à¸™à¹‰à¸²à¸—à¸µà¹ˆ" ${u.staffType === 'à¹€à¸ˆà¹‰à¸²à¸«à¸™à¹‰à¸²à¸—à¸µà¹ˆ' ? 'selected' : ''}>à¹€à¸ˆà¹‰à¸²à¸«à¸™à¹‰à¸²à¸—à¸µà¹ˆ</option>
           </select>
         </div>
         <div>
-          <label class="form-label">สิทธิ์การเข้าถึง</label>
+          <label class="form-label">à¸ªà¸´à¸—à¸˜à¸´à¹Œà¸à¸²à¸£à¹€à¸‚à¹‰à¸²à¸–à¸¶à¸‡</label>
           <select id="edit-er" class="form-input">
-            <option value="user" ${u.role === 'user' ? 'selected' : ''}>บุคลากร (User)</option>
-            <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>ผู้ดูแลระบบ (Admin)</option>
+            <option value="user" ${u.role === 'user' ? 'selected' : ''}>à¸šà¸¸à¸„à¸¥à¸²à¸à¸£ (User)</option>
+            <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>à¸œà¸¹à¹‰à¸”à¸¹à¹à¸¥à¸£à¸°à¸šà¸š (Admin)</option>
           </select>
         </div>
         <div>
           <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
             <span>LINE User ID</span>
-            <a href="https://line.me/R/ti/p/@943jvlmv" target="_blank" style="background:#06c755; color:white; padding:4px 10px; font-size:11px; border-radius:6px; font-weight:bold; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">💬 แชทบอตขอ ID</a>
+            <a href="https://line.me/R/ti/p/@943jvlmv" target="_blank" style="background:#06c755; color:white; padding:4px 10px; font-size:11px; border-radius:6px; font-weight:bold; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">ðŸ’¬ à¹à¸Šà¸—à¸šà¸­à¸•à¸‚à¸­ ID</a>
           </label>
-          <input id="edit-lid" class="form-input" value="${u.lineUserId || ''}" placeholder="ระบุ LINE User ID (เริ่มต้นด้วย U...)" autocomplete="off">
-          <p style="font-size:10px; color:var(--text-muted); margin-top:4px;">*พิมพ์ "ขอ ID" ในห้องแชทเพื่อขอรหัสจากบอต</p>
+          <input id="edit-lid" class="form-input" value="${u.lineUserId || ''}" placeholder="à¸£à¸°à¸šà¸¸ LINE User ID (à¹€à¸£à¸´à¹ˆà¸¡à¸•à¹‰à¸™à¸”à¹‰à¸§à¸¢ U...)" autocomplete="off">
+          <p style="font-size:10px; color:var(--text-muted); margin-top:4px;">*à¸žà¸´à¸¡à¸žà¹Œ "à¸‚à¸­ ID" à¹ƒà¸™à¸«à¹‰à¸­à¸‡à¹à¸Šà¸—à¹€à¸žà¸·à¹ˆà¸­à¸‚à¸­à¸£à¸«à¸±à¸ªà¸ˆà¸²à¸à¸šà¸­à¸•</p>
         </div>
         <div>
-          <label class="form-label">รหัสผ่านใหม่ (ปล่อยว่างหากไม่ต้องการเปลี่ยน)</label>
-          <input id="edit-eps" type="password" class="form-input" placeholder="กรอกรหัสผ่านใหม่" autocomplete="new-password">
+          <label class="form-label">à¸£à¸«à¸±à¸ªà¸œà¹ˆà¸²à¸™à¹ƒà¸«à¸¡à¹ˆ (à¸›à¸¥à¹ˆà¸­à¸¢à¸§à¹ˆà¸²à¸‡à¸«à¸²à¸à¹„à¸¡à¹ˆà¸•à¹‰à¸­à¸‡à¸à¸²à¸£à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™)</label>
+          <input id="edit-eps" type="password" class="form-input" placeholder="à¸à¸£à¸­à¸à¸£à¸«à¸±à¸ªà¸œà¹ˆà¸²à¸™à¹ƒà¸«à¸¡à¹ˆ" autocomplete="new-password">
         </div>
       </div>
     `,
     showCancelButton: true,
-    confirmButtonText: 'บันทึก',
-    cancelButtonText: 'ยกเลิก',
+    confirmButtonText: 'à¸šà¸±à¸™à¸—à¸¶à¸',
+    cancelButtonText: 'à¸¢à¸à¹€à¸¥à¸´à¸',
     preConfirm: () => {
       return {
         fullName: document.getElementById('edit-fn').value,
@@ -1806,9 +1852,9 @@ window.editUser = (u) => {
     }
   }).then(async (result) => {
     if (result.isConfirmed) {
-      showLoading('กำลังบันทึกข้อมูล...');
+      showLoading('à¸à¸³à¸¥à¸±à¸‡à¸šà¸±à¸™à¸—à¸¶à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥...');
       try {
-        const res = await fetch(`${API_BASE_URL}/api/users/${u.userId}`, {
+        const res = await safeFetch(`${API_BASE_URL}/api/users/${u.userId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(result.value)
@@ -1816,7 +1862,7 @@ window.editUser = (u) => {
         const r = await res.json();
         
         if (r.success) {
-          Swal.fire('สำเร็จ', 'อัปเดตข้อมูลผู้ใช้งานเรียบร้อยแล้ว', 'success');
+          Swal.fire('à¸ªà¸³à¹€à¸£à¹‡à¸ˆ', 'à¸­à¸±à¸›à¹€à¸”à¸•à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸œà¸¹à¹‰à¹ƒà¸Šà¹‰à¸‡à¸²à¸™à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§', 'success');
           loadUserManagementPage();
         } else {
           showError(r.message);
@@ -1831,7 +1877,7 @@ window.editUser = (u) => {
 // Show modal to add new user manually
 window.showAddUserModal = () => {
   Swal.fire({
-    title: 'เพิ่มผู้ใช้งานใหม่',
+    title: 'à¹€à¸žà¸´à¹ˆà¸¡à¸œà¸¹à¹‰à¹ƒà¸Šà¹‰à¸‡à¸²à¸™à¹ƒà¸«à¸¡à¹ˆ',
     html: `
       <!-- Dummy fields to prevent browser autofill -->
       <input type="text" style="display:none;" name="dummy-username" autocomplete="username">
@@ -1839,58 +1885,58 @@ window.showAddUserModal = () => {
 
       <div style="text-align: left; display:flex; flex-direction:column; gap:12px;">
         <div>
-          <label class="form-label">ชื่อ-นามสกุล <span style="color:var(--danger)">*</span></label>
-          <input id="add-fn" class="form-input" placeholder="เช่น นายสมชาย ใจดี" autocomplete="off">
+          <label class="form-label">à¸Šà¸·à¹ˆà¸­-à¸™à¸²à¸¡à¸ªà¸à¸¸à¸¥ <span style="color:var(--danger)">*</span></label>
+          <input id="add-fn" class="form-input" placeholder="à¹€à¸Šà¹ˆà¸™ à¸™à¸²à¸¢à¸ªà¸¡à¸Šà¸²à¸¢ à¹ƒà¸ˆà¸”à¸µ" autocomplete="off">
         </div>
         <div>
-          <label class="form-label">ตำแหน่ง <span style="color:var(--danger)">*</span></label>
-          <input id="add-pos" class="form-input" placeholder="เช่น ครูวิทยฐานะชำนาญการ" autocomplete="off">
+          <label class="form-label">à¸•à¸³à¹à¸«à¸™à¹ˆà¸‡ <span style="color:var(--danger)">*</span></label>
+          <input id="add-pos" class="form-input" placeholder="à¹€à¸Šà¹ˆà¸™ à¸„à¸£à¸¹à¸§à¸´à¸—à¸¢à¸à¸²à¸™à¸°à¸Šà¸³à¸™à¸²à¸à¸à¸²à¸£" autocomplete="off">
         </div>
         <div>
-          <label class="form-label">ประเภทบุคลากร</label>
+          <label class="form-label">à¸›à¸£à¸°à¹€à¸ à¸—à¸šà¸¸à¸„à¸¥à¸²à¸à¸£</label>
           <select id="add-type" class="form-input">
-            <option value="ข้าราชการ">ข้าราชการ</option>
-            <option value="พนักงานราชการ">พนักงานราชการ</option>
-            <option value="ครูพิเศษสอน" selected>ครูพิเศษสอน</option>
-            <option value="เจ้าหน้าที่">เจ้าหน้าที่</option>
-            <option value="ผู้บริหาร">ผู้บริหาร</option>
+            <option value="à¸‚à¹‰à¸²à¸£à¸²à¸Šà¸à¸²à¸£">à¸‚à¹‰à¸²à¸£à¸²à¸Šà¸à¸²à¸£</option>
+            <option value="à¸žà¸™à¸±à¸à¸‡à¸²à¸™à¸£à¸²à¸Šà¸à¸²à¸£">à¸žà¸™à¸±à¸à¸‡à¸²à¸™à¸£à¸²à¸Šà¸à¸²à¸£</option>
+            <option value="à¸„à¸£à¸¹à¸žà¸´à¹€à¸¨à¸©à¸ªà¸­à¸™" selected>à¸„à¸£à¸¹à¸žà¸´à¹€à¸¨à¸©à¸ªà¸­à¸™</option>
+            <option value="à¹€à¸ˆà¹‰à¸²à¸«à¸™à¹‰à¸²à¸—à¸µà¹ˆ">à¹€à¸ˆà¹‰à¸²à¸«à¸™à¹‰à¸²à¸—à¸µà¹ˆ</option>
+            <option value="à¸œà¸¹à¹‰à¸šà¸£à¸´à¸«à¸²à¸£">à¸œà¸¹à¹‰à¸šà¸£à¸´à¸«à¸²à¸£</option>
           </select>
         </div>
         <div>
-          <label class="form-label">สิทธิ์การเข้าถึง</label>
+          <label class="form-label">à¸ªà¸´à¸—à¸˜à¸´à¹Œà¸à¸²à¸£à¹€à¸‚à¹‰à¸²à¸–à¸¶à¸‡</label>
           <select id="add-er" class="form-input">
-            <option value="user" selected>บุคลากร (User)</option>
-            <option value="admin">ผู้ดูแลระบบ (Admin)</option>
+            <option value="user" selected>à¸šà¸¸à¸„à¸¥à¸²à¸à¸£ (User)</option>
+            <option value="admin">à¸œà¸¹à¹‰à¸”à¸¹à¹à¸¥à¸£à¸°à¸šà¸š (Admin)</option>
           </select>
         </div>
         <div>
-          <label class="form-label">สถานะบัญชี</label>
+          <label class="form-label">à¸ªà¸–à¸²à¸™à¸°à¸šà¸±à¸à¸Šà¸µ</label>
           <select id="add-status" class="form-input">
-            <option value="approved" selected>อนุมัติแล้ว (Approved)</option>
-            <option value="pending">รออนุมัติ (Pending)</option>
+            <option value="approved" selected>à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´à¹à¸¥à¹‰à¸§ (Approved)</option>
+            <option value="pending">à¸£à¸­à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´ (Pending)</option>
           </select>
         </div>
         <div>
-          <label class="form-label">ชื่อผู้ใช้ (ภาษาอังกฤษ) <span style="color:var(--danger)">*</span></label>
-          <input id="add-ru" class="form-input" placeholder="Username สำหรับเข้าสู่ระบบ" autocomplete="off">
+          <label class="form-label">à¸Šà¸·à¹ˆà¸­à¸œà¸¹à¹‰à¹ƒà¸Šà¹‰ (à¸ à¸²à¸©à¸²à¸­à¸±à¸‡à¸à¸¤à¸©) <span style="color:var(--danger)">*</span></label>
+          <input id="add-ru" class="form-input" placeholder="Username à¸ªà¸³à¸«à¸£à¸±à¸šà¹€à¸‚à¹‰à¸²à¸ªà¸¹à¹ˆà¸£à¸°à¸šà¸š" autocomplete="off">
         </div>
         <div>
-          <label class="form-label">รหัสผ่าน <span style="color:var(--danger)">*</span></label>
-          <input id="add-rp" type="password" class="form-input" placeholder="Password สำหรับเข้าใช้งาน" autocomplete="new-password">
+          <label class="form-label">à¸£à¸«à¸±à¸ªà¸œà¹ˆà¸²à¸™ <span style="color:var(--danger)">*</span></label>
+          <input id="add-rp" type="password" class="form-input" placeholder="Password à¸ªà¸³à¸«à¸£à¸±à¸šà¹€à¸‚à¹‰à¸²à¹ƒà¸Šà¹‰à¸‡à¸²à¸™" autocomplete="new-password">
         </div>
         <div>
           <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
             <span>LINE User ID</span>
-            <a href="https://line.me/R/ti/p/@943jvlmv" target="_blank" style="background:#06c755; color:white; padding:4px 10px; font-size:11px; border-radius:6px; font-weight:bold; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">💬 แชทบอตขอ ID</a>
+            <a href="https://line.me/R/ti/p/@943jvlmv" target="_blank" style="background:#06c755; color:white; padding:4px 10px; font-size:11px; border-radius:6px; font-weight:bold; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">ðŸ’¬ à¹à¸Šà¸—à¸šà¸­à¸•à¸‚à¸­ ID</a>
           </label>
-          <input id="add-lid" class="form-input" placeholder="ระบุ LINE User ID (เริ่มต้นด้วย U...)" autocomplete="off">
-          <p style="font-size:10px; color:var(--text-muted); margin-top:4px;">*พิมพ์ "ขอ ID" ในห้องแชทเพื่อขอรหัสจากบอต</p>
+          <input id="add-lid" class="form-input" placeholder="à¸£à¸°à¸šà¸¸ LINE User ID (à¹€à¸£à¸´à¹ˆà¸¡à¸•à¹‰à¸™à¸”à¹‰à¸§à¸¢ U...)" autocomplete="off">
+          <p style="font-size:10px; color:var(--text-muted); margin-top:4px;">*à¸žà¸´à¸¡à¸žà¹Œ "à¸‚à¸­ ID" à¹ƒà¸™à¸«à¹‰à¸­à¸‡à¹à¸Šà¸—à¹€à¸žà¸·à¹ˆà¸­à¸‚à¸­à¸£à¸«à¸±à¸ªà¸ˆà¸²à¸à¸šà¸­à¸•</p>
         </div>
       </div>
     `,
     showCancelButton: true,
-    confirmButtonText: 'บันทึก',
-    cancelButtonText: 'ยกเลิก',
+    confirmButtonText: 'à¸šà¸±à¸™à¸—à¸¶à¸',
+    cancelButtonText: 'à¸¢à¸à¹€à¸¥à¸´à¸',
     preConfirm: () => {
       const fn = document.getElementById('add-fn').value;
       const pos = document.getElementById('add-pos').value;
@@ -1902,7 +1948,7 @@ window.showAddUserModal = () => {
       const lid = document.getElementById('add-lid').value.trim();
 
       if (!fn || !pos || !ru || !rp) {
-        Swal.showValidationMessage('กรุณากรอกข้อมูลหลักที่จำเป็น (*) ให้ครบถ้วน');
+        Swal.showValidationMessage('à¸à¸£à¸¸à¸“à¸²à¸à¸£à¸­à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸«à¸¥à¸±à¸à¸—à¸µà¹ˆà¸ˆà¸³à¹€à¸›à¹‡à¸™ (*) à¹ƒà¸«à¹‰à¸„à¸£à¸šà¸–à¹‰à¸§à¸™');
         return false;
       }
       return {
@@ -1918,9 +1964,9 @@ window.showAddUserModal = () => {
     }
   }).then(async (result) => {
     if (result.isConfirmed) {
-      showLoading('กำลังบันทึกข้อมูลผู้ใช้งานใหม่...');
+      showLoading('à¸à¸³à¸¥à¸±à¸‡à¸šà¸±à¸™à¸—à¸¶à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸œà¸¹à¹‰à¹ƒà¸Šà¹‰à¸‡à¸²à¸™à¹ƒà¸«à¸¡à¹ˆ...');
       try {
-        const res = await fetch(`${API_BASE_URL}/api/users`, {
+        const res = await safeFetch(`${API_BASE_URL}/api/users`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(result.value)
@@ -1928,7 +1974,7 @@ window.showAddUserModal = () => {
         const r = await res.json();
         
         if (r.success) {
-          Swal.fire('สำเร็จ', 'เพิ่มผู้ใช้งานใหม่เรียบร้อยแล้ว', 'success');
+          Swal.fire('à¸ªà¸³à¹€à¸£à¹‡à¸ˆ', 'à¹€à¸žà¸´à¹ˆà¸¡à¸œà¸¹à¹‰à¹ƒà¸Šà¹‰à¸‡à¸²à¸™à¹ƒà¸«à¸¡à¹ˆà¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§', 'success');
           loadUserManagementPage();
         } else {
           showError(r.message);
@@ -1945,7 +1991,7 @@ function handleImportExcel(e) {
   const file = e.target.files[0];
   if (!file) return;
   
-  showLoading('กำลังอ่านไฟล์ Excel...');
+  showLoading('à¸à¸³à¸¥à¸±à¸‡à¸­à¹ˆà¸²à¸™à¹„à¸Ÿà¸¥à¹Œ Excel...');
   const reader = new FileReader();
   reader.onload = async (evt) => {
     try {
@@ -1954,8 +2000,8 @@ function handleImportExcel(e) {
       const sheetName = workbook.SheetNames[0];
       const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
       
-      showLoading('กำลังนำเข้าข้อมูลสมาชิก...');
-      const res = await fetch(`${API_BASE_URL}/api/users/import`, {
+      showLoading('à¸à¸³à¸¥à¸±à¸‡à¸™à¸³à¹€à¸‚à¹‰à¸²à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸ªà¸¡à¸²à¸Šà¸´à¸...');
+      const res = await safeFetch(`${API_BASE_URL}/api/users/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(json)
@@ -1963,13 +2009,13 @@ function handleImportExcel(e) {
       const result = await res.json();
       
       if (result.success) {
-        Swal.fire('นำเข้าสำเร็จ', result.message, 'success');
+        Swal.fire('à¸™à¸³à¹€à¸‚à¹‰à¸²à¸ªà¸³à¹€à¸£à¹‡à¸ˆ', result.message, 'success');
         loadUserManagementPage();
       } else {
         showError(result.message);
       }
     } catch (err) {
-      showError('ไม่สามารถอ่านไฟล์ได้: ' + err.message);
+      showError('à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¸­à¹ˆà¸²à¸™à¹„à¸Ÿà¸¥à¹Œà¹„à¸”à¹‰: ' + err.message);
     }
   };
   reader.readAsArrayBuffer(file);
@@ -1993,10 +2039,10 @@ function showLoading(msg) {
 
 function showError(msg) {
   return Swal.fire({
-    title: 'เกิดข้อผิดพลาด',
+    title: 'à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”',
     text: typeof msg === 'object' ? JSON.stringify(msg) : msg,
     icon: 'error',
-    confirmButtonText: 'ตกลง',
+    confirmButtonText: 'à¸•à¸à¸¥à¸‡',
     confirmButtonColor: 'var(--primary)'
   });
 }
@@ -2027,19 +2073,19 @@ function renderBadge(status, isUserStatus = false) {
   if (isUserStatus) {
     if (status === 'approved') {
       className = 'badge-approved';
-      label = 'อนุมัติแล้ว';
+      label = 'à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´à¹à¸¥à¹‰à¸§';
     } else if (status === 'pending') {
       className = 'badge-pending';
-      label = 'รออนุมัติ';
+      label = 'à¸£à¸­à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´';
     }
   } else {
-    if (status === 'อนุมัติ') {
+    if (status === 'à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´') {
       className = 'badge-approved';
-    } else if (status === 'รอการอนุมัติ') {
+    } else if (status === 'à¸£à¸­à¸à¸²à¸£à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´') {
       className = 'badge-pending';
-    } else if (status === 'ไม่อนุมัติ') {
+    } else if (status === 'à¹„à¸¡à¹ˆà¸­à¸™à¸¸à¸¡à¸±à¸•à¸´') {
       className = 'badge-rejected';
-    } else if (status === 'ยกเลิกโดยผู้ใช้') {
+    } else if (status === 'à¸¢à¸à¹€à¸¥à¸´à¸à¹‚à¸”à¸¢à¸œà¸¹à¹‰à¹ƒà¸Šà¹‰') {
       className = 'badge-cancelled';
     }
   }
@@ -2085,7 +2131,7 @@ function renderCharts(d) {
                   label += ': ';
                 }
                 if (context.parsed !== null) {
-                  label += context.parsed.toFixed(1).replace('.0', '') + ' วัน';
+                  label += context.parsed.toFixed(1).replace('.0', '') + ' à¸§à¸±à¸™';
                 }
                 return label;
               }
@@ -2106,7 +2152,7 @@ function renderCharts(d) {
       data: {
         labels: d.monthlyLeaveData.labels,
         datasets: [{
-          label: 'จำนวนการลา (วัน)',
+          label: 'à¸ˆà¸³à¸™à¸§à¸™à¸à¸²à¸£à¸¥à¸² (à¸§à¸±à¸™)',
           data: d.monthlyLeaveData.data,
           backgroundColor: '#6366f1',
           borderRadius: 8,
@@ -2134,10 +2180,10 @@ function renderCharts(d) {
               label: function(context) {
                 let label = context.dataset.label || '';
                 if (label) {
-                  label = 'จำนวนวันลา: ';
+                  label = 'à¸ˆà¸³à¸™à¸§à¸™à¸§à¸±à¸™à¸¥à¸²: ';
                 }
                 if (context.parsed.y !== null) {
-                  label += context.parsed.y.toFixed(1).replace('.0', '') + ' วัน';
+                  label += context.parsed.y.toFixed(1).replace('.0', '') + ' à¸§à¸±à¸™';
                 }
                 return label;
               }
@@ -2167,30 +2213,30 @@ function initAttendancePage() {
 async function loadAttendanceData() {
   const date = document.getElementById('attendance-date').value;
   if (!date) {
-    Swal.fire('ข้อผิดพลาด', 'กรุณาระบุวันที่ต้องการดึงข้อมูล', 'error');
+    Swal.fire('à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”', 'à¸à¸£à¸¸à¸“à¸²à¸£à¸°à¸šà¸¸à¸§à¸±à¸™à¸—à¸µà¹ˆà¸•à¹‰à¸­à¸‡à¸à¸²à¸£à¸”à¸¶à¸‡à¸‚à¹‰à¸­à¸¡à¸¹à¸¥', 'error');
     return;
   }
 
-  showLoading('กำลังดึงข้อมูลการลงเวลา...');
+  showLoading('à¸à¸³à¸¥à¸±à¸‡à¸”à¸¶à¸‡à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸à¸²à¸£à¸¥à¸‡à¹€à¸§à¸¥à¸²...');
   try {
-    const res = await fetch(`${API_BASE_URL}/api/attendance?date=${date}`);
-    if (!res.ok) throw new Error('ดึงข้อมูลการเข้าปฏิบัติงานล้มเหลว');
+    const res = await safeFetch(`${API_BASE_URL}/api/attendance?date=${date}`);
+    if (!res.ok) throw new Error('à¸”à¸¶à¸‡à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸à¸²à¸£à¹€à¸‚à¹‰à¸²à¸›à¸à¸´à¸šà¸±à¸•à¸´à¸‡à¸²à¸™à¸¥à¹‰à¸¡à¹€à¸«à¸¥à¸§');
     
     const data = await res.json();
     
     // Sort data:
-    // 1. ผู้บริหาร
-    // 2. ข้าราชการ
-    // 3. พนักงานราชการ
-    // 4. ครูพิเศษสอน
-    // 5. เจ้าหน้าที่
+    // 1. à¸œà¸¹à¹‰à¸šà¸£à¸´à¸«à¸²à¸£
+    // 2. à¸‚à¹‰à¸²à¸£à¸²à¸Šà¸à¸²à¸£
+    // 3. à¸žà¸™à¸±à¸à¸‡à¸²à¸™à¸£à¸²à¸Šà¸à¸²à¸£
+    // 4. à¸„à¸£à¸¹à¸žà¸´à¹€à¸¨à¸©à¸ªà¸­à¸™
+    // 5. à¹€à¸ˆà¹‰à¸²à¸«à¸™à¹‰à¸²à¸—à¸µà¹ˆ
     // 6. Others/Empty
     const staffTypeOrder = [
-      'ผู้บริหาร',
-      'ข้าราชการ',
-      'พนักงานราชการ',
-      'ครูพิเศษสอน',
-      'เจ้าหน้าที่'
+      'à¸œà¸¹à¹‰à¸šà¸£à¸´à¸«à¸²à¸£',
+      'à¸‚à¹‰à¸²à¸£à¸²à¸Šà¸à¸²à¸£',
+      'à¸žà¸™à¸±à¸à¸‡à¸²à¸™à¸£à¸²à¸Šà¸à¸²à¸£',
+      'à¸„à¸£à¸¹à¸žà¸´à¹€à¸¨à¸©à¸ªà¸­à¸™',
+      'à¹€à¸ˆà¹‰à¸²à¸«à¸™à¹‰à¸²à¸—à¸µà¹ˆ'
     ];
     const getStaffTypePriority = (type) => {
       const idx = staffTypeOrder.indexOf(type);
@@ -2210,25 +2256,25 @@ async function loadAttendanceData() {
     
     const filterSelect = document.getElementById('attendance-filter-type');
     if (filterSelect) {
-      filterSelect.value = 'ทั้งหมด';
+      filterSelect.value = 'à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”';
     }
 
     filterAndRenderAttendance();
     Swal.close();
   } catch (err) {
     console.error('Error loading attendance:', err);
-    Swal.fire('ข้อผิดพลาด', err.message, 'error');
+    Swal.fire('à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”', err.message, 'error');
   }
 }
 
 function filterAndRenderAttendance() {
   const filterSelect = document.getElementById('attendance-filter-type');
-  const filterType = filterSelect ? filterSelect.value : 'ทั้งหมด';
+  const filterType = filterSelect ? filterSelect.value : 'à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”';
   let filtered = [...currentAttendanceData];
   
-  if (filterType !== 'ทั้งหมด') {
-    if (filterType === 'อื่นๆ') {
-      const knownTypes = ['ผู้บริหาร', 'ข้าราชการ', 'พนักงานราชการ', 'ครูพิเศษสอน', 'เจ้าหน้าที่'];
+  if (filterType !== 'à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”') {
+    if (filterType === 'à¸­à¸·à¹ˆà¸™à¹†') {
+      const knownTypes = ['à¸œà¸¹à¹‰à¸šà¸£à¸´à¸«à¸²à¸£', 'à¸‚à¹‰à¸²à¸£à¸²à¸Šà¸à¸²à¸£', 'à¸žà¸™à¸±à¸à¸‡à¸²à¸™à¸£à¸²à¸Šà¸à¸²à¸£', 'à¸„à¸£à¸¹à¸žà¸´à¹€à¸¨à¸©à¸ªà¸­à¸™', 'à¹€à¸ˆà¹‰à¸²à¸«à¸™à¹‰à¸²à¸—à¸µà¹ˆ'];
       filtered = filtered.filter(u => !u.staffType || !knownTypes.includes(u.staffType));
     } else {
       filtered = filtered.filter(u => u.staffType === filterType);
@@ -2243,7 +2289,7 @@ function renderAttendanceTable(dataList) {
   tbody.innerHTML = '';
 
   if (dataList.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" class="text-center" style="padding:24px; color:var(--neutral-400);">ไม่พบรายชื่อบุคลากร</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center" style="padding:24px; color:var(--neutral-400);">à¹„à¸¡à¹ˆà¸žà¸šà¸£à¸²à¸¢à¸Šà¸·à¹ˆà¸­à¸šà¸¸à¸„à¸¥à¸²à¸à¸£</td></tr>`;
     return;
   }
 
@@ -2252,13 +2298,13 @@ function renderAttendanceTable(dataList) {
     if (user.activeLeave) {
       let badgeColor = 'var(--warning)';
       let badgeBg = 'var(--warning-light)';
-      if (user.activeLeave.leaveType === 'ลาป่วย') {
+      if (user.activeLeave.leaveType === 'à¸¥à¸²à¸›à¹ˆà¸§à¸¢') {
         badgeColor = '#ef4444';
         badgeBg = '#fef2f2';
       }
-      leaveBadge = `<span style="background:${badgeBg}; color:${badgeColor}; padding:4px 8px; border-radius:6px; font-size:0.8rem; font-weight:600; display:inline-block;">⚠️ ลา: ${user.activeLeave.leaveType} (${user.activeLeave.status})</span>`;
+      leaveBadge = `<span style="background:${badgeBg}; color:${badgeColor}; padding:4px 8px; border-radius:6px; font-size:0.8rem; font-weight:600; display:inline-block;">âš ï¸ à¸¥à¸²: ${user.activeLeave.leaveType} (${user.activeLeave.status})</span>`;
     } else if (user.activeTravel) {
-      leaveBadge = `<span style="background:#f5f3ff; color:#7c3aed; padding:4px 8px; border-radius:6px; font-size:0.8rem; font-weight:600; display:inline-block;">✈️ ไปราชการ (${user.activeTravel.status})</span>`;
+      leaveBadge = `<span style="background:#f5f3ff; color:#7c3aed; padding:4px 8px; border-radius:6px; font-size:0.8rem; font-weight:600; display:inline-block;">âœˆï¸ à¹„à¸›à¸£à¸²à¸Šà¸à¸²à¸£ (${user.activeTravel.status})</span>`;
     }
 
     tbody.innerHTML += `
@@ -2266,22 +2312,22 @@ function renderAttendanceTable(dataList) {
         <td style="font-weight: 500; text-align: left; padding-left: 20px;">
           ${user.fullName}
           <div style="font-size:0.75rem; color:var(--neutral-500); margin-top:2px;">
-            ${user.staffType || 'ไม่ระบุประเภท'}
+            ${user.staffType || 'à¹„à¸¡à¹ˆà¸£à¸°à¸šà¸¸à¸›à¸£à¸°à¹€à¸ à¸—'}
           </div>
         </td>
         <td style="text-align: left; padding-left: 20px;">${user.position}</td>
         <td id="leave-badge-col-${user.userId}">${leaveBadge}</td>
         <td style="text-align: center;">
           <select class="form-input attendance-select" data-user-id="${user.userId}" style="padding: 6px 12px; font-size: 0.9rem; font-weight: bold; width: 100%; border-radius: 8px;">
-            <option value="มาปฏิบัติงาน" ${user.status === 'มาปฏิบัติงาน' ? 'selected' : ''}>มาปฏิบัติงาน</option>
-            <option value="ลาป่วย" ${user.status === 'ลาป่วย' ? 'selected' : ''}>ลาป่วย</option>
-            <option value="ลากิจ" ${user.status === 'ลากิจ' ? 'selected' : ''}>ลากิจ</option>
-            <option value="ลาคลอด" ${user.status === 'ลาคลอด' ? 'selected' : ''}>ลาคลอด</option>
-            <option value="ลาพักผ่อน" ${user.status === 'ลาพักผ่อน' ? 'selected' : ''}>ลาพักผ่อน</option>
-            <option value="เดินทางไปราชการ" ${user.status === 'เดินทางไปราชการ' ? 'selected' : ''}>เดินทางไปราชการ</option>
-            <option value="ขาด" ${user.status === 'ขาด' ? 'selected' : ''}>ขาด</option>
-            <option value="มาสาย" ${user.status === 'มาสาย' ? 'selected' : ''}>มาสาย</option>
-            <option value="ไม่ทราบสาเหตุ" ${user.status === 'ไม่ทราบสาเหตุ' ? 'selected' : ''}>ไม่ทราบสาเหตุ</option>
+            <option value="à¸¡à¸²à¸›à¸à¸´à¸šà¸±à¸•à¸´à¸‡à¸²à¸™" ${user.status === 'à¸¡à¸²à¸›à¸à¸´à¸šà¸±à¸•à¸´à¸‡à¸²à¸™' ? 'selected' : ''}>à¸¡à¸²à¸›à¸à¸´à¸šà¸±à¸•à¸´à¸‡à¸²à¸™</option>
+            <option value="à¸¥à¸²à¸›à¹ˆà¸§à¸¢" ${user.status === 'à¸¥à¸²à¸›à¹ˆà¸§à¸¢' ? 'selected' : ''}>à¸¥à¸²à¸›à¹ˆà¸§à¸¢</option>
+            <option value="à¸¥à¸²à¸à¸´à¸ˆ" ${user.status === 'à¸¥à¸²à¸à¸´à¸ˆ' ? 'selected' : ''}>à¸¥à¸²à¸à¸´à¸ˆ</option>
+            <option value="à¸¥à¸²à¸„à¸¥à¸­à¸”" ${user.status === 'à¸¥à¸²à¸„à¸¥à¸­à¸”' ? 'selected' : ''}>à¸¥à¸²à¸„à¸¥à¸­à¸”</option>
+            <option value="à¸¥à¸²à¸žà¸±à¸à¸œà¹ˆà¸­à¸™" ${user.status === 'à¸¥à¸²à¸žà¸±à¸à¸œà¹ˆà¸­à¸™' ? 'selected' : ''}>à¸¥à¸²à¸žà¸±à¸à¸œà¹ˆà¸­à¸™</option>
+            <option value="à¹€à¸”à¸´à¸™à¸—à¸²à¸‡à¹„à¸›à¸£à¸²à¸Šà¸à¸²à¸£" ${user.status === 'à¹€à¸”à¸´à¸™à¸—à¸²à¸‡à¹„à¸›à¸£à¸²à¸Šà¸à¸²à¸£' ? 'selected' : ''}>à¹€à¸”à¸´à¸™à¸—à¸²à¸‡à¹„à¸›à¸£à¸²à¸Šà¸à¸²à¸£</option>
+            <option value="à¸‚à¸²à¸”" ${user.status === 'à¸‚à¸²à¸”' ? 'selected' : ''}>à¸‚à¸²à¸”</option>
+            <option value="à¸¡à¸²à¸ªà¸²à¸¢" ${user.status === 'à¸¡à¸²à¸ªà¸²à¸¢' ? 'selected' : ''}>à¸¡à¸²à¸ªà¸²à¸¢</option>
+            <option value="à¹„à¸¡à¹ˆà¸—à¸£à¸²à¸šà¸ªà¸²à¹€à¸«à¸•à¸¸" ${user.status === 'à¹„à¸¡à¹ˆà¸—à¸£à¸²à¸šà¸ªà¸²à¹€à¸«à¸•à¸¸' ? 'selected' : ''}>à¹„à¸¡à¹ˆà¸—à¸£à¸²à¸šà¸ªà¸²à¹€à¸«à¸•à¸¸</option>
           </select>
         </td>
       </tr>
@@ -2304,23 +2350,23 @@ function renderAttendanceTable(dataList) {
 
 function styleAttendanceSelect(selectEl) {
   const val = selectEl.value;
-  if (val === 'มาปฏิบัติงาน') {
+  if (val === 'à¸¡à¸²à¸›à¸à¸´à¸šà¸±à¸•à¸´à¸‡à¸²à¸™') {
     selectEl.style.color = '#10B981';
     selectEl.style.borderColor = '#10B981';
     selectEl.style.backgroundColor = '#ECFDF5';
-  } else if (val.startsWith('ลา')) {
+  } else if (val.startsWith('à¸¥à¸²')) {
     selectEl.style.color = '#D97706';
     selectEl.style.borderColor = '#F59E0B';
     selectEl.style.backgroundColor = '#FFFBEB';
-  } else if (val === 'เดินทางไปราชการ') {
+  } else if (val === 'à¹€à¸”à¸´à¸™à¸—à¸²à¸‡à¹„à¸›à¸£à¸²à¸Šà¸à¸²à¸£') {
     selectEl.style.color = '#7C3AED';
     selectEl.style.borderColor = '#8B5CF6';
     selectEl.style.backgroundColor = '#F5F3FF';
-  } else if (val === 'ขาด' || val === 'ไม่ทราบสาเหตุ') {
+  } else if (val === 'à¸‚à¸²à¸”' || val === 'à¹„à¸¡à¹ˆà¸—à¸£à¸²à¸šà¸ªà¸²à¹€à¸«à¸•à¸¸') {
     selectEl.style.color = '#EF4444';
     selectEl.style.borderColor = '#EF4444';
     selectEl.style.backgroundColor = '#FEF2F2';
-  } else if (val === 'มาสาย') {
+  } else if (val === 'à¸¡à¸²à¸ªà¸²à¸¢') {
     selectEl.style.color = '#3B82F6';
     selectEl.style.borderColor = '#3B82F6';
     selectEl.style.backgroundColor = '#EFF6FF';
@@ -2330,7 +2376,7 @@ function styleAttendanceSelect(selectEl) {
 async function saveAttendanceData() {
   const date = document.getElementById('attendance-date').value;
   if (!date) {
-    Swal.fire('ข้อผิดพลาด', 'กรุณาระบุวันที่บันทึก', 'error');
+    Swal.fire('à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”', 'à¸à¸£à¸¸à¸“à¸²à¸£à¸°à¸šà¸¸à¸§à¸±à¸™à¸—à¸µà¹ˆà¸šà¸±à¸™à¸—à¸¶à¸', 'error');
     return;
   }
 
@@ -2340,13 +2386,13 @@ async function saveAttendanceData() {
   }));
 
   if (records.length === 0) {
-    Swal.fire('ข้อผิดพลาด', 'ไม่มีข้อมูลสำหรับบันทึก', 'error');
+    Swal.fire('à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”', 'à¹„à¸¡à¹ˆà¸¡à¸µà¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸ªà¸³à¸«à¸£à¸±à¸šà¸šà¸±à¸™à¸—à¸¶à¸', 'error');
     return;
   }
 
-  showLoading('กำลังบันทึกข้อมูลและส่งแจ้งเตือน LINE...');
+  showLoading('à¸à¸³à¸¥à¸±à¸‡à¸šà¸±à¸™à¸—à¸¶à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹à¸¥à¸°à¸ªà¹ˆà¸‡à¹à¸ˆà¹‰à¸‡à¹€à¸•à¸·à¸­à¸™ LINE...');
   try {
-    const res = await fetch(`${API_BASE_URL}/api/attendance`, {
+    const res = await safeFetch(`${API_BASE_URL}/api/attendance`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -2358,18 +2404,18 @@ async function saveAttendanceData() {
       })
     });
 
-    if (!res.ok) throw new Error('บันทึกข้อมูลล้มเหลว');
+    if (!res.ok) throw new Error('à¸šà¸±à¸™à¸—à¸¶à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸¥à¹‰à¸¡à¹€à¸«à¸¥à¸§');
     const result = await res.json();
     
     if (result.success) {
-      Swal.fire('สำเร็จ', 'บันทึกข้อมูลและส่งแจ้งเตือนทางไลน์เรียบร้อยแล้ว', 'success');
+      Swal.fire('à¸ªà¸³à¹€à¸£à¹‡à¸ˆ', 'à¸šà¸±à¸™à¸—à¸¶à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹à¸¥à¸°à¸ªà¹ˆà¸‡à¹à¸ˆà¹‰à¸‡à¹€à¸•à¸·à¸­à¸™à¸—à¸²à¸‡à¹„à¸¥à¸™à¹Œà¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§', 'success');
       loadAttendanceData();
     } else {
       throw new Error(result.message);
     }
   } catch (err) {
     console.error('Error saving attendance:', err);
-    Swal.fire('ข้อผิดพลาด', err.message, 'error');
+    Swal.fire('à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”', err.message, 'error');
   }
 }
 
@@ -2465,9 +2511,9 @@ window.addTravelerRow = (name = '', position = '') => {
   div.style.marginTop = '8px';
   
   div.innerHTML = `
-    <input type="text" class="form-input travel-accompanied-name" placeholder="ชื่อ-นามสกุล..." value="${name}" required style="flex-grow: 1;">
-    <input type="text" class="form-input travel-accompanied-pos" placeholder="ตำแหน่ง..." value="${position}" required style="width: 200px;">
-    <button type="button" class="btn btn-outline btn-sm" onclick="removeTravelerRow(this)" style="padding: 10px; border-color:var(--danger); color:var(--danger);">❌</button>
+    <input type="text" class="form-input travel-accompanied-name" placeholder="à¸Šà¸·à¹ˆà¸­-à¸™à¸²à¸¡à¸ªà¸à¸¸à¸¥..." value="${name}" required style="flex-grow: 1;">
+    <input type="text" class="form-input travel-accompanied-pos" placeholder="à¸•à¸³à¹à¸«à¸™à¹ˆà¸‡..." value="${position}" required style="width: 200px;">
+    <button type="button" class="btn btn-outline btn-sm" onclick="removeTravelerRow(this)" style="padding: 10px; border-color:var(--danger); color:var(--danger);">âŒ</button>
   `;
   container.appendChild(div);
   updateTravelersCount();
@@ -2495,21 +2541,21 @@ function updateTravelersCount() {
 let _travelLegCounter = 0;
 
 const VEHICLE_OPTIONS = `
-  <option value="">-- เลือกพาหนะ --</option>
-  <optgroup label="✈ ยานพาหนะที่ใช้ตั๋ว">
-    <option value="plane">✈️ เครื่องบิน</option>
-    <option value="train">🚂 รถไฟ</option>
-    <option value="bus">🚌 รถโดยสารประจำทาง</option>
+  <option value="">-- à¹€à¸¥à¸·à¸­à¸à¸žà¸²à¸«à¸™à¸° --</option>
+  <optgroup label="âœˆ à¸¢à¸²à¸™à¸žà¸²à¸«à¸™à¸°à¸—à¸µà¹ˆà¹ƒà¸Šà¹‰à¸•à¸±à¹‹à¸§">
+    <option value="plane">âœˆï¸ à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡à¸šà¸´à¸™</option>
+    <option value="train">ðŸš‚ à¸£à¸–à¹„à¸Ÿ</option>
+    <option value="bus">ðŸšŒ à¸£à¸–à¹‚à¸”à¸¢à¸ªà¸²à¸£à¸›à¸£à¸°à¸ˆà¸³à¸—à¸²à¸‡</option>
   </optgroup>
-  <optgroup label="🚕 ค่าโดยสาร/จ้าง">
-    <option value="taxi">🚕 แท็กซี่ / รถรับจ้าง</option>
-    <option value="van">🚐 รถตู้โดยสาร</option>
-    <option value="boat">⛵ เรือ</option>
-    <option value="other_transport">🚗 พาหนะอื่นๆ</option>
+  <optgroup label="ðŸš• à¸„à¹ˆà¸²à¹‚à¸”à¸¢à¸ªà¸²à¸£/à¸ˆà¹‰à¸²à¸‡">
+    <option value="taxi">ðŸš• à¹à¸—à¹‡à¸à¸‹à¸µà¹ˆ / à¸£à¸–à¸£à¸±à¸šà¸ˆà¹‰à¸²à¸‡</option>
+    <option value="van">ðŸš à¸£à¸–à¸•à¸¹à¹‰à¹‚à¸”à¸¢à¸ªà¸²à¸£</option>
+    <option value="boat">â›µ à¹€à¸£à¸·à¸­</option>
+    <option value="other_transport">ðŸš— à¸žà¸²à¸«à¸™à¸°à¸­à¸·à¹ˆà¸™à¹†</option>
   </optgroup>
-  <optgroup label="🚗 รถราชการ / ส่วนตัว">
-    <option value="gov_car">🚌 รถวิทยาลัย</option>
-    <option value="personal_car">🚗 รถส่วนตัว</option>
+  <optgroup label="ðŸš— à¸£à¸–à¸£à¸²à¸Šà¸à¸²à¸£ / à¸ªà¹ˆà¸§à¸™à¸•à¸±à¸§">
+    <option value="gov_car">ðŸšŒ à¸£à¸–à¸§à¸´à¸—à¸¢à¸²à¸¥à¸±à¸¢</option>
+    <option value="personal_car">ðŸš— à¸£à¸–à¸ªà¹ˆà¸§à¸™à¸•à¸±à¸§</option>
   </optgroup>
 `;
 
@@ -2524,20 +2570,20 @@ window.addTravelLeg = () => {
   card.innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
       <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-        <span style="font-size:0.82rem; font-weight:700; color:#334155; background:#dbeafe; padding:3px 10px; border-radius:20px;">เส้นทางที่ ${id}</span>
+        <span style="font-size:0.82rem; font-weight:700; color:#334155; background:#dbeafe; padding:3px 10px; border-radius:20px;">à¹€à¸ªà¹‰à¸™à¸—à¸²à¸‡à¸—à¸µà¹ˆ ${id}</span>
         <select class="form-input leg-vehicle-select" style="padding:5px 12px; font-size:0.83rem; width:auto;"
           onchange="onLegVehicleChange(${id})">
           ${VEHICLE_OPTIONS}
         </select>
       </div>
       <button type="button" class="btn btn-outline btn-xs" onclick="removeTravelLeg(${id})"
-        style="border-color:var(--danger); color:var(--danger); white-space:nowrap;">❌ ลบเส้นทางนี้</button>
+        style="border-color:var(--danger); color:var(--danger); white-space:nowrap;">âŒ à¸¥à¸šà¹€à¸ªà¹‰à¸™à¸—à¸²à¸‡à¸™à¸µà¹‰</button>
     </div>
     <div id="tleg-fields-${id}" style="min-height:40px; color:#94a3b8; font-size:0.85rem;">
-      ← กรุณาเลือกพาหนะก่อน
+      â† à¸à¸£à¸¸à¸“à¸²à¹€à¸¥à¸·à¸­à¸à¸žà¸²à¸«à¸™à¸°à¸à¹ˆà¸­à¸™
     </div>
     <div style="text-align:right; margin-top:10px; font-weight:700; color:#0f766e; font-size:0.95rem;">
-      ยอดย่อย: <span id="tleg-sub-${id}">0.00</span> บาท
+      à¸¢à¸­à¸”à¸¢à¹ˆà¸­à¸¢: <span id="tleg-sub-${id}">0.00</span> à¸šà¸²à¸—
       <input type="hidden" id="tleg-val-${id}" value="0">
     </div>
   `;
@@ -2560,46 +2606,46 @@ window.onLegVehicleChange = (id) => {
 
   // Group A: ticket-based (plane, train, bus)
   if (['plane','train','bus'].includes(type)) {
-    const label = type === 'plane' ? 'ราคาตั๋วเครื่องบิน' : type === 'train' ? 'ราคาตั๋วรถไฟ' : 'ราคาตั๋วรถโดยสาร';
+    const label = type === 'plane' ? 'à¸£à¸²à¸„à¸²à¸•à¸±à¹‹à¸§à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡à¸šà¸´à¸™' : type === 'train' ? 'à¸£à¸²à¸„à¸²à¸•à¸±à¹‹à¸§à¸£à¸–à¹„à¸Ÿ' : 'à¸£à¸²à¸„à¸²à¸•à¸±à¹‹à¸§à¸£à¸–à¹‚à¸”à¸¢à¸ªà¸²à¸£';
     fieldsEl.innerHTML = `
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:10px;">
-        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">ต้นทาง</label>
-          <input type="text" class="form-input form-input-sm leg-from" placeholder="เช่น น่าน"></div>
-        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">ปลายทาง</label>
-          <input type="text" class="form-input form-input-sm leg-to" placeholder="เช่น กรุงเทพฯ"></div>
+        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">à¸•à¹‰à¸™à¸—à¸²à¸‡</label>
+          <input type="text" class="form-input form-input-sm leg-from" placeholder="à¹€à¸Šà¹ˆà¸™ à¸™à¹ˆà¸²à¸™"></div>
+        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">à¸›à¸¥à¸²à¸¢à¸—à¸²à¸‡</label>
+          <input type="text" class="form-input form-input-sm leg-to" placeholder="à¹€à¸Šà¹ˆà¸™ à¸à¸£à¸¸à¸‡à¹€à¸—à¸žà¸¯"></div>
       </div>
       <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:12px;">
-        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">วัน-เวลาออก (ไป)</label>
+        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">à¸§à¸±à¸™-à¹€à¸§à¸¥à¸²à¸­à¸­à¸ (à¹„à¸›)</label>
           <input type="datetime-local" class="form-input form-input-sm leg-depart"></div>
-        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">${label} ขาไป (บาท)</label>
+        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">${label} à¸‚à¸²à¹„à¸› (à¸šà¸²à¸—)</label>
           <input type="number" class="form-input form-input-sm leg-price-go" placeholder="0" min="0" oninput="calcLegCost(${id})"></div>
-        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">วัน-เวลากลับ</label>
+        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">à¸§à¸±à¸™-à¹€à¸§à¸¥à¸²à¸à¸¥à¸±à¸š</label>
           <input type="datetime-local" class="form-input form-input-sm leg-return"></div>
-        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">${label} ขากลับ (บาท)</label>
+        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">${label} à¸‚à¸²à¸à¸¥à¸±à¸š (à¸šà¸²à¸—)</label>
           <input type="number" class="form-input form-input-sm leg-price-back" placeholder="0" min="0" oninput="calcLegCost(${id})"></div>
       </div>`;
 
   // Group B: fare/hire (taxi, van, boat, other)
   } else if (['taxi','van','boat','other_transport'].includes(type)) {
-    const typeName = {taxi:'แท็กซี่/รถรับจ้าง', van:'รถตู้โดยสาร', boat:'เรือ', other_transport:'พาหนะอื่นๆ'}[type];
+    const typeName = {taxi:'à¹à¸—à¹‡à¸à¸‹à¸µà¹ˆ/à¸£à¸–à¸£à¸±à¸šà¸ˆà¹‰à¸²à¸‡', van:'à¸£à¸–à¸•à¸¹à¹‰à¹‚à¸”à¸¢à¸ªà¸²à¸£', boat:'à¹€à¸£à¸·à¸­', other_transport:'à¸žà¸²à¸«à¸™à¸°à¸­à¸·à¹ˆà¸™à¹†'}[type];
     const isTaxi   = type === 'taxi';
     // Taxi gets 200 default; others start at 0
     const defaultAmt = isTaxi ? 200 : 0;
     fieldsEl.innerHTML = `
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:10px;">
-        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">ต้นทาง</label>
-          <input type="text" class="form-input form-input-sm leg-from" placeholder="เช่น สนามบินสุวรรณภูมิ"></div>
-        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">ปลายทาง</label>
-          <input type="text" class="form-input form-input-sm leg-to" placeholder="เช่น โรงแรม / ที่พัก"></div>
+        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">à¸•à¹‰à¸™à¸—à¸²à¸‡</label>
+          <input type="text" class="form-input form-input-sm leg-from" placeholder="à¹€à¸Šà¹ˆà¸™ à¸ªà¸™à¸²à¸¡à¸šà¸´à¸™à¸ªà¸¸à¸§à¸£à¸£à¸“à¸ à¸¹à¸¡à¸´"></div>
+        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">à¸›à¸¥à¸²à¸¢à¸—à¸²à¸‡</label>
+          <input type="text" class="form-input form-input-sm leg-to" placeholder="à¹€à¸Šà¹ˆà¸™ à¹‚à¸£à¸‡à¹à¸£à¸¡ / à¸—à¸µà¹ˆà¸žà¸±à¸"></div>
       </div>
       <div style="display:grid; grid-template-columns:1fr auto; gap:12px; align-items:end; margin-bottom:${isTaxi ? '8' : '0'}px;">
-        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">หมายเหตุ</label>
+        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">à¸«à¸¡à¸²à¸¢à¹€à¸«à¸•à¸¸</label>
           <input type="text" class="form-input form-input-sm leg-note" id="tleg-note-${id}"
-            placeholder="ระบุรายละเอียด..."></div>
-        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">ค่าโดยสาร${typeName} (บาท)</label>
+            placeholder="à¸£à¸°à¸šà¸¸à¸£à¸²à¸¢à¸¥à¸°à¹€à¸­à¸µà¸¢à¸”..."></div>
+        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">à¸„à¹ˆà¸²à¹‚à¸”à¸¢à¸ªà¸²à¸£${typeName} (à¸šà¸²à¸—)</label>
           <input type="number" class="form-input form-input-sm leg-amount" value="${defaultAmt}"
             min="0" oninput="calcLegCost(${id})">
-          ${isTaxi ? `<div style="font-size:0.73rem;color:#64748b;margin-top:3px;">อัตราเหมาเที่ยวละ 200 บาท</div>` : ''}
+          ${isTaxi ? `<div style="font-size:0.73rem;color:#64748b;margin-top:3px;">à¸­à¸±à¸•à¸£à¸²à¹€à¸«à¸¡à¸²à¹€à¸—à¸µà¹ˆà¸¢à¸§à¸¥à¸° 200 à¸šà¸²à¸—</div>` : ''}
         </div>
       </div>
       ${isTaxi ? `
@@ -2607,77 +2653,77 @@ window.onLegVehicleChange = (id) => {
         <input type="checkbox" id="tleg-luggage-${id}" onchange="onLuggageChange(${id})"
           style="width:16px;height:16px;cursor:pointer;accent-color:#f59e0b;">
         <label for="tleg-luggage-${id}" style="font-size:0.82rem;font-weight:600;color:#92400e;cursor:pointer;margin:0;">
-          🧳 มีสัมภาระในการเดินทาง
+          ðŸ§³ à¸¡à¸µà¸ªà¸±à¸¡à¸ à¸²à¸£à¸°à¹ƒà¸™à¸à¸²à¸£à¹€à¸”à¸´à¸™à¸—à¸²à¸‡
         </label>
-        <span style="font-size:0.75rem;color:#b45309;">(จะบันทึกหมายเหตุให้อัตโนมัติ)</span>
+        <span style="font-size:0.75rem;color:#b45309;">(à¸ˆà¸°à¸šà¸±à¸™à¸—à¸¶à¸à¸«à¸¡à¸²à¸¢à¹€à¸«à¸•à¸¸à¹ƒà¸«à¹‰à¸­à¸±à¸•à¹‚à¸™à¸¡à¸±à¸•à¸´)</span>
       </div>` : ''}`;
     // Auto-calculate immediately for taxi
     if (isTaxi) calcLegCost(id);
 
 
 
-  // Group C: gov_car — km calc OR advance loan
+  // Group C: gov_car â€” km calc OR advance loan
   } else if (type === 'gov_car') {
     fieldsEl.innerHTML = `
       <div style="display:flex; gap:0; margin-bottom:12px; border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; width:fit-content;">
         <button type="button" id="tleg-mbtn-calc-${id}" onclick="setLegMode(${id},'calc')"
           style="padding:6px 16px;font-size:0.8rem;font-weight:600;background:#3b82f6;color:#fff;border:none;cursor:pointer;">
-          📏 คำนวณจากระยะทาง
+          ðŸ“ à¸„à¸³à¸™à¸§à¸“à¸ˆà¸²à¸à¸£à¸°à¸¢à¸°à¸—à¸²à¸‡
         </button>
         <button type="button" id="tleg-mbtn-loan-${id}" onclick="setLegMode(${id},'loan')"
           style="padding:6px 16px;font-size:0.8rem;font-weight:600;background:#f1f5f9;color:#475569;border:none;cursor:pointer;border-left:1px solid #cbd5e1;">
-          💵 ระบุยอดยืมล่วงหน้า
+          ðŸ’µ à¸£à¸°à¸šà¸¸à¸¢à¸­à¸”à¸¢à¸·à¸¡à¸¥à¹ˆà¸§à¸‡à¸«à¸™à¹‰à¸²
         </button>
       </div>
       <!-- calc sub-panel -->
       <div id="tleg-calc-${id}">
         <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:10px;">
-          <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">ต้นทาง</label>
-            <input type="text" class="form-input form-input-sm leg-from" placeholder="เช่น น่าน"></div>
-          <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">ปลายทาง</label>
-            <input type="text" class="form-input form-input-sm leg-to" placeholder="เช่น เชียงใหม่"></div>
-          <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">ระยะทางรวม (กม.)</label>
+          <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">à¸•à¹‰à¸™à¸—à¸²à¸‡</label>
+            <input type="text" class="form-input form-input-sm leg-from" placeholder="à¹€à¸Šà¹ˆà¸™ à¸™à¹ˆà¸²à¸™"></div>
+          <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">à¸›à¸¥à¸²à¸¢à¸—à¸²à¸‡</label>
+            <input type="text" class="form-input form-input-sm leg-to" placeholder="à¹€à¸Šà¹ˆà¸™ à¹€à¸Šà¸µà¸¢à¸‡à¹ƒà¸«à¸¡à¹ˆ"></div>
+          <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">à¸£à¸°à¸¢à¸°à¸—à¸²à¸‡à¸£à¸§à¸¡ (à¸à¸¡.)</label>
             <input type="number" class="form-input form-input-sm leg-km" placeholder="0" min="0" oninput="calcLegCost(${id})"></div>
         </div>
         <div style="font-size:0.8rem;color:#64748b;">
-          อัตรา 4 บาท/กม. &nbsp;
-          <label><input type="checkbox" class="leg-roundtrip" checked onchange="calcLegCost(${id})"> คิดไป-กลับ (×2)</label>
+          à¸­à¸±à¸•à¸£à¸² 4 à¸šà¸²à¸—/à¸à¸¡. &nbsp;
+          <label><input type="checkbox" class="leg-roundtrip" checked onchange="calcLegCost(${id})"> à¸„à¸´à¸”à¹„à¸›-à¸à¸¥à¸±à¸š (Ã—2)</label>
         </div>
       </div>
       <!-- loan sub-panel -->
       <div id="tleg-loan-${id}" style="display:none;">
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:10px;">
-          <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">ต้นทาง</label>
-            <input type="text" class="form-input form-input-sm leg-from-loan" placeholder="เช่น น่าน"></div>
-          <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">ปลายทาง</label>
-            <input type="text" class="form-input form-input-sm leg-to-loan" placeholder="เช่น เชียงใหม่"></div>
+          <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">à¸•à¹‰à¸™à¸—à¸²à¸‡</label>
+            <input type="text" class="form-input form-input-sm leg-from-loan" placeholder="à¹€à¸Šà¹ˆà¸™ à¸™à¹ˆà¸²à¸™"></div>
+          <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">à¸›à¸¥à¸²à¸¢à¸—à¸²à¸‡</label>
+            <input type="text" class="form-input form-input-sm leg-to-loan" placeholder="à¹€à¸Šà¹ˆà¸™ à¹€à¸Šà¸µà¸¢à¸‡à¹ƒà¸«à¸¡à¹ˆ"></div>
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-          <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">หมายเหตุ / วัตถุประสงค์</label>
-            <input type="text" class="form-input form-input-sm leg-note-loan" placeholder="เช่น ค่าน้ำมันเชื้อเพลิงรถวิทยาลัย"></div>
-          <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">ยอดยืมล่วงหน้า (บาท)</label>
+          <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">à¸«à¸¡à¸²à¸¢à¹€à¸«à¸•à¸¸ / à¸§à¸±à¸•à¸–à¸¸à¸›à¸£à¸°à¸ªà¸‡à¸„à¹Œ</label>
+            <input type="text" class="form-input form-input-sm leg-note-loan" placeholder="à¹€à¸Šà¹ˆà¸™ à¸„à¹ˆà¸²à¸™à¹‰à¸³à¸¡à¸±à¸™à¹€à¸Šà¸·à¹‰à¸­à¹€à¸žà¸¥à¸´à¸‡à¸£à¸–à¸§à¸´à¸—à¸¢à¸²à¸¥à¸±à¸¢"></div>
+          <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">à¸¢à¸­à¸”à¸¢à¸·à¸¡à¸¥à¹ˆà¸§à¸‡à¸«à¸™à¹‰à¸² (à¸šà¸²à¸—)</label>
             <input type="number" class="form-input form-input-sm leg-loan-amount" placeholder="0" min="0" oninput="calcLegCost(${id})"></div>
         </div>
       </div>`;
 
-  // Group D: personal_car — km calc only
+  // Group D: personal_car â€” km calc only
   } else if (type === 'personal_car') {
     fieldsEl.innerHTML = `
       <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:10px;">
-        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">ต้นทาง</label>
-          <input type="text" class="form-input form-input-sm leg-from" placeholder="เช่น น่าน"></div>
-        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">ปลายทาง</label>
-          <input type="text" class="form-input form-input-sm leg-to" placeholder="เช่น เชียงใหม่"></div>
-        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">ระยะทางรวม (กม.)</label>
+        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">à¸•à¹‰à¸™à¸—à¸²à¸‡</label>
+          <input type="text" class="form-input form-input-sm leg-from" placeholder="à¹€à¸Šà¹ˆà¸™ à¸™à¹ˆà¸²à¸™"></div>
+        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">à¸›à¸¥à¸²à¸¢à¸—à¸²à¸‡</label>
+          <input type="text" class="form-input form-input-sm leg-to" placeholder="à¹€à¸Šà¹ˆà¸™ à¹€à¸Šà¸µà¸¢à¸‡à¹ƒà¸«à¸¡à¹ˆ"></div>
+        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">à¸£à¸°à¸¢à¸°à¸—à¸²à¸‡à¸£à¸§à¸¡ (à¸à¸¡.)</label>
           <input type="number" class="form-input form-input-sm leg-km" placeholder="0" min="0" oninput="calcLegCost(${id})"></div>
       </div>
       <div style="font-size:0.8rem;color:#64748b;">
-        อัตรา 4 บาท/กม. &nbsp;
-        <label><input type="checkbox" class="leg-roundtrip" checked onchange="calcLegCost(${id})"> คิดไป-กลับ (×2)</label>
+        à¸­à¸±à¸•à¸£à¸² 4 à¸šà¸²à¸—/à¸à¸¡. &nbsp;
+        <label><input type="checkbox" class="leg-roundtrip" checked onchange="calcLegCost(${id})"> à¸„à¸´à¸”à¹„à¸›-à¸à¸¥à¸±à¸š (Ã—2)</label>
       </div>`;
 
   } else {
-    fieldsEl.innerHTML = '<span style="color:#94a3b8;font-size:0.85rem;">← กรุณาเลือกพาหนะก่อน</span>';
+    fieldsEl.innerHTML = '<span style="color:#94a3b8;font-size:0.85rem;">â† à¸à¸£à¸¸à¸“à¸²à¹€à¸¥à¸·à¸­à¸à¸žà¸²à¸«à¸™à¸°à¸à¹ˆà¸­à¸™</span>';
   }
 
   calcLegCost(id);
@@ -2743,7 +2789,7 @@ window.onLuggageChange = (id) => {
   const checkbox = document.getElementById(`tleg-luggage-${id}`);
   const noteInput = document.getElementById(`tleg-note-${id}`);
   if (!checkbox || !noteInput) return;
-  const LUGGAGE_TAG = 'มีสัมภาระในการเดินทาง';
+  const LUGGAGE_TAG = 'à¸¡à¸µà¸ªà¸±à¸¡à¸ à¸²à¸£à¸°à¹ƒà¸™à¸à¸²à¸£à¹€à¸”à¸´à¸™à¸—à¸²à¸‡';
   if (checkbox.checked) {
     // Append tag if not already present
     const current = noteInput.value.trim();
@@ -2848,10 +2894,10 @@ let _allowanceDayCounter = 0;
 
 // Preset rate labels
 const ALLOW_RATE_OPTIONS = `
-  <option value="240">เต็ม (100%) — 240 บาท/วัน</option>
-  <option value="160">2/3 — 160 บาท/วัน</option>
-  <option value="80">1/3 — 80 บาท/วัน</option>
-  <option value="custom">กำหนดเอง</option>
+  <option value="240">à¹€à¸•à¹‡à¸¡ (100%) â€” 240 à¸šà¸²à¸—/à¸§à¸±à¸™</option>
+  <option value="160">2/3 â€” 160 à¸šà¸²à¸—/à¸§à¸±à¸™</option>
+  <option value="80">1/3 â€” 80 à¸šà¸²à¸—/à¸§à¸±à¸™</option>
+  <option value="custom">à¸à¸³à¸«à¸™à¸”à¹€à¸­à¸‡</option>
 `;
 
 window.addAllowanceDay = (defaultRate = 240, defaultDate = '') => {
@@ -2876,7 +2922,7 @@ window.addAllowanceDay = (defaultRate = 240, defaultDate = '') => {
       ${isCustom ? '' : 'readonly'} oninput="calcAllAllowanceDays()">
     <span id="aday-sub-${id}" style="text-align:right; font-weight:600; color:#0f766e; font-size:0.82rem;">0.00</span>
     <button type="button" onclick="removeAllowanceDay(${id})"
-      style="background:none; border:none; color:#ef4444; font-size:1rem; cursor:pointer; padding:0; line-height:1;">✕</button>
+      style="background:none; border:none; color:#ef4444; font-size:1rem; cursor:pointer; padding:0; line-height:1;">âœ•</button>
   `;
   container.appendChild(row);
 
@@ -2943,7 +2989,7 @@ window.calculateExpenses = () => {
   // 1. Vehicle costs from multi-leg system
   const routeTotal = parseFloat(document.getElementById('travel-legs-grand')?.value) || 0;
 
-  // 2. Allowance — read from per-day table total
+  // 2. Allowance â€” read from per-day table total
   const totalAllow = parseFloat(
     document.getElementById('travel-total-allowance-txt')?.textContent?.replace(/,/g, '')
   ) || 0;
@@ -2989,9 +3035,9 @@ window.calculateLoanTotal = () => {
 
 // Helper: Convert number to Thai Baht text format
 function numToThaiBath(num) {
-  if (num === 0) return 'ศูนย์บาทถ้วน';
-  const textNum = ['ศูนย์', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า', 'สิบ'];
-  const textPosition = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
+  if (num === 0) return 'à¸¨à¸¹à¸™à¸¢à¹Œà¸šà¸²à¸—à¸–à¹‰à¸§à¸™';
+  const textNum = ['à¸¨à¸¹à¸™à¸¢à¹Œ', 'à¸«à¸™à¸¶à¹ˆà¸‡', 'à¸ªà¸­à¸‡', 'à¸ªà¸²à¸¡', 'à¸ªà¸µà¹ˆ', 'à¸«à¹‰à¸²', 'à¸«à¸', 'à¹€à¸ˆà¹‡à¸”', 'à¹à¸›à¸”', 'à¹€à¸à¹‰à¸²', 'à¸ªà¸´à¸š'];
+  const textPosition = ['', 'à¸ªà¸´à¸š', 'à¸£à¹‰à¸­à¸¢', 'à¸žà¸±à¸™', 'à¸«à¸¡à¸·à¹ˆà¸™', 'à¹à¸ªà¸™', 'à¸¥à¹‰à¸²à¸™'];
   
   let str = num.toFixed(2).split('.');
   let integerPart = str[0];
@@ -3007,22 +3053,22 @@ function numToThaiBath(num) {
     
     if (digit !== 0) {
       if (pos === 0 && digit === 1 && len > 1) {
-        resText += 'เอ็ด';
+        resText += 'à¹€à¸­à¹‡à¸”';
       } else if (pos === 1 && digit === 1) {
-        resText += 'สิบ';
+        resText += 'à¸ªà¸´à¸š';
       } else if (pos === 1 && digit === 2) {
-        resText += 'ยี่สิบ';
+        resText += 'à¸¢à¸µà¹ˆà¸ªà¸´à¸š';
       } else {
         resText += textNum[digit] + textPosition[pos];
       }
     }
   }
   
-  if (resText !== '') resText += 'บาท';
+  if (resText !== '') resText += 'à¸šà¸²à¸—';
   
   // Process decimal part
   if (parseInt(decimalPart) === 0) {
-    resText += 'ถ้วน';
+    resText += 'à¸–à¹‰à¸§à¸™';
   } else {
     let decLen = decimalPart.length;
     for (let i = 0; i < decLen; i++) {
@@ -3030,17 +3076,17 @@ function numToThaiBath(num) {
       let pos = decLen - 1 - i;
       if (digit !== 0) {
         if (pos === 0 && digit === 1 && decLen > 1) {
-          resText += 'เอ็ด';
+          resText += 'à¹€à¸­à¹‡à¸”';
         } else if (pos === 1 && digit === 1) {
-          resText += 'สิบ';
+          resText += 'à¸ªà¸´à¸š';
         } else if (pos === 1 && digit === 2) {
-          resText += 'ยี่สิบ';
+          resText += 'à¸¢à¸µà¹ˆà¸ªà¸´à¸š';
         } else {
           resText += textNum[digit] + textPosition[pos];
         }
       }
     }
-    resText += 'สตางค์';
+    resText += 'à¸ªà¸•à¸²à¸‡à¸„à¹Œ';
   }
   return resText;
 }
@@ -3092,9 +3138,9 @@ async function loadTravelHistory() {
   if (!listTitle) return;
   
   if (currentUser.role === 'admin') {
-    listTitle.textContent = '📋 รายการคำขอไปราชการทั้งหมด (แอดมิน)';
+    listTitle.textContent = 'ðŸ“‹ à¸£à¸²à¸¢à¸à¸²à¸£à¸„à¸³à¸‚à¸­à¹„à¸›à¸£à¸²à¸Šà¸à¸²à¸£à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸” (à¹à¸­à¸”à¸¡à¸´à¸™)';
   } else {
-    listTitle.textContent = '📋 ประวัติการยื่นคำขอไปราชการของคุณ';
+    listTitle.textContent = 'ðŸ“‹ à¸›à¸£à¸°à¸§à¸±à¸•à¸´à¸à¸²à¸£à¸¢à¸·à¹ˆà¸™à¸„à¸³à¸‚à¸­à¹„à¸›à¸£à¸²à¸Šà¸à¸²à¸£à¸‚à¸­à¸‡à¸„à¸¸à¸“';
   }
   
   try {
@@ -3102,7 +3148,7 @@ async function loadTravelHistory() {
       ? `${API_BASE_URL}/api/travel`
       : `${API_BASE_URL}/api/travel?userId=${currentUser.userId}`;
       
-    const res = await fetch(url);
+    const res = await safeFetch(url);
     const travels = await res.json();
     
     const tbody = document.getElementById('travel-table-body');
@@ -3110,33 +3156,33 @@ async function loadTravelHistory() {
     tbody.innerHTML = '';
     
     if (travels.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding:16px; color:var(--neutral-400);">ไม่มีรายการคำขอไปราชการ</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding:16px; color:var(--neutral-400);">à¹„à¸¡à¹ˆà¸¡à¸µà¸£à¸²à¸¢à¸à¸²à¸£à¸„à¸³à¸‚à¸­à¹„à¸›à¸£à¸²à¸Šà¸à¸²à¸£</td></tr>`;
       return;
     }
     
     travels.forEach(t => {
       let actionHtml = '-';
-      if (currentUser.role === 'admin' && t.status === 'รอการอนุมัติ') {
+      if (currentUser.role === 'admin' && t.status === 'à¸£à¸­à¸à¸²à¸£à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´') {
         actionHtml = `
           <div style="display:flex; gap:6px;">
-            <button class="btn btn-primary btn-sm" onclick="approveTravel('${t.travelId}', 'อนุมัติ')" style="padding:4px 8px; font-size:11px;">อนุมัติ</button>
-            <button class="btn btn-danger btn-sm" onclick="approveTravel('${t.travelId}', 'ไม่อนุมัติ')" style="padding:4px 8px; font-size:11px; background:#ef4444; border-color:#ef4444; color:white;">ปฏิเสธ</button>
+            <button class="btn btn-primary btn-sm" onclick="approveTravel('${t.travelId}', 'à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´')" style="padding:4px 8px; font-size:11px;">à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´</button>
+            <button class="btn btn-danger btn-sm" onclick="approveTravel('${t.travelId}', 'à¹„à¸¡à¹ˆà¸­à¸™à¸¸à¸¡à¸±à¸•à¸´')" style="padding:4px 8px; font-size:11px; background:#ef4444; border-color:#ef4444; color:white;">à¸›à¸à¸´à¹€à¸ªà¸˜</button>
           </div>
         `;
       }
       
-      const budgetText = parseFloat(t.budget) > 0 ? ` (งบ ${parseFloat(t.budget).toLocaleString()} บ.)` : '';
+      const budgetText = parseFloat(t.budget) > 0 ? ` (à¸‡à¸š ${parseFloat(t.budget).toLocaleString()} à¸š.)` : '';
       
       tbody.innerHTML += `
         <tr>
           <td>
             <div style="font-weight:600; color:var(--neutral-800);">${t.subject}</div>
-            <div style="font-size:11px; color:var(--neutral-500);">📍 ${t.destination}${budgetText}</div>
-            ${currentUser.role === 'admin' ? `<div style="font-size:11px; color:#0369a1; font-weight:500;">ผู้ขอ: ${t.fullName}</div>` : ''}
+            <div style="font-size:11px; color:var(--neutral-500);">ðŸ“ ${t.destination}${budgetText}</div>
+            ${currentUser.role === 'admin' ? `<div style="font-size:11px; color:#0369a1; font-weight:500;">à¸œà¸¹à¹‰à¸‚à¸­: ${t.fullName}</div>` : ''}
           </td>
           <td>
             <div style="font-weight:500;">${formatDate(t.startDate)}</div>
-            <div style="font-size:11px; color:var(--neutral-500);">ถึง ${formatDate(t.endDate)}</div>
+            <div style="font-size:11px; color:var(--neutral-500);">à¸–à¸¶à¸‡ ${formatDate(t.endDate)}</div>
           </td>
           <td style="text-align:center; font-weight:bold;">${parseFloat(t.totalDays)}</td>
           <td>${renderBadge(t.status)}</td>
@@ -3150,33 +3196,33 @@ async function loadTravelHistory() {
 }
 
 async function approveTravel(travelId, status) {
-  const confirmText = status === 'อนุมัติ' ? 'อนุมัติคำขอไปราชการนี้?' : 'ปฏิเสธคำขอไปราชการนี้?';
+  const confirmText = status === 'à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´' ? 'à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´à¸„à¸³à¸‚à¸­à¹„à¸›à¸£à¸²à¸Šà¸à¸²à¸£à¸™à¸µà¹‰?' : 'à¸›à¸à¸´à¹€à¸ªà¸˜à¸„à¸³à¸‚à¸­à¹„à¸›à¸£à¸²à¸Šà¸à¸²à¸£à¸™à¸µà¹‰?';
   const result = await Swal.fire({
-    title: 'ยืนยันการดำเนินการ',
+    title: 'à¸¢à¸·à¸™à¸¢à¸±à¸™à¸à¸²à¸£à¸”à¸³à¹€à¸™à¸´à¸™à¸à¸²à¸£',
     text: confirmText,
     icon: 'question',
     showCancelButton: true,
-    confirmButtonText: 'ยืนยัน',
-    cancelButtonText: 'ยกเลิก'
+    confirmButtonText: 'à¸¢à¸·à¸™à¸¢à¸±à¸™',
+    cancelButtonText: 'à¸¢à¸à¹€à¸¥à¸´à¸'
   });
   
   if (result.isConfirmed) {
-    showLoading('กำลังบันทึกข้อมูล...');
+    showLoading('à¸à¸³à¸¥à¸±à¸‡à¸šà¸±à¸™à¸—à¸¶à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥...');
     try {
-      const res = await fetch(`${API_BASE_URL}/api/travel/approve`, {
+      const res = await safeFetch(`${API_BASE_URL}/api/travel/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ travelId, status })
       });
       const data = await res.json();
       if (data.success) {
-        Swal.fire('สำเร็จ', data.message, 'success');
+        Swal.fire('à¸ªà¸³à¹€à¸£à¹‡à¸ˆ', data.message, 'success');
         loadTravelHistory();
       } else {
         showError(data.message);
       }
     } catch (err) {
-      showError('เกิดข้อผิดพลาด: ' + err.message);
+      showError('à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”: ' + err.message);
     }
   }
 }
@@ -3192,7 +3238,7 @@ async function handleTravelSubmit(e) {
   const vehicleType = document.getElementById('travel-vehicle').value;
   
   if (totalDays <= 0) {
-    Swal.fire('ข้อผิดพลาด', 'วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด', 'error');
+    Swal.fire('à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”', 'à¸§à¸±à¸™à¸—à¸µà¹ˆà¹€à¸£à¸´à¹ˆà¸¡à¸•à¹‰à¸™à¸•à¹‰à¸­à¸‡à¹„à¸¡à¹ˆà¸¡à¸²à¸à¸à¸§à¹ˆà¸²à¸§à¸±à¸™à¸—à¸µà¹ˆà¸ªà¸´à¹‰à¸™à¸ªà¸¸à¸”', 'error');
     return;
   }
   
@@ -3286,9 +3332,9 @@ async function handleTravelSubmit(e) {
     }
   };
   
-  showLoading('กำลังยื่นคำขอไปราชการ...');
+  showLoading('à¸à¸³à¸¥à¸±à¸‡à¸¢à¸·à¹ˆà¸™à¸„à¸³à¸‚à¸­à¹„à¸›à¸£à¸²à¸Šà¸à¸²à¸£...');
   try {
-    const res = await fetch(`${API_BASE_URL}/api/travel`, {
+    const res = await safeFetch(`${API_BASE_URL}/api/travel`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -3307,13 +3353,13 @@ async function handleTravelSubmit(e) {
     
     const data = await res.json();
     if (data.success) {
-      Swal.fire('สำเร็จ', 'ยื่นคำขอไปราชการเรียบร้อยแล้ว', 'success');
+      Swal.fire('à¸ªà¸³à¹€à¸£à¹‡à¸ˆ', 'à¸¢à¸·à¹ˆà¸™à¸„à¸³à¸‚à¸­à¹„à¸›à¸£à¸²à¸Šà¸à¸²à¸£à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§', 'success');
       initTravelPage();
     } else {
       showError(data.message);
     }
   } catch (err) {
-    showError('เกิดข้อผิดพลาด: ' + err.message);
+    showError('à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”: ' + err.message);
   }
 }
 
@@ -3342,22 +3388,22 @@ async function initTravelReportPage() {
 async function loadApprovedTravelsDropdown() {
   const select = document.getElementById('report-travel-select');
   if (!select) return;
-  select.innerHTML = '<option value="">-- กรุณาเลือกรายการ --</option>';
+  select.innerHTML = '<option value="">-- à¸à¸£à¸¸à¸“à¸²à¹€à¸¥à¸·à¸­à¸à¸£à¸²à¸¢à¸à¸²à¸£ --</option>';
   
   try {
-    const res = await fetch(`${API_BASE_URL}/api/travel?userId=${currentUser.userId}`);
+    const res = await safeFetch(`${API_BASE_URL}/api/travel?userId=${currentUser.userId}`);
     const travels = await res.json();
-    approvedTravelsList = travels.filter(t => t.status === 'อนุมัติ');
+    approvedTravelsList = travels.filter(t => t.status === 'à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´');
     
     if (approvedTravelsList.length === 0) {
-      select.innerHTML = '<option value="">-- ไม่มีประวัติเดินทางที่อนุมัติ --</option>';
+      select.innerHTML = '<option value="">-- à¹„à¸¡à¹ˆà¸¡à¸µà¸›à¸£à¸°à¸§à¸±à¸•à¸´à¹€à¸”à¸´à¸™à¸—à¸²à¸‡à¸—à¸µà¹ˆà¸­à¸™à¸¸à¸¡à¸±à¸•à¸´ --</option>';
       return;
     }
     
     approvedTravelsList.forEach(t => {
       const option = document.createElement('option');
       option.value = t.travelId;
-      option.textContent = `${t.subject} ณ ${t.destination} (${formatDate(t.startDate)} - ${formatDate(t.endDate)})`;
+      option.textContent = `${t.subject} à¸“ ${t.destination} (${formatDate(t.startDate)} - ${formatDate(t.endDate)})`;
       select.appendChild(option);
     });
   } catch (err) {
@@ -3414,7 +3460,7 @@ window.previewReportPhotos = (input) => {
       
       div.innerHTML = `
         <img src="${base64}" style="width:100%; height:100%; object-fit:cover;">
-        <button type="button" onclick="removeReportPhoto(${index})" style="position:absolute; top:4px; right:4px; background:rgba(239,68,68,0.9); color:white; border:none; border-radius:50%; width:22px; height:22px; font-size:10px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-sm);">✕</button>
+        <button type="button" onclick="removeReportPhoto(${index})" style="position:absolute; top:4px; right:4px; background:rgba(239,68,68,0.9); color:white; border:none; border-radius:50%; width:22px; height:22px; font-size:10px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-sm);">âœ•</button>
       `;
       previewContainer.appendChild(div);
     };
@@ -3441,7 +3487,7 @@ window.removeReportPhoto = (index) => {
     
     div.innerHTML = `
       <img src="${base64}" style="width:100%; height:100%; object-fit:cover;">
-      <button type="button" onclick="removeReportPhoto(${idx})" style="position:absolute; top:4px; right:4px; background:rgba(239,68,68,0.9); color:white; border:none; border-radius:50%; width:22px; height:22px; font-size:10px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-sm);">✕</button>
+      <button type="button" onclick="removeReportPhoto(${idx})" style="position:absolute; top:4px; right:4px; background:rgba(239,68,68,0.9); color:white; border:none; border-radius:50%; width:22px; height:22px; font-size:10px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-sm);">âœ•</button>
     `;
     previewContainer.appendChild(div);
   });
@@ -3493,7 +3539,7 @@ window.openClearanceModal = (reportId, travelId, budget) => {
   
   // Find matching report details
   const report = reportsHistoryList.find(r => r.reportId === reportId);
-  let contractNo = 'บช. / [เว้นว่าง]';
+  let contractNo = 'à¸šà¸Š. / [à¹€à¸§à¹‰à¸™à¸§à¹ˆà¸²à¸‡]';
   let travelers = [];
   
   if (report && report.travelRequestDetails) {
@@ -3516,7 +3562,7 @@ window.openClearanceModal = (reportId, travelId, budget) => {
   
   // 1. Add main reporter
   const reporterName = report ? report.fullName : currentUser.fullName;
-  addTravelerClearanceRow(reporterName, 'ผู้รายงาน');
+  addTravelerClearanceRow(reporterName, 'à¸œà¸¹à¹‰à¸£à¸²à¸¢à¸‡à¸²à¸™');
   
   // 2. Add accompanying travelers
   travelers.forEach(t => {
@@ -3589,13 +3635,13 @@ window.recalculateClearanceTotals = () => {
   
   if (diff > 0) {
     diffText.style.color = '#ef4444';
-    diffText.textContent = `จ่ายสมทบเพิ่ม: ${diff.toLocaleString('en-US', { minimumFractionDigits: 2 })} บาท`;
+    diffText.textContent = `à¸ˆà¹ˆà¸²à¸¢à¸ªà¸¡à¸—à¸šà¹€à¸žà¸´à¹ˆà¸¡: ${diff.toLocaleString('en-US', { minimumFractionDigits: 2 })} à¸šà¸²à¸—`;
   } else if (diff < 0) {
     diffText.style.color = '#f59e0b';
-    diffText.textContent = `เงินเหลือส่งคืน: ${Math.abs(diff).toLocaleString('en-US', { minimumFractionDigits: 2 })} บาท`;
+    diffText.textContent = `à¹€à¸‡à¸´à¸™à¹€à¸«à¸¥à¸·à¸­à¸ªà¹ˆà¸‡à¸„à¸·à¸™: ${Math.abs(diff).toLocaleString('en-US', { minimumFractionDigits: 2 })} à¸šà¸²à¸—`;
   } else {
     diffText.style.color = '#0d9488';
-    diffText.textContent = `ยอดเงินเคลียร์พอดี`;
+    diffText.textContent = `à¸¢à¸­à¸”à¹€à¸‡à¸´à¸™à¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œà¸žà¸­à¸”à¸µ`;
   }
 };
 
@@ -3661,9 +3707,9 @@ window.handleClearanceSubmit = async (e) => {
     travelers
   };
   
-  showLoading('กำลังบันทึกและยื่นเอกสารเคลียร์เงิน...');
+  showLoading('à¸à¸³à¸¥à¸±à¸‡à¸šà¸±à¸™à¸—à¸¶à¸à¹à¸¥à¸°à¸¢à¸·à¹ˆà¸™à¹€à¸­à¸à¸ªà¸²à¸£à¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œà¹€à¸‡à¸´à¸™...');
   try {
-    const res = await fetch(`${API_BASE_URL}/api/travel-clearance`, {
+    const res = await safeFetch(`${API_BASE_URL}/api/travel-clearance`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -3679,7 +3725,7 @@ window.handleClearanceSubmit = async (e) => {
     
     const data = await res.json();
     if (data.success) {
-      Swal.fire('สำเร็จ', data.message, 'success');
+      Swal.fire('à¸ªà¸³à¹€à¸£à¹‡à¸ˆ', data.message, 'success');
       hideClearanceModal();
       initTravelReportPage();
       
@@ -3689,38 +3735,38 @@ window.handleClearanceSubmit = async (e) => {
       showError(data.message);
     }
   } catch (err) {
-    showError('เกิดข้อผิดพลาด: ' + err.message);
+    showError('à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”: ' + err.message);
   }
 };
 
 window.approveClearance = async (clearanceId, status) => {
-  const confirmText = status === 'อนุมัติแล้ว' ? 'อนุมัติการเคลียร์เงินยืมรายการนี้?' : 'ปฏิเสธการเคลียร์เงินยืมรายการนี้?';
+  const confirmText = status === 'à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´à¹à¸¥à¹‰à¸§' ? 'à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´à¸à¸²à¸£à¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œà¹€à¸‡à¸´à¸™à¸¢à¸·à¸¡à¸£à¸²à¸¢à¸à¸²à¸£à¸™à¸µà¹‰?' : 'à¸›à¸à¸´à¹€à¸ªà¸˜à¸à¸²à¸£à¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œà¹€à¸‡à¸´à¸™à¸¢à¸·à¸¡à¸£à¸²à¸¢à¸à¸²à¸£à¸™à¸µà¹‰?';
   const result = await Swal.fire({
-    title: 'ยืนยันการดำเนินการ',
+    title: 'à¸¢à¸·à¸™à¸¢à¸±à¸™à¸à¸²à¸£à¸”à¸³à¹€à¸™à¸´à¸™à¸à¸²à¸£',
     text: confirmText,
     icon: 'question',
     showCancelButton: true,
-    confirmButtonText: 'ยืนยัน',
-    cancelButtonText: 'ยกเลิก'
+    confirmButtonText: 'à¸¢à¸·à¸™à¸¢à¸±à¸™',
+    cancelButtonText: 'à¸¢à¸à¹€à¸¥à¸´à¸'
   });
   
   if (result.isConfirmed) {
-    showLoading('กำลังบันทึกข้อมูล...');
+    showLoading('à¸à¸³à¸¥à¸±à¸‡à¸šà¸±à¸™à¸—à¸¶à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥...');
     try {
-      const res = await fetch(`${API_BASE_URL}/api/travel-clearance/approve`, {
+      const res = await safeFetch(`${API_BASE_URL}/api/travel-clearance/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clearanceId, status })
       });
       const data = await res.json();
       if (data.success) {
-        Swal.fire('สำเร็จ', data.message, 'success');
+        Swal.fire('à¸ªà¸³à¹€à¸£à¹‡à¸ˆ', data.message, 'success');
         initTravelReportPage();
       } else {
         showError(data.message);
       }
     } catch (err) {
-      showError('เกิดข้อผิดพลาด: ' + err.message);
+      showError('à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”: ' + err.message);
     }
   }
 };
@@ -3738,7 +3784,7 @@ async function loadTravelReportsHistory() {
     const clearanceUrl = currentUser.role === 'admin'
       ? `${API_BASE_URL}/api/travel-clearance`
       : `${API_BASE_URL}/api/travel-clearance?userId=${currentUser.userId}`;
-    const clRes = await fetch(clearanceUrl);
+    const clRes = await safeFetch(clearanceUrl);
     clearancesList = await clRes.json();
     
     const clMap = {};
@@ -3750,7 +3796,7 @@ async function loadTravelReportsHistory() {
       ? `${API_BASE_URL}/api/travel-report`
       : `${API_BASE_URL}/api/travel-report?userId=${currentUser.userId}`;
       
-    const res = await fetch(url);
+    const res = await safeFetch(url);
     reportsHistoryList = await res.json();
     
     const tbody = document.getElementById('travel-report-table-body');
@@ -3758,7 +3804,7 @@ async function loadTravelReportsHistory() {
     tbody.innerHTML = '';
     
     if (reportsHistoryList.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding:16px; color:var(--neutral-400);">ไม่มีประวัติรายงานราชการ</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding:16px; color:var(--neutral-400);">à¹„à¸¡à¹ˆà¸¡à¸µà¸›à¸£à¸°à¸§à¸±à¸•à¸´à¸£à¸²à¸¢à¸‡à¸²à¸™à¸£à¸²à¸Šà¸à¸²à¸£</td></tr>`;
       return;
     }
     
@@ -3782,41 +3828,41 @@ async function loadTravelReportsHistory() {
         if (!cl) {
           budgetActionHtml = `
             <div style="margin-top:6px;">
-              <button type="button" class="btn btn-primary btn-xs" onclick="openClearanceModal('${r.reportId}', '${r.travelId}', ${originalBudget})" style="background:#0d9488; border-color:#0d9488; display:inline-flex; align-items:center; gap:4px; padding:3px 8px;">💰 เคลียร์เงินยืม</button>
+              <button type="button" class="btn btn-primary btn-xs" onclick="openClearanceModal('${r.reportId}', '${r.travelId}', ${originalBudget})" style="background:#0d9488; border-color:#0d9488; display:inline-flex; align-items:center; gap:4px; padding:3px 8px;">ðŸ’° à¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œà¹€à¸‡à¸´à¸™à¸¢à¸·à¸¡</button>
             </div>
           `;
-        } else if (cl.status === 'รอการตรวจสอบ') {
+        } else if (cl.status === 'à¸£à¸­à¸à¸²à¸£à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸š') {
           if (currentUser.role === 'admin') {
             budgetActionHtml = `
               <div style="margin-top:6px; display:flex; flex-direction:column; gap:4px; align-items:center;">
-                <span class="badge" style="background:#f59e0b; color:white; font-size:10px; padding:2px 6px; border-radius:4px;">⏳ รอตรวจเคลียร์เงิน</span>
+                <span class="badge" style="background:#f59e0b; color:white; font-size:10px; padding:2px 6px; border-radius:4px;">â³ à¸£à¸­à¸•à¸£à¸§à¸ˆà¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œà¹€à¸‡à¸´à¸™</span>
                 <div style="display:flex; gap:4px;">
-                  <button type="button" class="btn btn-primary btn-xs" onclick="approveClearance('${cl.clearanceId}', 'อนุมัติแล้ว')" style="background:#10b981; border-color:#10b981; padding:2px 4px; font-size:10px;">อนุมัติ</button>
-                  <button type="button" class="btn btn-danger btn-xs" onclick="approveClearance('${cl.clearanceId}', 'ปฏิเสธ')" style="background:#ef4444; border-color:#ef4444; color:white; padding:2px 4px; font-size:10px;">ปฏิเสธ</button>
+                  <button type="button" class="btn btn-primary btn-xs" onclick="approveClearance('${cl.clearanceId}', 'à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´à¹à¸¥à¹‰à¸§')" style="background:#10b981; border-color:#10b981; padding:2px 4px; font-size:10px;">à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´</button>
+                  <button type="button" class="btn btn-danger btn-xs" onclick="approveClearance('${cl.clearanceId}', 'à¸›à¸à¸´à¹€à¸ªà¸˜')" style="background:#ef4444; border-color:#ef4444; color:white; padding:2px 4px; font-size:10px;">à¸›à¸à¸´à¹€à¸ªà¸˜</button>
                 </div>
-                <button type="button" class="btn btn-outline btn-xs" onclick="printClearance('${r.reportId}')" style="padding:2px 4px; font-size:10px;">🖨️ ใบเคลียร์เงิน</button>
+                <button type="button" class="btn btn-outline btn-xs" onclick="printClearance('${r.reportId}')" style="padding:2px 4px; font-size:10px;">ðŸ–¨ï¸ à¹ƒà¸šà¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œà¹€à¸‡à¸´à¸™</button>
               </div>
             `;
           } else {
             budgetActionHtml = `
               <div style="margin-top:6px; display:flex; flex-direction:column; gap:4px; align-items:center;">
-                <span class="badge" style="background:#f59e0b; color:white; font-size:10px; padding:2px 6px; border-radius:4px;">⏳ รอตรวจเคลียร์เงิน</span>
-                <button type="button" class="btn btn-outline btn-xs" onclick="printClearance('${r.reportId}')" style="padding:3px 6px; font-size:10px;">🖨️ ใบเคลียร์เงิน</button>
+                <span class="badge" style="background:#f59e0b; color:white; font-size:10px; padding:2px 6px; border-radius:4px;">â³ à¸£à¸­à¸•à¸£à¸§à¸ˆà¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œà¹€à¸‡à¸´à¸™</span>
+                <button type="button" class="btn btn-outline btn-xs" onclick="printClearance('${r.reportId}')" style="padding:3px 6px; font-size:10px;">ðŸ–¨ï¸ à¹ƒà¸šà¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œà¹€à¸‡à¸´à¸™</button>
               </div>
             `;
           }
-        } else if (cl.status === 'อนุมัติแล้ว') {
+        } else if (cl.status === 'à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´à¹à¸¥à¹‰à¸§') {
           budgetActionHtml = `
             <div style="margin-top:6px; display:flex; flex-direction:column; gap:4px; align-items:center;">
-              <span class="badge" style="background:#10b981; color:white; font-size:10px; padding:2px 6px; border-radius:4px;">✅ เคลียร์เงินสำเร็จ</span>
-              <button type="button" class="btn btn-outline btn-xs" onclick="printClearance('${r.reportId}')" style="padding:3px 6px; font-size:10px;">🖨️ ใบเคลียร์เงิน</button>
+              <span class="badge" style="background:#10b981; color:white; font-size:10px; padding:2px 6px; border-radius:4px;">âœ… à¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œà¹€à¸‡à¸´à¸™à¸ªà¸³à¹€à¸£à¹‡à¸ˆ</span>
+              <button type="button" class="btn btn-outline btn-xs" onclick="printClearance('${r.reportId}')" style="padding:3px 6px; font-size:10px;">ðŸ–¨ï¸ à¹ƒà¸šà¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œà¹€à¸‡à¸´à¸™</button>
             </div>
           `;
-        } else if (cl.status === 'ปฏิเสธ') {
+        } else if (cl.status === 'à¸›à¸à¸´à¹€à¸ªà¸˜') {
           budgetActionHtml = `
             <div style="margin-top:6px; display:flex; flex-direction:column; gap:4px; align-items:center;">
-              <span class="badge" style="background:#ef4444; color:white; font-size:10px; padding:2px 6px; border-radius:4px;">❌ ปฏิเสธการเคลียร์</span>
-              <button type="button" class="btn btn-primary btn-xs" onclick="openClearanceModal('${r.reportId}', '${r.travelId}', ${originalBudget})" style="background:#0d9488; border-color:#0d9488; display:inline-flex; align-items:center; gap:4px; padding:3px 8px;">💰 เคลียร์ใหม่</button>
+              <span class="badge" style="background:#ef4444; color:white; font-size:10px; padding:2px 6px; border-radius:4px;">âŒ à¸›à¸à¸´à¹€à¸ªà¸˜à¸à¸²à¸£à¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œ</span>
+              <button type="button" class="btn btn-primary btn-xs" onclick="openClearanceModal('${r.reportId}', '${r.travelId}', ${originalBudget})" style="background:#0d9488; border-color:#0d9488; display:inline-flex; align-items:center; gap:4px; padding:3px 8px;">ðŸ’° à¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œà¹ƒà¸«à¸¡à¹ˆ</button>
             </div>
           `;
         }
@@ -3826,8 +3872,8 @@ async function loadTravelReportsHistory() {
         <tr>
           <td>
             <div style="font-weight:600; color:var(--neutral-800);">${r.subject}</div>
-            <div style="font-size:11px; color:var(--neutral-500);">📍 ${r.destination} (${formatDate(r.startDate)} - ${formatDate(r.endDate)})</div>
-            ${currentUser.role === 'admin' ? `<div style="font-size:11px; color:#0369a1; font-weight:500;">ผู้เขียน: ${r.fullName}</div>` : ''}
+            <div style="font-size:11px; color:var(--neutral-500);">ðŸ“ ${r.destination} (${formatDate(r.startDate)} - ${formatDate(r.endDate)})</div>
+            ${currentUser.role === 'admin' ? `<div style="font-size:11px; color:#0369a1; font-weight:500;">à¸œà¸¹à¹‰à¹€à¸‚à¸µà¸¢à¸™: ${r.fullName}</div>` : ''}
           </td>
           <td>
             <div style="font-weight:600; color:var(--neutral-700);">${r.organizer || '-'}</div>
@@ -3840,7 +3886,7 @@ async function loadTravelReportsHistory() {
           </td>
           <td style="text-align:center;">
             <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
-              <button type="button" class="btn btn-outline btn-xs" onclick="printTravelReport('${r.reportId}')" style="display:inline-flex; align-items:center; gap:4px; padding:4px 8px;">🖨️ พิมพ์รายงาน</button>
+              <button type="button" class="btn btn-outline btn-xs" onclick="printTravelReport('${r.reportId}')" style="display:inline-flex; align-items:center; gap:4px; padding:4px 8px;">ðŸ–¨ï¸ à¸žà¸´à¸¡à¸žà¹Œà¸£à¸²à¸¢à¸‡à¸²à¸™</button>
               ${budgetActionHtml}
             </div>
           </td>
@@ -3874,7 +3920,7 @@ async function handleTravelReportSubmit(e) {
   const suggestion10_3 = document.getElementById('report-suggestion-10-3').value;
   
   if (!travelId) {
-    Swal.fire('ข้อผิดพลาด', 'กรุณาเลือกรายการที่ไปราชการ', 'error');
+    Swal.fire('à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”', 'à¸à¸£à¸¸à¸“à¸²à¹€à¸¥à¸·à¸­à¸à¸£à¸²à¸¢à¸à¸²à¸£à¸—à¸µà¹ˆà¹„à¸›à¸£à¸²à¸Šà¸à¸²à¸£', 'error');
     return;
   }
   
@@ -3890,9 +3936,9 @@ async function handleTravelReportSubmit(e) {
     photos: reportUploadedPhotos
   };
   
-  showLoading('กำลังบันทึกรายงาน...');
+  showLoading('à¸à¸³à¸¥à¸±à¸‡à¸šà¸±à¸™à¸—à¸¶à¸à¸£à¸²à¸¢à¸‡à¸²à¸™...');
   try {
-    const res = await fetch(`${API_BASE_URL}/api/travel-report`, {
+    const res = await safeFetch(`${API_BASE_URL}/api/travel-report`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -3909,13 +3955,13 @@ async function handleTravelReportSubmit(e) {
     
     const data = await res.json();
     if (data.success) {
-      Swal.fire('สำเร็จ', 'ส่งรายงานผลไปราชการเรียบร้อยแล้ว', 'success');
+      Swal.fire('à¸ªà¸³à¹€à¸£à¹‡à¸ˆ', 'à¸ªà¹ˆà¸‡à¸£à¸²à¸¢à¸‡à¸²à¸™à¸œà¸¥à¹„à¸›à¸£à¸²à¸Šà¸à¸²à¸£à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§', 'success');
       initTravelReportPage();
     } else {
       showError(data.message);
     }
   } catch (err) {
-    showError('เกิดข้อผิดพลาด: ' + err.message);
+    showError('à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”: ' + err.message);
   }
 }
 
@@ -3935,7 +3981,7 @@ async function loadTrainingHistory() {
       ? `${API_BASE_URL}/api/training`
       : `${API_BASE_URL}/api/training?userId=${currentUser.userId}`;
       
-    const res = await fetch(url);
+    const res = await safeFetch(url);
     const trainings = await res.json();
     
     const tbody = document.getElementById('training-table-body');
@@ -3945,9 +3991,9 @@ async function loadTrainingHistory() {
     let totalHours = 0;
     
     if (trainings.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="3" class="text-center" style="padding:16px; color:var(--neutral-400);">ไม่มีประวัติการบันทึกอบรม</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="3" class="text-center" style="padding:16px; color:var(--neutral-400);">à¹„à¸¡à¹ˆà¸¡à¸µà¸›à¸£à¸°à¸§à¸±à¸•à¸´à¸à¸²à¸£à¸šà¸±à¸™à¸—à¸¶à¸à¸­à¸šà¸£à¸¡</td></tr>`;
       const hrsEl = document.getElementById('training-total-hours');
-      if (hrsEl) hrsEl.textContent = `ชั่วโมงสะสม: 0 ชม.`;
+      if (hrsEl) hrsEl.textContent = `à¸Šà¸±à¹ˆà¸§à¹‚à¸¡à¸‡à¸ªà¸°à¸ªà¸¡: 0 à¸Šà¸¡.`;
       return;
     }
     
@@ -3959,20 +4005,20 @@ async function loadTrainingHistory() {
         <tr>
           <td>
             <div style="font-weight:600; color:var(--neutral-800);">${t.courseName}</div>
-            <div style="font-size:11px; color:var(--neutral-500);">🏢 จัดโดย: ${t.organizer} | 📍 ${t.location}</div>
-            ${currentUser.role === 'admin' ? `<div style="font-size:11px; color:#4f46e5; font-weight:500;">ผู้บันทึก: ${t.fullName}</div>` : ''}
+            <div style="font-size:11px; color:var(--neutral-500);">ðŸ¢ à¸ˆà¸±à¸”à¹‚à¸”à¸¢: ${t.organizer} | ðŸ“ ${t.location}</div>
+            ${currentUser.role === 'admin' ? `<div style="font-size:11px; color:#4f46e5; font-weight:500;">à¸œà¸¹à¹‰à¸šà¸±à¸™à¸—à¸¶à¸: ${t.fullName}</div>` : ''}
           </td>
           <td>
             <div style="font-size:12px; font-weight:500;">${formatDate(t.startDate)}</div>
-            <div style="font-size:11px; color:var(--neutral-500);">ถึง ${formatDate(t.endDate)}</div>
+            <div style="font-size:11px; color:var(--neutral-500);">à¸–à¸¶à¸‡ ${formatDate(t.endDate)}</div>
           </td>
-          <td style="text-align:center; font-weight:bold; color:#4f46e5;">${hrs} ชม.</td>
+          <td style="text-align:center; font-weight:bold; color:#4f46e5;">${hrs} à¸Šà¸¡.</td>
         </tr>
       `;
     });
     
     const hrsEl = document.getElementById('training-total-hours');
-    if (hrsEl) hrsEl.textContent = `ชั่วโมงสะสม: ${totalHours} ชม.`;
+    if (hrsEl) hrsEl.textContent = `à¸Šà¸±à¹ˆà¸§à¹‚à¸¡à¸‡à¸ªà¸°à¸ªà¸¡: ${totalHours} à¸Šà¸¡.`;
   } catch (err) {
     console.error('Error loading training history:', err);
   }
@@ -3988,13 +4034,13 @@ async function handleTrainingSubmit(e) {
   const hours = parseFloat(document.getElementById('training-hours').value);
   
   if (hours <= 0) {
-    Swal.fire('ข้อผิดพลาด', 'ชั่วโมงอบรมต้องมากกว่า 0', 'error');
+    Swal.fire('à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”', 'à¸Šà¸±à¹ˆà¸§à¹‚à¸¡à¸‡à¸­à¸šà¸£à¸¡à¸•à¹‰à¸­à¸‡à¸¡à¸²à¸à¸à¸§à¹ˆà¸² 0', 'error');
     return;
   }
   
-  showLoading('กำลังบันทึกประวัติการอบรม...');
+  showLoading('à¸à¸³à¸¥à¸±à¸‡à¸šà¸±à¸™à¸—à¸¶à¸à¸›à¸£à¸°à¸§à¸±à¸•à¸´à¸à¸²à¸£à¸­à¸šà¸£à¸¡...');
   try {
-    const res = await fetch(`${API_BASE_URL}/api/training`, {
+    const res = await safeFetch(`${API_BASE_URL}/api/training`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -4011,13 +4057,13 @@ async function handleTrainingSubmit(e) {
     
     const data = await res.json();
     if (data.success) {
-      Swal.fire('สำเร็จ', 'บันทึกประวัติการอบรมเรียบร้อยแล้ว', 'success');
+      Swal.fire('à¸ªà¸³à¹€à¸£à¹‡à¸ˆ', 'à¸šà¸±à¸™à¸—à¸¶à¸à¸›à¸£à¸°à¸§à¸±à¸•à¸´à¸à¸²à¸£à¸­à¸šà¸£à¸¡à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§', 'success');
       initTrainingPage();
     } else {
       showError(data.message);
     }
   } catch (err) {
-    showError('เกิดข้อผิดพลาด: ' + err.message);
+    showError('à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”: ' + err.message);
   }
 }
 
@@ -4048,7 +4094,7 @@ async function initActivityPage() {
 
 async function loadActivitiesBoard() {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/activities?userId=${currentUser.userId}`);
+    const res = await safeFetch(`${API_BASE_URL}/api/activities?userId=${currentUser.userId}`);
     const acts = await res.json();
     
     const board = document.getElementById('activities-board-container');
@@ -4056,26 +4102,26 @@ async function loadActivitiesBoard() {
     board.innerHTML = '';
     
     if (acts.length === 0) {
-      board.innerHTML = `<div style="text-align:center; padding:32px; color:var(--neutral-400);">ยังไม่มีประกาศกิจกรรมใด ๆ ในระบบ</div>`;
+      board.innerHTML = `<div style="text-align:center; padding:32px; color:var(--neutral-400);">à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸¡à¸µà¸›à¸£à¸°à¸à¸²à¸¨à¸à¸´à¸ˆà¸à¸£à¸£à¸¡à¹ƒà¸” à¹† à¹ƒà¸™à¸£à¸°à¸šà¸š</div>`;
       return;
     }
     
     acts.forEach(act => {
       let regButtonHtml = '';
       if (act.isRegistered) {
-        regButtonHtml = `<span style="background:#e6f4ea; color:#137333; padding:6px 16px; border-radius:99px; font-size:0.85rem; font-weight:700; border:1px solid #137333;">✓ เข้าร่วมแล้ว</span>`;
+        regButtonHtml = `<span style="background:#e6f4ea; color:#137333; padding:6px 16px; border-radius:99px; font-size:0.85rem; font-weight:700; border:1px solid #137333;">âœ“ à¹€à¸‚à¹‰à¸²à¸£à¹ˆà¸§à¸¡à¹à¸¥à¹‰à¸§</span>`;
       } else {
-        regButtonHtml = `<button class="btn btn-primary btn-sm" onclick="registerActivity('${act.activityId}')" style="padding:6px 16px; font-size:0.85rem;">🙋 ยืนยันการเข้าร่วม</button>`;
+        regButtonHtml = `<button class="btn btn-primary btn-sm" onclick="registerActivity('${act.activityId}')" style="padding:6px 16px; font-size:0.85rem;">ðŸ™‹ à¸¢à¸·à¸™à¸¢à¸±à¸™à¸à¸²à¸£à¹€à¸‚à¹‰à¸²à¸£à¹ˆà¸§à¸¡</button>`;
       }
       
-      let viewParticipantsHtml = `<button class="btn btn-outline btn-sm" onclick="viewParticipants('${act.activityId}', '${act.activityName}')" style="padding:6px 12px; font-size:0.8rem; border-radius:99px;">👥 ดูผู้เข้าร่วม</button>`;
+      let viewParticipantsHtml = `<button class="btn btn-outline btn-sm" onclick="viewParticipants('${act.activityId}', '${act.activityName}')" style="padding:6px 12px; font-size:0.8rem; border-radius:99px;">ðŸ‘¥ à¸”à¸¹à¸œà¸¹à¹‰à¹€à¸‚à¹‰à¸²à¸£à¹ˆà¸§à¸¡</button>`;
       
       board.innerHTML += `
         <div class="glass-card" style="border-left: 6px solid #0d9488; padding:16px 20px; display:flex; flex-direction:column; gap:12px; transition: var(--transition); border-top:none; border-right:none; border-bottom:none; margin-bottom:12px;">
           <div style="display:flex; justify-content:space-between; align-items:start; flex-wrap:wrap; gap:8px;">
             <div>
               <h4 style="font-size:1.05rem; font-weight:700; color:var(--neutral-800); margin:0;">${act.activityName}</h4>
-              <p style="font-size:0.85rem; color:var(--neutral-500); margin:4px 0 0 0;">📅 ${formatDate(act.activityDate)} | 📍 ${act.location}</p>
+              <p style="font-size:0.85rem; color:var(--neutral-500); margin:4px 0 0 0;">ðŸ“… ${formatDate(act.activityDate)} | ðŸ“ ${act.location}</p>
             </div>
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
               ${regButtonHtml}
@@ -4091,9 +4137,9 @@ async function loadActivitiesBoard() {
 }
 
 async function registerActivity(activityId) {
-  showLoading('กำลังดำเนินการ...');
+  showLoading('à¸à¸³à¸¥à¸±à¸‡à¸”à¸³à¹€à¸™à¸´à¸™à¸à¸²à¸£...');
   try {
-    const res = await fetch(`${API_BASE_URL}/api/activities/register`, {
+    const res = await safeFetch(`${API_BASE_URL}/api/activities/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -4106,30 +4152,30 @@ async function registerActivity(activityId) {
     
     const data = await res.json();
     if (data.success) {
-      Swal.fire('สำเร็จ', 'ยืนยันการเข้าร่วมกิจกรรมวิทยาลัยเรียบร้อยแล้ว', 'success');
+      Swal.fire('à¸ªà¸³à¹€à¸£à¹‡à¸ˆ', 'à¸¢à¸·à¸™à¸¢à¸±à¸™à¸à¸²à¸£à¹€à¸‚à¹‰à¸²à¸£à¹ˆà¸§à¸¡à¸à¸´à¸ˆà¸à¸£à¸£à¸¡à¸§à¸´à¸—à¸¢à¸²à¸¥à¸±à¸¢à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§', 'success');
       loadActivitiesBoard();
     } else {
       showError(data.message);
     }
   } catch (err) {
-    showError('เกิดข้อผิดพลาด: ' + err.message);
+    showError('à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”: ' + err.message);
   }
 }
 
 async function viewParticipants(activityId, activityName) {
-  showLoading('กำลังดึงรายชื่อผู้เข้าร่วม...');
+  showLoading('à¸à¸³à¸¥à¸±à¸‡à¸”à¸¶à¸‡à¸£à¸²à¸¢à¸Šà¸·à¹ˆà¸­à¸œà¸¹à¹‰à¹€à¸‚à¹‰à¸²à¸£à¹ˆà¸§à¸¡...');
   try {
-    const res = await fetch(`${API_BASE_URL}/api/activities/participants/${activityId}`);
+    const res = await safeFetch(`${API_BASE_URL}/api/activities/participants/${activityId}`);
     const participants = await res.json();
     
     const titleEl = document.getElementById('participants-modal-title');
     const tbody = document.getElementById('participants-table-body');
     
-    if (titleEl) titleEl.textContent = `ผู้ร่วมงาน: ${activityName}`;
+    if (titleEl) titleEl.textContent = `à¸œà¸¹à¹‰à¸£à¹ˆà¸§à¸¡à¸‡à¸²à¸™: ${activityName}`;
     if (tbody) {
       tbody.innerHTML = '';
       if (participants.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="3" class="text-center" style="padding:16px; color:var(--neutral-400);">ยังไม่มีผู้ลงชื่อเข้าร่วม</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="3" class="text-center" style="padding:16px; color:var(--neutral-400);">à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸¡à¸µà¸œà¸¹à¹‰à¸¥à¸‡à¸Šà¸·à¹ˆà¸­à¹€à¸‚à¹‰à¸²à¸£à¹ˆà¸§à¸¡</td></tr>`;
       } else {
         participants.forEach(p => {
           tbody.innerHTML += `
@@ -4147,7 +4193,7 @@ async function viewParticipants(activityId, activityName) {
     if (modal) modal.classList.remove('hidden');
     Swal.close();
   } catch (err) {
-    showError('เกิดข้อผิดพลาด: ' + err.message);
+    showError('à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”: ' + err.message);
   }
 }
 
@@ -4157,9 +4203,9 @@ async function handleActivityCreate(e) {
   const activityDate = document.getElementById('act-date').value;
   const location = document.getElementById('act-location').value;
   
-  showLoading('กำลังสร้างกิจกรรม...');
+  showLoading('à¸à¸³à¸¥à¸±à¸‡à¸ªà¸£à¹‰à¸²à¸‡à¸à¸´à¸ˆà¸à¸£à¸£à¸¡...');
   try {
-    const res = await fetch(`${API_BASE_URL}/api/activities`, {
+    const res = await safeFetch(`${API_BASE_URL}/api/activities`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ activityName, activityDate, location })
@@ -4167,13 +4213,13 @@ async function handleActivityCreate(e) {
     
     const data = await res.json();
     if (data.success) {
-      Swal.fire('สำเร็จ', 'ประกาศกิจกรรมใหม่เรียบร้อยแล้ว', 'success');
+      Swal.fire('à¸ªà¸³à¹€à¸£à¹‡à¸ˆ', 'à¸›à¸£à¸°à¸à¸²à¸¨à¸à¸´à¸ˆà¸à¸£à¸£à¸¡à¹ƒà¸«à¸¡à¹ˆà¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§', 'success');
       initActivityPage();
     } else {
       showError(data.message);
     }
   } catch (err) {
-    showError('เกิดข้อผิดพลาด: ' + err.message);
+    showError('à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”: ' + err.message);
   }
 }
 
@@ -4207,7 +4253,7 @@ function populateDashboardFiscalYearDropdown() {
   years.forEach(yr => {
     const opt = document.createElement('option');
     opt.value = yr;
-    opt.textContent = `ปีงบประมาณ ${yr}`;
+    opt.textContent = `à¸›à¸µà¸‡à¸šà¸›à¸£à¸°à¸¡à¸²à¸“ ${yr}`;
     select.appendChild(opt);
   });
 
@@ -4248,7 +4294,7 @@ function populateHistoryFiscalYearDropdown() {
   years.forEach(yr => {
     const opt = document.createElement('option');
     opt.value = yr;
-    opt.textContent = `ปีงบประมาณ ${yr}`;
+    opt.textContent = `à¸›à¸µà¸‡à¸šà¸›à¸£à¸°à¸¡à¸²à¸“ ${yr}`;
     select.appendChild(opt);
   });
 
@@ -4276,7 +4322,7 @@ function loadAdminSettingsPage() {
     years.forEach(yr => {
       const opt = document.createElement('option');
       opt.value = yr;
-      opt.textContent = `ปีงบประมาณ ${yr}`;
+      opt.textContent = `à¸›à¸µà¸‡à¸šà¸›à¸£à¸°à¸¡à¸²à¸“ ${yr}`;
       select.appendChild(opt);
     });
 
@@ -4298,16 +4344,16 @@ function renderFiscalYearsList() {
   years.sort((a, b) => parseInt(b) - parseInt(a));
 
   if (years.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="2" class="text-center" style="color:var(--neutral-400); padding:16px;">ไม่มีข้อมูลปีงบประมาณ กรุณาเพิ่มปีงบประมาณ</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="2" class="text-center" style="color:var(--neutral-400); padding:16px;">à¹„à¸¡à¹ˆà¸¡à¸µà¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸›à¸µà¸‡à¸šà¸›à¸£à¸°à¸¡à¸²à¸“ à¸à¸£à¸¸à¸“à¸²à¹€à¸žà¸´à¹ˆà¸¡à¸›à¸µà¸‡à¸šà¸›à¸£à¸°à¸¡à¸²à¸“</td></tr>`;
     return;
   }
 
   years.forEach(yr => {
     tbody.innerHTML += `
       <tr>
-        <td style="font-weight: 600; padding: 12px 16px;">ปีงบประมาณ ${yr}</td>
+        <td style="font-weight: 600; padding: 12px 16px;">à¸›à¸µà¸‡à¸šà¸›à¸£à¸°à¸¡à¸²à¸“ ${yr}</td>
         <td style="text-align: center; padding: 12px 16px;">
-          <button class="btn btn-outline" style="border-color: #ef4444; color: #ef4444; padding: 4px 8px; font-size: 0.8rem; margin: 0;" onclick="removeFiscalYearSetting('${yr}')">ลบ</button>
+          <button class="btn btn-outline" style="border-color: #ef4444; color: #ef4444; padding: 4px 8px; font-size: 0.8rem; margin: 0;" onclick="removeFiscalYearSetting('${yr}')">à¸¥à¸š</button>
         </td>
       </tr>
     `;
@@ -4320,13 +4366,13 @@ async function addFiscalYearSetting() {
 
   const value = input.value.trim();
   if (!value) {
-    Swal.fire({ icon: 'warning', title: 'กรุณากรอกปีงบประมาณ', text: 'ตัวอย่างเช่น 2570' });
+    Swal.fire({ icon: 'warning', title: 'à¸à¸£à¸¸à¸“à¸²à¸à¸£à¸­à¸à¸›à¸µà¸‡à¸šà¸›à¸£à¸°à¸¡à¸²à¸“', text: 'à¸•à¸±à¸§à¸­à¸¢à¹ˆà¸²à¸‡à¹€à¸Šà¹ˆà¸™ 2570' });
     return;
   }
 
   const yr = parseInt(value);
   if (isNaN(yr) || yr < 2500 || yr > 3000) {
-    Swal.fire({ icon: 'error', title: 'ปีงบประมาณไม่ถูกต้อง', text: 'กรุณากรอกปี พ.ศ. ระหว่าง 2500 - 3000' });
+    Swal.fire({ icon: 'error', title: 'à¸›à¸µà¸‡à¸šà¸›à¸£à¸°à¸¡à¸²à¸“à¹„à¸¡à¹ˆà¸–à¸¹à¸à¸•à¹‰à¸­à¸‡', text: 'à¸à¸£à¸¸à¸“à¸²à¸à¸£à¸­à¸à¸›à¸µ à¸ž.à¸¨. à¸£à¸°à¸«à¸§à¹ˆà¸²à¸‡ 2500 - 3000' });
     return;
   }
 
@@ -4336,7 +4382,7 @@ async function addFiscalYearSetting() {
   }
 
   if (years.includes(String(yr))) {
-    Swal.fire({ icon: 'warning', title: 'มีปีงบประมาณนี้อยู่แล้ว' });
+    Swal.fire({ icon: 'warning', title: 'à¸¡à¸µà¸›à¸µà¸‡à¸šà¸›à¸£à¸°à¸¡à¸²à¸“à¸™à¸µà¹‰à¸­à¸¢à¸¹à¹ˆà¹à¸¥à¹‰à¸§' });
     return;
   }
 
@@ -4375,9 +4421,9 @@ async function saveAdminSettings() {
     settings.default_fiscal_year = select.value;
   }
 
-  showLoading('กำลังบันทึกการตั้งค่า...');
+  showLoading('à¸à¸³à¸¥à¸±à¸‡à¸šà¸±à¸™à¸—à¸¶à¸à¸à¸²à¸£à¸•à¸±à¹‰à¸‡à¸„à¹ˆà¸²...');
   try {
-    const res = await fetch(`${API_BASE_URL}/api/settings`, {
+    const res = await safeFetch(`${API_BASE_URL}/api/settings`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -4392,20 +4438,20 @@ async function saveAdminSettings() {
 
     if (d && d.success) {
       // Re-fetch settings
-      const setRes = await fetch(`${API_BASE_URL}/api/settings`);
+      const setRes = await safeFetch(`${API_BASE_URL}/api/settings`);
       settings = await setRes.json();
 
-      Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: d.message });
+      Swal.fire({ icon: 'success', title: 'à¸šà¸±à¸™à¸—à¸¶à¸à¸ªà¸³à¹€à¸£à¹‡à¸ˆ', text: d.message });
       
       const dbSelect = document.getElementById('dashboard-fiscal-year-select');
       if (dbSelect) {
         dbSelect.innerHTML = '';
       }
     } else {
-      showError(d.message || 'บันทึกไม่สำเร็จ');
+      showError(d.message || 'à¸šà¸±à¸™à¸—à¸¶à¸à¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ');
     }
   } catch (err) {
-    showError('เกิดข้อผิดพลาด: ' + err.message);
+    showError('à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”: ' + err.message);
   }
 }
 
@@ -4419,3 +4465,6 @@ window.saveAdminSettings = saveAdminSettings;
 window.approveTravel = approveTravel;
 window.registerActivity = registerActivity;
 window.viewParticipants = viewParticipants;
+
+
+
