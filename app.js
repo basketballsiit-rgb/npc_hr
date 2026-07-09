@@ -2849,13 +2849,12 @@ window.toggleVehicleFields = () => {
   }
 };
 
-// Toggle expense category fields
 window.toggleExpenseFields = () => {
   const type = document.querySelector('input[name="travel-expense-type"]:checked').value;
   const estTab = document.querySelectorAll('.travel-tab-btn')[1];
   const loanTab = document.querySelectorAll('.travel-tab-btn')[2];
   
-  if (type === 'claim') {
+  if (type === 'claim' || type === 'project-claim') {
     if (estTab) estTab.removeAttribute('disabled');
   } else {
     if (estTab) estTab.setAttribute('disabled', 'true');
@@ -3169,13 +3168,20 @@ async function loadTravelHistory() {
     }
     
     travels.forEach(t => {
-      let actionHtml = '-';
+      let actionHtml = '';
       if (currentUser.role === 'admin' && t.status === 'รอการอนุมัติ') {
         actionHtml = `
-          <div style="display:flex; gap:6px;">
-            <button class="btn btn-primary btn-sm" onclick="approveTravel('${t.travelId}', 'อนุมัติ')" style="padding:4px 8px; font-size:11px;">อนุมัติ</button>
-            <button class="btn btn-danger btn-sm" onclick="approveTravel('${t.travelId}', 'ไม่อนุมัติ')" style="padding:4px 8px; font-size:11px; background:#ef4444; border-color:#ef4444; color:white;">ปฏิเสธ</button>
+          <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
+            <div style="display:flex; gap:4px;">
+              <button class="btn btn-primary btn-sm" onclick="approveTravel('${t.travelId}', 'อนุมัติ')" style="padding:4px 8px; font-size:11px;">อนุมัติ</button>
+              <button class="btn btn-danger btn-sm" onclick="approveTravel('${t.travelId}', 'ไม่อนุมัติ')" style="padding:4px 8px; font-size:11px; background:#ef4444; border-color:#ef4444; color:white;">ปฏิเสธ</button>
+            </div>
+            <button class="btn btn-outline btn-xs" onclick="printTravelRequest('${t.travelId}')" style="padding:3px 6px; font-size:10px;">🖨️ พิมพ์ใบขออนุมัติ</button>
           </div>
+        `;
+      } else {
+        actionHtml = `
+          <button class="btn btn-outline btn-xs" onclick="printTravelRequest('${t.travelId}')" style="padding:3px 6px; font-size:10px;">🖨️ พิมพ์ใบขออนุมัติ</button>
         `;
       }
       
@@ -3193,6 +3199,9 @@ async function loadTravelHistory() {
             <div style="font-size:11px; color:var(--neutral-500);">ถึง ${formatDate(t.endDate)}</div>
           </td>
           <td style="text-align:center; font-weight:bold;">${parseFloat(t.totalDays)}</td>
+          <td style="text-align:right; font-weight:600; color:#0f766e;">
+            ${parseFloat(t.budget) > 0 ? parseFloat(t.budget).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'}
+          </td>
           <td>${renderBadge(t.status)}</td>
           <td>${actionHtml}</td>
         </tr>
@@ -3315,7 +3324,9 @@ async function handleTravelSubmit(e) {
     routeTotal: parseFloat(document.getElementById('travel-legs-grand')?.value) || 0
   };
 
+  const expenseType = document.querySelector('input[name="travel-expense-type"]:checked')?.value || 'claim';
   const detailsObj = {
+    expenseType,
     docDate: document.getElementById('travel-doc-date')?.value || '',
     requesterName: document.getElementById('travel-requester-name')?.value || '',
     department: document.getElementById('travel-department')?.value || '',
@@ -3909,6 +3920,11 @@ async function loadTravelReportsHistory() {
 window.printTravelReport = (reportId) => {
   window.open(`print_report_template.html?reportId=${reportId}`, '_blank');
 };
+
+window.printTravelRequest = (travelId) => {
+  window.open(`print_travel_template.html?travelId=${travelId}`, '_blank');
+};
+
 
 async function handleTravelReportSubmit(e) {
   e.preventDefault();

@@ -1578,10 +1578,12 @@ app.post('/api/travel', async (req, res) => {
 });
 
 app.get('/api/travel', async (req, res) => {
-  const { userId } = req.query;
+  const { userId, travelId } = req.query;
   try {
     let rows;
-    if (userId) {
+    if (travelId) {
+      [rows] = await db.query('SELECT * FROM travel_data WHERE travelId = ?', [travelId]);
+    } else if (userId) {
       [rows] = await db.query('SELECT * FROM travel_data WHERE userId = ? ORDER BY createdAt DESC', [userId]);
     } else {
       [rows] = await db.query('SELECT * FROM travel_data ORDER BY createdAt DESC');

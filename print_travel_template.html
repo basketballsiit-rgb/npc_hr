@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ใบขออนุมัติเดินทางไปราชการ - วิทยาลัยสารพัดช่างน่าน</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'TH Sarabun PSK', 'TH Sarabun New', 'Sarabun', sans-serif;
+      background: #ffffff;
+      color: #000000;
+      margin: 0;
+      padding: 0;
+      font-size: 15pt;
+      line-height: 1.25;
+    }
+    
+    .a4-page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      padding: 15mm 15mm 10mm 20mm;
+      box-sizing: border-box;
+      position: relative;
+      background: #ffffff;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .header-title {
+      text-align: center;
+      font-weight: bold;
+      font-size: 18pt;
+      margin-bottom: 5px;
+    }
+
+    .doc-line {
+      margin-bottom: 6px;
+      text-align: justify;
+      text-justify: inter-word;
+    }
+
+    .underline-dotted {
+      border-bottom: 1px dotted #000;
+      padding: 0 4px;
+      display: inline-block;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    .text-right {
+      text-align: right;
+    }
+
+    .bold {
+      font-weight: bold;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    table.print-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+      font-size: 13pt;
+    }
+
+    table.print-table th, table.print-table td {
+      border: 1px solid #000;
+      padding: 4px 6px;
+    }
+
+    /* Print settings */
+    @media print {
+      @page {
+        size: A4;
+        margin: 0;
+      }
+      body {
+        background: #ffffff;
+        font-family: 'TH Sarabun PSK', 'TH Sarabun New', 'Sarabun', sans-serif;
+        font-size: 15pt;
+        line-height: 1.25;
+        margin: 0;
+      }
+      .a4-page {
+        width: 100%;
+        height: auto;
+        padding: 15mm 15mm 10mm 20mm !important;
+        margin: 0;
+        box-shadow: none;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+
+    .no-print-bar {
+      background: #f1f5f9;
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #cbd5e1;
+    }
+
+    .btn-print {
+      background: #0ea5e9;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      font-size: 15px;
+      font-family: inherit;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .btn-print:hover {
+      background: #0284c7;
+    }
+
+    .loader {
+      text-align: center;
+      padding: 50px;
+      font-size: 18px;
+    }
+
+    /* Memo Header style */
+    .memo-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+      border-bottom: 2px solid #000;
+      padding-bottom: 8px;
+    }
+    
+    .garuda-img {
+      height: 60px;
+      margin-right: 15px;
+    }
+    
+    .memo-title {
+      font-size: 22pt;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="no-print-bar no-print">
+    <button class="btn-print" onclick="window.print()">🖨️ สั่งพิมพ์ใบขออนุญาต / บันทึกเป็น PDF</button>
+  </div>
+
+  <div id="loading-spinner" class="loader">
+    กำลังโหลดข้อมูลคำขอเดินทางไปราชการ...
+  </div>
+
+  <div id="print-content" class="hidden">
+    
+    <!-- PAGE 1: บันทึกข้อความขออนุมัติเดินทางไปราชการ -->
+    <div class="a4-page" id="page-memo">
+      <div class="memo-header">
+        <img class="garuda-img" src="https://upload.wikimedia.org/wikipedia/commons/e/e4/Garuda_of_Thailand.svg" alt="ตราครุฑ">
+        <div class="memo-title">บันทึกข้อความ</div>
+      </div>
+      
+      <div class="doc-line">
+        <span class="bold">ส่วนราชการ</span> <span class="underline-dotted" id="memo-gov-dept" style="min-width: 250px;">วิทยาลัยสารพัดช่างน่าน</span> 
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <span class="bold">โทร.</span> <span class="underline-dotted" style="min-width: 100px;">.....................</span>
+      </div>
+      <div class="doc-line">
+        <span class="bold">ที่</span> <span class="underline-dotted" id="memo-doc-no" style="min-width: 250px;">............................................................</span>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <span class="bold">วันที่</span> <span class="underline-dotted" id="memo-doc-date" style="min-width: 180px;">............................................................</span>
+      </div>
+      <div class="doc-line">
+        <span class="bold">เรื่อง</span> ขออนุมัติเดินทางไปราชการ
+      </div>
+      <div class="doc-line" style="margin-bottom: 20px;">
+        <span class="bold">เรียน</span> ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน
+      </div>
+
+      <div class="doc-line" style="text-indent: 1.5cm;">
+        ด้วยข้าพเจ้า <span id="memo-requester" class="bold underline-dotted" style="min-width: 200px;">.............................................</span>
+        ตำแหน่ง <span id="memo-requester-pos" class="underline-dotted" style="min-width: 150px;">.............................................</span>
+        ฝ่าย/งาน <span id="memo-requester-dept" class="underline-dotted" style="min-width: 150px;">.............................................</span>
+        มีความประสงค์เดินทางไปราชการเพื่อ <span id="memo-subject" class="bold underline-dotted" style="width: 80%; display: inline;">...........................................................................................</span>
+      </div>
+      
+      <div class="doc-line" style="text-indent: 1.5cm;">
+        ณ <span id="memo-destination" class="underline-dotted" style="width: 85%; display: inline;">.................................................................................................................................</span>
+      </div>
+
+      <div class="doc-line" style="text-indent: 1.5cm;">
+        ตั้งแต่วันที่ <span id="memo-start-date" class="bold underline-dotted" style="min-width: 140px;">........................</span> ถึงวันที่ <span id="memo-end-date" class="bold underline-dotted" style="min-width: 140px;">........................</span>
+        มีกำหนด <span id="memo-total-days" class="bold underline-dotted" style="min-width: 40px; text-align: center;">....</span> วัน
+        โดยมีผู้ร่วมเดินทางจำนวน <span id="memo-travelers-count" class="underline-dotted" style="min-width: 40px; text-align: center;">....</span> ราย ตามรายชื่อและพาหนะที่แนบในตารางประมาณการ
+      </div>
+
+      <div class="doc-line" style="text-indent: 1.5cm;">
+        การเดินทางไปราชการครั้งนี้ <span id="memo-claim-txt" class="bold">.........................................................................................................................</span>
+      </div>
+
+      <div class="doc-line" style="text-indent: 1.5cm; margin-top: 15px;">
+        จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ
+      </div>
+
+      <table style="width: 100%; border: none; margin-top: 50px; font-size: 15pt;">
+        <tr>
+          <td style="width: 50%;"></td>
+          <td style="text-align: center; width: 50%;">
+            <div>ลงชื่อ ....................................................... ผู้ขออนุมัติ</div>
+            <div style="margin-top: 4px;">( <span id="memo-requester-full">......................................................</span> )</div>
+            <div style="margin-top: 4px;">ตำแหน่ง <span id="memo-requester-pos-full">......................................................</span></div>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Approval section for Admin/Director -->
+      <div style="border: 1px solid #000; padding: 15px; margin-top: 40px; border-radius: 4px;">
+        <span class="bold">ความเห็นของผู้อำนวยการวิทยาลัยสารพัดช่างน่าน:</span>
+        <div style="margin-top: 10px; display: flex; gap: 40px;">
+          <label>[ &nbsp; ] อนุมัติ</label>
+          <label>[ &nbsp; ] ไม่อนุมัติ เนื่องจาก .........................................................................................................</label>
+        </div>
+        <table style="width: 100%; border: none; margin-top: 25px; font-size: 14pt;">
+          <tr>
+            <td style="width: 50%;"></td>
+            <td style="text-align: center; width: 50%;">
+              <div>ลงชื่อ ....................................................... ผู้อนุมัติ</div>
+              <div style="margin-top: 4px;">( ...................................................... )</div>
+              <div style="margin-top: 4px;">ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน</div>
+              <div style="margin-top: 4px;">วันที่ ........ เดือน ........................... พ.ศ. ............</div>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- PAGE 2: ตารางประมาณการค่าใช้จ่าย -->
+    <div class="a4-page page-break" id="page-estimation">
+      <div class="header-title" style="font-size: 17pt;">รายละเอียดประมาณการค่าใช้จ่ายในการเดินทางไปราชการ</div>
+      <div class="text-center" style="font-size: 14pt; margin-bottom: 15px;">
+        แนบท้ายบันทึกข้อความลงวันที่ <span id="est-date" class="underline-dotted" style="min-width: 140px;">........................</span>
+        เรื่อง <span id="est-subject" class="bold">..................................................................</span>
+      </div>
+
+      <div class="doc-line">
+        <span class="bold">รายชื่อผู้เดินทางไปราชการ:</span>
+        <ol id="est-travelers-list" style="margin: 5px 0 15px 20px; padding: 0;">
+          <!-- Loaded dynamically -->
+        </ol>
+      </div>
+
+      <div class="doc-line bold" style="margin-bottom: 5px;">ตารางประมาณการค่าใช้จ่าย:</div>
+      <table class="print-table" style="text-align: center;">
+        <thead>
+          <tr style="background-color: #f8fafc;">
+            <th style="width: 8%;">ลำดับ</th>
+            <th style="width: 52%; text-align: left;">รายการประมาณการค่าใช้จ่าย</th>
+            <th style="width: 25%; text-align: right;">จำนวนเงิน (บาท)</th>
+            <th style="width: 15%;">หมายเหตุ</th>
+          </tr>
+        </thead>
+        <tbody id="est-table-body">
+          <!-- Expense items loaded dynamically -->
+        </tbody>
+      </table>
+
+      <div class="doc-line" style="margin-top: 15px; font-weight: bold; font-size: 15pt;">
+        รวมประมาณการค่าใช้จ่ายทั้งสิ้น: <span id="est-grand-total" class="underline-dotted" style="min-width: 120px; text-align: center; display: inline-block;">................</span> บาท
+        (<span id="est-grand-total-thai" style="font-weight: normal;">............................................................</span>)
+      </div>
+
+      <div class="doc-line" style="margin-top: 20px;">
+        <span class="bold">เส้นทางและพาหนะในการเดินทางที่ใช้:</span>
+        <ul id="est-routes-list" style="margin: 5px 0 15px 20px; padding: 0;">
+          <!-- Loaded dynamically -->
+        </ul>
+      </div>
+
+      <table style="width: 100%; border: none; margin-top: 40px; font-size: 15pt;">
+        <tr>
+          <td style="width: 50%;"></td>
+          <td style="text-align: center; width: 50%;">
+            <div>ลงชื่อ ....................................................... ผู้จัดทำประมาณการ</div>
+            <div style="margin-top: 4px;">( <span id="est-sig-name">......................................................</span> )</div>
+            <div style="margin-top: 4px;">ตำแหน่ง <span id="est-sig-pos">......................................................</span></div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- PAGE 3: สัญญายืมเงิน (Optional) -->
+    <div class="a4-page page-break hidden" id="page-loan">
+      <div class="header-title" style="font-size: 17pt; margin-bottom: 10px;">สัญญายืมเงินทดรองจ่ายเพื่อใช้ในการปฏิบัติราชการ</div>
+      
+      <div class="text-right" style="margin-bottom: 15px;">
+        เขียนที่ <span class="bold">วิทยาลัยสารพัดช่างน่าน</span><br>
+        วันที่ <span id="loan-date" class="underline-dotted" style="min-width: 140px;">........................</span>
+      </div>
+
+      <div class="doc-line" style="text-indent: 1.5cm; line-height: 1.45;">
+        ข้าพเจ้า <span id="loan-requester" class="bold underline-dotted" style="min-width: 180px;">........................</span>
+        ตำแหน่ง <span id="loan-requester-pos" class="underline-dotted" style="min-width: 150px;">........................</span>
+        สังกัดฝ่าย/งาน <span id="loan-requester-dept" class="underline-dotted" style="min-width: 150px;">........................</span>
+        ยื่นสัญญานี้ต่อ <span id="loan-to" class="underline-dotted" style="min-width: 220px;">ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน</span>
+        ดังต่อไปนี้
+      </div>
+
+      <div class="doc-line" style="text-indent: 1.5cm; line-height: 1.45;">
+        เนื่องด้วยข้าพเจ้าและผู้ร่วมเดินทาง มีความจำเป็นต้องปฏิบัติราชการตามโครงการ/เรื่อง
+        <span id="loan-purpose" class="bold underline-dotted" style="width: 80%; display: inline;">...........................................................................................</span>
+        ณ สถานที่ <span id="loan-location" class="underline-dotted" style="width: 80%; display: inline;">...........................................................................................</span>
+      </div>
+
+      <div class="doc-line" style="text-indent: 1.5cm; line-height: 1.45;">
+        จึงขอยืมเงินทดรองจ่ายตามสัญญานี้เป็นเงินรวมจำนวน <span id="loan-amount" class="bold underline-dotted" style="min-width: 100px; text-align: center;">................</span> บาท
+        (<span id="loan-amount-thai" class="bold">............................................................</span>)
+        เพื่อเป็นค่าใช้จ่ายต่าง ๆ ดังต่อไปนี้
+      </div>
+
+      <table class="print-table" style="text-align: center; margin: 15px 0;">
+        <thead>
+          <tr style="background-color: #f8fafc;">
+            <th style="width: 10%;">ลำดับ</th>
+            <th style="width: 60%; text-align: left;">รายการขอยืมเงิน</th>
+            <th style="width: 30%; text-align: right;">จำนวนเงิน (บาท)</th>
+          </tr>
+        </thead>
+        <tbody id="loan-table-body">
+          <!-- Loaded dynamically -->
+        </tbody>
+      </table>
+
+      <div class="doc-line" style="text-indent: 1.5cm; line-height: 1.45; margin-top: 15px;">
+        ข้าพเจ้าขอสัญญาว่าจะนำหลักฐานใบเสร็จรับเงินหรือใบสำคัญรับเงินมาเคลียร์สัญญายืมเงินนี้ให้เสร็จสิ้นภายในระยะเวลาที่ระเบียบทางราชการกำหนดนับตั้งแต่วันเดินทางกลับถึงวิทยาลัยสารพัดช่างน่าน
+      </div>
+
+      <table style="width: 100%; border: none; margin-top: 40px; font-size: 15pt;">
+        <tr>
+          <td style="width: 50%;"></td>
+          <td style="text-align: center; width: 50%;">
+            <div>ลงชื่อ ....................................................... ผู้ยืมเงิน</div>
+            <div style="margin-top: 4px;">( <span id="loan-sig-name">......................................................</span> )</div>
+            <div style="margin-top: 4px;">วันที่ ........ เดือน ........................... พ.ศ. ............</div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+  </div>
+
+  <script>
+    const API_BASE_URL = !window.location.origin.includes('service.npc.ac.th')
+      ? `http://${window.location.hostname || 'localhost'}:5000`
+      : 'https://service.npc.ac.th/npc_eleve_backend';
+
+    function formatDateThai(dateStr) {
+      if (!dateStr) return '......';
+      const months = [
+        'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+      ];
+      try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
+      } catch (e) {
+        return dateStr;
+      }
+    }
+
+    function numToThaiBath(num) {
+      const txtNum = ['ศูนย์', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
+      const txtUnit = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
+      let number = parseFloat(num).toFixed(2);
+      let [integerPart, decimalPart] = number.split('.');
+      let bahtText = '';
+      
+      if (parseFloat(number) === 0) return 'ศูนย์บาทถ้วน';
+
+      // Integer part
+      let len = integerPart.length;
+      for (let i = 0; i < len; i++) {
+        let digit = parseInt(integerPart.charAt(i));
+        let pos = len - i - 1;
+        if (digit !== 0) {
+          if (pos === 1 && digit === 2) bahtText += 'ยี่';
+          else if (pos === 1 && digit === 1) bahtText += '';
+          else if (pos === 0 && digit === 1 && len > 1) bahtText += 'เอ็ด';
+          else bahtText += txtNum[digit];
+          bahtText += txtUnit[pos];
+        }
+      }
+      bahtText += 'บาท';
+
+      // Decimal part
+      if (parseInt(decimalPart) === 0) {
+        bahtText += 'ถ้วน';
+      } else {
+        let decLen = decimalPart.length;
+        for (let i = 0; i < decLen; i++) {
+          let digit = parseInt(decimalPart.charAt(i));
+          let pos = decLen - i - 1;
+          if (digit !== 0) {
+            if (pos === 1 && digit === 2) bahtText += 'ยี่';
+            else if (pos === 1 && digit === 1) bahtText += '';
+            else if (pos === 0 && digit === 1 && decLen > 1) bahtText += 'เอ็ด';
+            else bahtText += txtNum[digit];
+            bahtText += txtUnit[pos];
+          }
+        }
+        bahtText += 'สตางค์';
+      }
+      return bahtText;
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const travelId = urlParams.get('travelId');
+      
+      if (!travelId) {
+        document.getElementById('loading-spinner').innerHTML = '❌ ไม่พบรหัสคำขอเดินทาง (travelId) ในลิงก์';
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/travel?travelId=${travelId}`);
+        if (!response.ok) {
+          throw new Error('ไม่สามารถดึงข้อมูลคำขอเดินทางไปราชการได้');
+        }
+        const travels = await response.json();
+        if (travels.length === 0) {
+          throw new Error('ไม่พบข้อมูลคำขอเดินทางไปราชการตามรหัสที่ระบุ');
+        }
+        
+        const t = travels[0];
+        const details = JSON.parse(t.details);
+        const isProjectClaim = details.expenseType === 'project-claim';
+
+        // --- PAGE 1: บันทึกข้อความ ---
+        document.getElementById('memo-gov-dept').textContent = details.department || 'วิทยาลัยสารพัดช่างน่าน';
+        document.getElementById('memo-doc-date').textContent = formatDateThai(details.docDate || t.createdAt);
+        document.getElementById('memo-requester').textContent = t.fullName;
+        document.getElementById('memo-requester-pos').textContent = 'ครู';
+        document.getElementById('memo-requester-dept').textContent = details.department || 'วิทยาลัยสารพัดช่างน่าน';
+        document.getElementById('memo-subject').textContent = t.subject;
+        document.getElementById('memo-destination').textContent = t.destination;
+        document.getElementById('memo-start-date').textContent = formatDateThai(t.startDate);
+        document.getElementById('memo-end-date').textContent = formatDateThai(t.endDate);
+        document.getElementById('memo-total-days').textContent = parseFloat(t.totalDays);
+        document.getElementById('memo-travelers-count').textContent = details.travelers ? details.travelers.length : 1;
+        document.getElementById('memo-requester-full').textContent = t.fullName;
+        document.getElementById('memo-requester-pos-full').textContent = 'ครู';
+
+        let claimText = '';
+        if (details.expenseType === 'no-claim') {
+          claimText = 'ไม่ขอเบิกค่าใช้จ่ายใด ๆ ทั้งสิ้น';
+        } else if (details.expenseType === 'no-claim-origin') {
+          claimText = 'ไม่ขอเบิกเงินจากต้นสังกัด (เบิกแหล่งอื่น)';
+        } else if (isProjectClaim) {
+          claimText = 'เบิกค่าใช้จ่ายจากโครงการ (ประมาณการแบบว่างเปล่า)';
+        } else {
+          claimText = `ขอเบิกค่าใช้จ่ายในการเดินทางตามสิทธิ เป็นเงินประมาณการรวม ${parseFloat(t.budget).toLocaleString()} บาท`;
+        }
+        document.getElementById('memo-claim-txt').textContent = claimText;
+
+        // --- PAGE 2: ประมาณการค่าใช้จ่าย ---
+        document.getElementById('est-date').textContent = formatDateThai(details.docDate || t.createdAt);
+        document.getElementById('est-subject').textContent = t.subject;
+        document.getElementById('est-sig-name').textContent = t.fullName;
+        document.getElementById('est-sig-pos').textContent = 'ครู';
+
+        // Render Travelers
+        const travelersList = document.getElementById('est-travelers-list');
+        travelersList.innerHTML = '';
+        if (details.travelers && details.travelers.length > 0) {
+          details.travelers.forEach(tr => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span class="bold">${tr.name}</span> ตำแหน่ง ${tr.position || 'ครู'}`;
+            travelersList.appendChild(li);
+          });
+        } else {
+          const li = document.createElement('li');
+          li.innerHTML = `<span class="bold">${t.fullName}</span> ตำแหน่ง ครู`;
+          travelersList.appendChild(li);
+        }
+
+        // Render Routes/Vehicles
+        const routesList = document.getElementById('est-routes-list');
+        routesList.innerHTML = '';
+        if (details.routes && details.routes.length > 0) {
+          details.routes.forEach(r => {
+            const li = document.createElement('li');
+            li.innerHTML = `เดินทางจาก <span class="bold">${r.from}</span> ถึง <span class="bold">${r.to}</span> โดยพาหนะ: <span class="bold">${r.vehicle}</span>`;
+            routesList.appendChild(li);
+          });
+        } else {
+          const li = document.createElement('li');
+          li.innerHTML = `เดินทางโดยพาหนะ: ${t.vehicleType}`;
+          routesList.appendChild(li);
+        }
+
+        // Render Estimation Table (Conditional values)
+        const estTbody = document.getElementById('est-table-body');
+        estTbody.innerHTML = '';
+        
+        let displayBudget = t.budget;
+        let displayAllowance = details.allowance ? details.allowance.total : 0;
+        let displayRent = details.rent ? details.rent.total : 0;
+        let displayVehicle = details.vehicleData ? details.vehicleData.routeTotal : 0;
+
+        if (isProjectClaim) {
+          // Empty dotted values for project claims as requested
+          displayBudget = 0;
+          displayAllowance = 0;
+          displayRent = 0;
+          displayVehicle = 0;
+
+          estTbody.innerHTML = `
+            <tr>
+              <td>1</td>
+              <td style="text-align: left;">ค่าเบี้ยเลี้ยงเดินทาง</td>
+              <td style="text-align: right; font-family: monospace;">....................................</td>
+              <td>เบิกจากโครงการ</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td style="text-align: left;">ค่าที่พักแรม</td>
+              <td style="text-align: right; font-family: monospace;">....................................</td>
+              <td>เบิกจากโครงการ</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td style="text-align: left;">ค่าพาหนะ/ยานพาหนะเดินทาง</td>
+              <td style="text-align: right; font-family: monospace;">....................................</td>
+              <td>เบิกจากโครงการ</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td style="text-align: left;">ค่าใช้จ่ายอื่น ๆ ที่จำเป็นในการเดินทาง</td>
+              <td style="text-align: right; font-family: monospace;">....................................</td>
+              <td>เบิกจากโครงการ</td>
+            </tr>
+          `;
+          document.getElementById('est-grand-total').textContent = '....................................';
+          document.getElementById('est-grand-total-thai').textContent = '................................................................';
+        } else {
+          estTbody.innerHTML = `
+            <tr>
+              <td>1</td>
+              <td style="text-align: left;">ค่าเบี้ยเลี้ยงเดินทาง (${details.allowance ? details.allowance.days : 0} วัน)</td>
+              <td style="text-align: right; font-weight: bold;">${parseFloat(displayAllowance).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+              <td>-</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td style="text-align: left;">ค่าที่พักแรม (${details.rent ? details.rent.days : 0} วัน)</td>
+              <td style="text-align: right; font-weight: bold;">${parseFloat(displayRent).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+              <td>-</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td style="text-align: left;">ค่าพาหนะ/ยานพาหนะเดินทาง</td>
+              <td style="text-align: right; font-weight: bold;">${parseFloat(displayVehicle).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+              <td>-</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td style="text-align: left;">ค่าใช้จ่ายอื่น ๆ ที่จำเป็นในการเดินทาง</td>
+              <td style="text-align: right; font-weight: bold;">0.00</td>
+              <td>-</td>
+            </tr>
+          `;
+          document.getElementById('est-grand-total').textContent = parseFloat(displayBudget).toLocaleString();
+          document.getElementById('est-grand-total-thai').textContent = numToThaiBath(displayBudget);
+        }
+
+        // --- PAGE 3: สัญญายืมเงิน (Optional) ---
+        if (details.hasLoan) {
+          document.getElementById('page-loan').classList.remove('hidden');
+          document.getElementById('loan-date').textContent = formatDateThai(details.docDate || t.createdAt);
+          document.getElementById('loan-requester').textContent = t.fullName;
+          document.getElementById('loan-requester-pos').textContent = 'ครู';
+          document.getElementById('loan-requester-dept').textContent = details.department || 'วิทยาลัยสารพัดช่างน่าน';
+          document.getElementById('loan-purpose').textContent = t.subject;
+          document.getElementById('loan-location').textContent = t.destination;
+          
+          let displayLoanAmount = details.loan ? details.loan.loanAmount : 0;
+          let displayLoanAllowance = details.allowance ? details.allowance.total : 0;
+          let displayLoanRent = details.rent ? details.rent.total : 0;
+          let displayLoanVehicle = details.vehicleData ? details.vehicleData.routeTotal : 0;
+
+          if (isProjectClaim) {
+            // Keep loan contract values blanked if project claim as requested
+            displayLoanAmount = 0;
+            displayLoanAllowance = 0;
+            displayLoanRent = 0;
+            displayLoanVehicle = 0;
+
+            document.getElementById('loan-table-body').innerHTML = `
+              <tr>
+                <td>1</td>
+                <td style="text-align: left;">ค่าเบี้ยเลี้ยงเดินทาง</td>
+                <td style="text-align: right; font-family: monospace;">....................................</td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td style="text-align: left;">ค่าที่พักแรม</td>
+                <td style="text-align: right; font-family: monospace;">....................................</td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td style="text-align: left;">ค่าพาหนะ/ยานพาหนะเดินทาง</td>
+                <td style="text-align: right; font-family: monospace;">....................................</td>
+              </tr>
+            `;
+            document.getElementById('loan-amount').textContent = '................';
+            document.getElementById('loan-amount-thai').textContent = '................................................................';
+          } else {
+            document.getElementById('loan-table-body').innerHTML = `
+              <tr>
+                <td>1</td>
+                <td style="text-align: left;">ค่าเบี้ยเลี้ยงเดินทาง</td>
+                <td style="text-align: right; font-weight: bold;">${parseFloat(displayLoanAllowance).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td style="text-align: left;">ค่าที่พักแรม</td>
+                <td style="text-align: right; font-weight: bold;">${parseFloat(displayLoanRent).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td style="text-align: left;">ค่าพาหนะ/ยานพาหนะเดินทาง</td>
+                <td style="text-align: right; font-weight: bold;">${parseFloat(displayLoanVehicle).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+              </tr>
+            `;
+            document.getElementById('loan-amount').textContent = parseFloat(displayLoanAmount).toLocaleString();
+            document.getElementById('loan-amount-thai').textContent = numToThaiBath(displayLoanAmount);
+          }
+          
+          document.getElementById('loan-sig-name').textContent = t.fullName;
+        }
+
+        // Hide loader and show content
+        document.getElementById('loading-spinner').classList.add('hidden');
+        document.getElementById('print-content').classList.remove('hidden');
+
+        // Auto print if parameter auto=true is present
+        if (urlParams.get('auto') === 'true') {
+          setTimeout(() => {
+            window.print();
+          }, 800);
+        }
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById('loading-spinner').innerHTML = `❌ เกิดข้อผิดพลาดในการโหลดใบขออนุญาตเดินทาง: ${err.message}`;
+      }
+    });
+  </script>
+</body>
+</html>
