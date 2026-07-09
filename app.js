@@ -1735,6 +1735,17 @@ async function loadUserManagementPage() {
           </td>
           <td>${renderBadge(x.status, true)}</td>
           <td>
+            ${x.lineUserId ? `
+              <span class="badge" style="background: #e6fdf0; color: #15803d; border-color: #bbf7d0; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                🟢 เชื่อมต่อแล้ว
+              </span>
+            ` : `
+              <span class="badge" style="background: #f8fafc; color: #64748b; border-color: #e2e8f0; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+                ⚪ ยังไม่เชื่อมต่อ
+              </span>
+            `}
+          </td>
+          <td>
             <div style="display:flex; gap:8px;">
               ${x.status === 'pending' ? `<button onclick="approveUser('${x.userId}')" class="btn btn-primary btn-sm" style="padding:4px 10px; background:#10b981; box-shadow:none;">อนุมัติ</button>` : ''}
               <button onclick='editUser(${JSON.stringify(x)})' class="btn btn-outline btn-sm" style="padding:4px 10px;">แก้ไข</button>
