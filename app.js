@@ -1720,20 +1720,10 @@ async function loadUserManagementPage() {
     users.forEach(x => {
       tb.innerHTML += `
         <tr>
-          <td style="font-weight: 600;">${x.fullName}</td>
-          <td>${x.position}</td>
-          <td>
-            <span style="font-size:0.875rem; color:#475569; font-weight:500;">
-              ${x.staffType || '-'}
-            </span>
-          </td>
-          <td>${x.username}</td>
-          <td>
-            <span class="badge ${x.role === 'admin' ? 'badge-pending' : 'badge-cancelled'}" style="${x.role === 'admin' ? 'background: #f3e8ff; color: #7e22ce; border-color: #e9d5ff;' : ''}">
-              ${x.role === 'admin' ? 'แอดมิน' : 'บุคลากร'}
-            </span>
-          </td>
-          <td>${renderBadge(x.status, true)}</td>
+          <td style="font-weight: 600; font-size: 0.825rem; white-space: nowrap;">${x.fullName}</td>
+          <td style="font-size: 0.825rem; white-space: nowrap;">${x.position}</td>
+          <td style="font-size: 0.825rem; white-space: nowrap;">${x.staffType || '-'}</td>
+          <td style="font-size: 0.825rem; white-space: nowrap;">${x.username}</td>
           <td>
             ${x.lineUserId ? `
               <span class="badge" style="background: #e6fdf0; color: #15803d; border-color: #bbf7d0; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-size: 11px; padding: 3px 6px;">
@@ -1747,9 +1737,9 @@ async function loadUserManagementPage() {
           </td>
           <td>
             <div style="display:flex; gap:8px;">
-              ${x.status === 'pending' ? `<button onclick="approveUser('${x.userId}')" class="btn btn-primary btn-sm" style="padding:4px 10px; background:#10b981; box-shadow:none;">อนุมัติ</button>` : ''}
-              <button onclick='editUser(${JSON.stringify(x)})' class="btn btn-outline btn-sm" style="padding:4px 10px;">แก้ไข</button>
-              <button onclick="deleteUser('${x.userId}')" class="btn btn-secondary btn-sm" style="padding:4px 10px; background:#f43f5e; box-shadow:none;">ลบ</button>
+              ${x.status === 'pending' ? `<button onclick="approveUser('${x.userId}')" class="btn btn-primary btn-sm" style="padding:4px 8px; font-size: 11px; background:#10b981; box-shadow:none;">อนุมัติ</button>` : ''}
+              <button onclick='editUser(${JSON.stringify(x)})' class="btn btn-outline btn-sm" style="padding:4px 8px; font-size: 11px;">แก้ไข</button>
+              <button onclick="deleteUser('${x.userId}')" class="btn btn-secondary btn-sm" style="padding:4px 8px; font-size: 11px; background:#f43f5e; box-shadow:none;">ลบ</button>
             </div>
           </td>
         </tr>
