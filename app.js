@@ -1721,7 +1721,6 @@ async function loadUserManagementPage() {
       tb.innerHTML += `
         <tr>
           <td style="font-weight: 600; font-size: 0.825rem; white-space: nowrap;">${x.fullName}</td>
-          <td style="font-size: 0.825rem; white-space: nowrap;">${x.position}</td>
           <td style="font-size: 0.825rem; white-space: nowrap;">${x.staffType || '-'}</td>
           <td style="font-size: 0.825rem; white-space: nowrap;">${x.username}</td>
           <td>
