@@ -1736,11 +1736,11 @@ async function loadUserManagementPage() {
           <td>${renderBadge(x.status, true)}</td>
           <td>
             ${x.lineUserId ? `
-              <span class="badge" style="background: #e6fdf0; color: #15803d; border-color: #bbf7d0; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+              <span class="badge" style="background: #e6fdf0; color: #15803d; border-color: #bbf7d0; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-size: 11px; padding: 3px 6px;">
                 🟢 เชื่อมต่อแล้ว
               </span>
             ` : `
-              <span class="badge" style="background: #f8fafc; color: #64748b; border-color: #e2e8f0; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+              <span class="badge" style="background: #f8fafc; color: #64748b; border-color: #e2e8f0; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-size: 11px; padding: 3px 6px;">
                 ⚪ ยังไม่เชื่อมต่อ
               </span>
             `}
