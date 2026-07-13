@@ -873,7 +873,7 @@
             <div style="margin-top:24px;">
               <button id="btn-load-attendance" class="btn btn-secondary" style="padding: 10px 20px;">ดึงข้อมูล</button>
             </div>
-            <div class="form-group" style="margin-bottom:0; flex-grow:1; max-width:250px; margin-left: auto;">
+            <div class="form-group" style="margin-bottom:0; flex-grow:1; max-width:250px; margin-left: auto; display: none;">
               <label class="form-label" style="font-weight:600;">กรองประเภทบุคลากร</label>
               <select id="attendance-filter-type" class="form-input">
                 <option value="ทั้งหมด">ทั้งหมด</option>
@@ -895,6 +895,18 @@
             <div>
               <button id="btn-save-attendance" class="btn btn-primary" style="padding: 10px 20px;">💾 บันทึกข้อมูลการเช็คชื่อ</button>
             </div>
+          </div>
+
+          <!-- Tab filtering buttons for staff types -->
+          <div class="attendance-tabs" style="display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; border-bottom:1px solid var(--neutral-200); padding-bottom:12px;">
+            <button type="button" class="btn btn-tab active" onclick="switchAttendanceTab('ทั้งหมด')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--primary); background: var(--primary); color: white; cursor:pointer; outline:none; transition: all 0.2s;">ทั้งหมด</button>
+            <button type="button" class="btn btn-tab" onclick="switchAttendanceTab('ข้าราชการ')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--neutral-300); background: white; color: var(--neutral-700); cursor:pointer; outline:none; transition: all 0.2s;">ข้าราชการ</button>
+            <button type="button" class="btn btn-tab" onclick="switchAttendanceTab('พนักงานราชการ')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--neutral-300); background: white; color: var(--neutral-700); cursor:pointer; outline:none; transition: all 0.2s;">พนักงานราชการ</button>
+            <button type="button" class="btn btn-tab" onclick="switchAttendanceTab('ครูพิเศษสอนรายเดือน')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--neutral-300); background: white; color: var(--neutral-700); cursor:pointer; outline:none; transition: all 0.2s;">ครูพิเศษสอนรายเดือน</button>
+            <button type="button" class="btn btn-tab" onclick="switchAttendanceTab('ครูพิเศษสอนรายชั่วโมง')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--neutral-300); background: white; color: var(--neutral-700); cursor:pointer; outline:none; transition: all 0.2s;">ครูพิเศษสอนรายชั่วโมง</button>
+            <button type="button" class="btn btn-tab" onclick="switchAttendanceTab('ลูกจ้างชั่วคราว')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--neutral-300); background: white; color: var(--neutral-700); cursor:pointer; outline:none; transition: all 0.2s;">ลูกจ้างชั่วคราว</button>
+            <button type="button" class="btn btn-tab" onclick="switchAttendanceTab('จ้างเหมาบริการ')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--neutral-300); background: white; color: var(--neutral-700); cursor:pointer; outline:none; transition: all 0.2s;">จ้างเหมาบริการ</button>
+            <button type="button" class="btn btn-tab" onclick="switchAttendanceTab('อื่นๆ')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--neutral-300); background: white; color: var(--neutral-700); cursor:pointer; outline:none; transition: all 0.2s;">อื่นๆ</button>
           </div>
 
           <div class="table-container">
@@ -1825,6 +1837,6 @@
   </div>
 
   <!-- Load Custom JS logic -->
-  <script src="app.js?v=13.0"></script>
+  <script src="app.js?v=14.0"></script>
 </body>
 </html>

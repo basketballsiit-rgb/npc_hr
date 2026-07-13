@@ -2269,18 +2269,37 @@ async function loadAttendanceData() {
 
     currentAttendanceData = data;
     
-    const filterSelect = document.getElementById('attendance-filter-type');
-    if (filterSelect) {
-      filterSelect.value = 'ทั้งหมด';
-    }
-
-    filterAndRenderAttendance();
+    window.switchAttendanceTab('ทั้งหมด');
     Swal.close();
   } catch (err) {
     console.error('Error loading attendance:', err);
     Swal.fire('ข้อผิดพลาด', err.message, 'error');
   }
 }
+
+window.switchAttendanceTab = (type) => {
+  const select = document.getElementById('attendance-filter-type');
+  if (select) {
+    select.value = type;
+  }
+  
+  document.querySelectorAll('.attendance-tabs .btn-tab').forEach(btn => {
+    const onClickAttr = btn.getAttribute('onclick') || '';
+    if (onClickAttr.includes(`'${type}'`) || btn.textContent.trim() === type) {
+      btn.style.background = 'var(--primary)';
+      btn.style.color = 'white';
+      btn.style.borderColor = 'var(--primary)';
+      btn.classList.add('active');
+    } else {
+      btn.style.background = 'white';
+      btn.style.color = 'var(--neutral-700)';
+      btn.style.borderColor = 'var(--neutral-300)';
+      btn.classList.remove('active');
+    }
+  });
+  
+  filterAndRenderAttendance();
+};
 
 function filterAndRenderAttendance() {
   const filterSelect = document.getElementById('attendance-filter-type');
