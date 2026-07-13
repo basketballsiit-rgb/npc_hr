@@ -151,7 +151,7 @@
     
     .memo-title-centered {
       text-align: center;
-      font-size: 29pt;
+      font-size: 22pt;
       font-weight: bold;
       line-height: 1.5cm;
       margin: 0;
@@ -198,8 +198,8 @@
           <div style="flex-grow: 1;">
             <span class="bold" style="font-size: 16pt;">ส่วนราชการ</span> 
             <span id="memo-gov-dept" class="underline-dotted" style="min-width: 320px; font-size: 16pt;">วิทยาลัยสารพัดช่างน่าน</span>
-            <span class="bold" style="font-size: 16pt;">&nbsp;&nbsp;โทร.</span> 
-            <span id="memo-gov-phone" class="underline-dotted" style="min-width: 120px; font-size: 16pt;">...................</span>
+            <span id="memo-phone-wrapper"><span class="bold" style="font-size: 16pt;">&nbsp;&nbsp;โทร.</span> 
+            <span id="memo-gov-phone" class="underline-dotted" style="min-width: 120px; font-size: 16pt;">...................</span></span>
           </div>
         </div>
         <div style="display: flex; margin-top: 6px;">
@@ -228,19 +228,19 @@
         ด้วยข้าพเจ้า <span id="memo-requester" class="bold underline-dotted" style="min-width: 180px;">.............................................</span>
         ตำแหน่ง <span id="memo-requester-pos" class="underline-dotted" style="min-width: 140px;">.............................................</span>
         สังกัด <span id="memo-requester-dept" class="underline-dotted" style="min-width: 140px;">.............................................</span>
-        พร้อมด้วย <span id="memo-accompanied-list" class="underline-dotted" style="min-width: 250px;">..........................................................................................</span>
+        <span id="memo-travelers-wrapper">พร้อมด้วย <span id="memo-accompanied-list" class="underline-dotted" style="min-width: 250px;">..........................................................................................</span></span>
       </div>
 
       <div class="doc-line" style="text-indent: 1.5cm; font-size: 16pt; margin-bottom: 6px;">
         มีความประสงค์เดินทางไปราชการเพื่อ <span id="memo-purpose" class="bold underline-dotted" style="min-width: 320px;">...........................................................................................</span>
-        ตามหนังสือราชการที่ <span id="memo-ref-doc" class="underline-dotted" style="min-width: 150px;">.............................................</span>
-        ลงวันที่ <span id="memo-ref-date" class="underline-dotted" style="min-width: 130px;">.............................................</span>
+        <span id="memo-ref-wrapper">ตามหนังสือราชการที่ <span id="memo-ref-doc" class="underline-dotted" style="min-width: 150px;">.............................................</span>
+        ลงวันที่ <span id="memo-ref-date" class="underline-dotted" style="min-width: 130px;">.............................................</span></span>
         ณ <span id="memo-destination" class="underline-dotted" style="min-width: 200px;">...........................................................................................</span>
         ตั้งแต่วันที่ <span id="memo-start-date" class="bold underline-dotted" style="min-width: 120px;">........................</span> 
         ถึงวันที่ <span id="memo-end-date" class="bold underline-dotted" style="min-width: 120px;">........................</span>
         รวม <span id="memo-total-days" class="bold underline-dotted" style="min-width: 40px; text-align: center;">....</span> วัน
-        ในการเดินทางไปราชการครั้งนี้ ขอฝากหมายงานในหน้าที่ความรับผิดชอบให้แก่ <span id="memo-delegate-name" class="underline-dotted" style="min-width: 180px;">.............................................</span>
-        ตำแหน่ง <span id="memo-delegate-pos" class="underline-dotted" style="min-width: 140px;">.............................................</span>
+        <span id="memo-delegate-wrapper">ในการเดินทางไปราชการครั้งนี้ ขอฝากหมายงานในหน้าที่ความรับผิดชอบให้แก่ <span id="memo-delegate-name" class="underline-dotted" style="min-width: 180px;">.............................................</span>
+        ตำแหน่ง <span id="memo-delegate-pos" class="underline-dotted" style="min-width: 140px;">.............................................</span></span>
       </div>
 
       <!-- Checkbox and vehicle details -->
@@ -549,6 +549,33 @@
           if (el) el.textContent = checked ? '/' : '';
         };
 
+        // Helper to conditionally set values and format/hide underlines
+        const setFieldVal = (id, val, placeholder = '') => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          const cleanVal = val ? String(val).trim() : '';
+          if (cleanVal && cleanVal !== '-' && cleanVal !== '................' && !cleanVal.startsWith('...')) {
+            el.textContent = cleanVal;
+            el.style.borderBottom = '1px dotted #000';
+            el.style.minWidth = '60px';
+            el.style.display = 'inline-block';
+            el.style.padding = '0 4px';
+          } else {
+            el.textContent = placeholder;
+            if (placeholder) {
+              el.style.borderBottom = '1px dotted #000';
+              el.style.minWidth = '60px';
+              el.style.display = 'inline-block';
+              el.style.padding = '0 4px';
+            } else {
+              el.style.borderBottom = 'none';
+              el.style.minWidth = '0';
+              el.style.display = 'inline';
+              el.style.padding = '0';
+            }
+          }
+        };
+
         // --- PAGE 1: บันทึกข้อความ ---
         const reqPos = t.requesterPosition || 'ครู';
         document.getElementById('memo-gov-dept').textContent = details.department || 'วิทยาลัยสารพัดช่างน่าน';
@@ -557,6 +584,16 @@
         document.getElementById('memo-requester-pos').textContent = reqPos;
         document.getElementById('memo-requester-dept').textContent = details.department || 'วิทยาลัยสารพัดช่างน่าน';
         
+        // Optional phone wrapper
+        const hasPhone = !!details.phone;
+        document.getElementById('memo-phone-wrapper').style.display = hasPhone ? 'inline' : 'none';
+        if (hasPhone) {
+          setFieldVal('memo-gov-phone', details.phone);
+        }
+        
+        // Optional document number ("ที่")
+        setFieldVal('memo-doc-no', t.docNo || '');
+
         // Co-travelers list
         const travelersNames = [];
         if (details.travelers && details.travelers.length > 0) {
@@ -564,20 +601,34 @@
             travelersNames.push(tr.name);
           });
         }
-        document.getElementById('memo-accompanied-list').textContent = travelersNames.length > 0 ? travelersNames.join(', ') : '-';
+        const hasTravelers = travelersNames.length > 0;
+        document.getElementById('memo-travelers-wrapper').style.display = hasTravelers ? 'inline' : 'none';
+        if (hasTravelers) {
+          setFieldVal('memo-accompanied-list', travelersNames.join(', '));
+        }
         
         // Document details
-        document.getElementById('memo-purpose').textContent = details.purposeDetail || t.subject;
-        document.getElementById('memo-ref-doc').textContent = details.refDoc || '-';
-        document.getElementById('memo-ref-date').textContent = details.refDate ? formatDateThai(details.refDate) : '-';
-        document.getElementById('memo-destination').textContent = t.destination;
-        document.getElementById('memo-start-date').textContent = formatDateThai(t.startDate);
-        document.getElementById('memo-end-date').textContent = formatDateThai(t.endDate);
-        document.getElementById('memo-total-days').textContent = parseFloat(t.totalDays);
+        setFieldVal('memo-purpose', details.purposeDetail || t.subject);
+        
+        const hasRef = !!(details.refDoc || details.refDate);
+        document.getElementById('memo-ref-wrapper').style.display = hasRef ? 'inline' : 'none';
+        if (hasRef) {
+          setFieldVal('memo-ref-doc', details.refDoc);
+          setFieldVal('memo-ref-date', details.refDate ? formatDateThai(details.refDate) : '');
+        }
+        
+        setFieldVal('memo-destination', t.destination);
+        setFieldVal('memo-start-date', formatDateThai(t.startDate));
+        setFieldVal('memo-end-date', formatDateThai(t.endDate));
+        setFieldVal('memo-total-days', parseFloat(t.totalDays));
         
         // Delegate responsibility details
-        document.getElementById('memo-delegate-name').textContent = details.delegateName || '.............................................';
-        document.getElementById('memo-delegate-pos').textContent = details.delegatePos || '.............................................';
+        const hasDelegate = !!details.delegateName;
+        document.getElementById('memo-delegate-wrapper').style.display = hasDelegate ? 'inline' : 'none';
+        if (hasDelegate) {
+          setFieldVal('memo-delegate-name', details.delegateName);
+          setFieldVal('memo-delegate-pos', details.delegatePos);
+        }
         
         // Checkboxes for claims
         setCheckbox('chk-no-claim', details.expenseType === 'no-claim');
@@ -598,22 +649,10 @@
         setCheckbox('chk-car-gov', vType === 'gov');
         setCheckbox('chk-car-personal', vType === 'personal');
         
-        if (vType === 'gov') {
-          document.getElementById('memo-plate-gov').textContent = details.vehiclePlate || '............................................................';
-          document.getElementById('memo-plate-personal').textContent = '............................................................';
-          document.getElementById('memo-driver').textContent = details.vehicleDriver || '........................';
-          document.getElementById('memo-supervisor').textContent = details.vehicleSupervisor || '........................';
-        } else if (vType === 'personal') {
-          document.getElementById('memo-plate-gov').textContent = '............................................................';
-          document.getElementById('memo-plate-personal').textContent = details.vehiclePlate || '............................................................';
-          document.getElementById('memo-driver').textContent = '-';
-          document.getElementById('memo-supervisor').textContent = '-';
-        } else {
-          document.getElementById('memo-plate-gov').textContent = '............................................................';
-          document.getElementById('memo-plate-personal').textContent = '............................................................';
-          document.getElementById('memo-driver').textContent = '-';
-          document.getElementById('memo-supervisor').textContent = '-';
-        }
+        setFieldVal('memo-plate-gov', vType === 'gov' ? details.vehiclePlate : '');
+        setFieldVal('memo-plate-personal', vType === 'personal' ? details.vehiclePlate : '');
+        setFieldVal('memo-driver', vType === 'gov' ? details.vehicleDriver : '');
+        setFieldVal('memo-supervisor', vType === 'gov' ? details.vehicleSupervisor : '');
         
         // Director approval state
         setCheckbox('chk-dir-approve', t.status === 'อนุมัติ');
