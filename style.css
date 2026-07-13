@@ -986,6 +986,8 @@ select.form-input {
   right: 0;
   top: calc(100% + 8px);
   width: 240px;
+  max-height: calc(100vh - 110px);
+  overflow-y: auto;
   background: #ffffff;
   border-radius: var(--radius-md);
   border: 1px solid var(--neutral-200);
