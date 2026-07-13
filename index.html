@@ -1090,11 +1090,13 @@
                 </div>
               </div>
 
-              <!-- Tab 1 Navigation -->
               <div class="travel-tab-nav" id="travel-nav-tab1">
                 <span></span>
-                <button type="button" class="btn btn-primary" onclick="travelGoToTab('travel-tab-estimation')">
+                <button type="button" id="travel-nav-tab1-next" class="btn btn-primary" onclick="travelGoToTab('travel-tab-estimation')">
                   ถัดไป: 2. ประมาณการค่าใช้จ่าย →
+                </button>
+                <button type="submit" id="travel-nav-tab1-submit" class="btn btn-primary" style="display: none; background:#0891b2; border-color:#0891b2;">
+                  🚀 ยื่นขออนุญาตเดินทางไปราชการ
                 </button>
               </div>
               
@@ -1837,6 +1839,6 @@
   </div>
 
   <!-- Load Custom JS logic -->
-  <script src="app.js?v=14.0"></script>
+  <script src="app.js?v=15.0"></script>
 </body>
 </html>

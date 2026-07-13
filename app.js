@@ -2885,14 +2885,23 @@ window.toggleExpenseFields = () => {
   const estTab = document.querySelectorAll('.travel-tab-btn')[1];
   const loanTab = document.querySelectorAll('.travel-tab-btn')[2];
   
+  const nextBtn = document.getElementById('travel-nav-tab1-next');
+  const submitBtn = document.getElementById('travel-nav-tab1-submit');
+  
   if (type === 'claim' || type === 'project-claim') {
     if (estTab) estTab.removeAttribute('disabled');
+    if (loanTab) loanTab.removeAttribute('disabled');
+    if (nextBtn) nextBtn.style.display = 'inline-block';
+    if (submitBtn) submitBtn.style.display = 'none';
   } else {
     if (estTab) estTab.setAttribute('disabled', 'true');
     if (loanTab) {
+      loanTab.setAttribute('disabled', 'true');
       document.getElementById('travel-has-loan').checked = false;
       toggleLoanForm();
     }
+    if (nextBtn) nextBtn.style.display = 'none';
+    if (submitBtn) submitBtn.style.display = 'inline-block';
   }
 };
 
@@ -3282,8 +3291,17 @@ async function handleTravelSubmit(e) {
   const startDate = document.getElementById('travel-start-date').value;
   const endDate = document.getElementById('travel-end-date').value;
   const totalDays = parseFloat(document.getElementById('travel-total-days').value);
-  const budget = parseFloat(document.getElementById('travel-budget').value) || 0;
-  const vehicleType = document.getElementById('travel-vehicle').value;
+  const vehicleRadio = document.querySelector('input[name="travel-vehicle-type"]:checked');
+  const vehicleType = vehicleRadio ? vehicleRadio.value : 'public';
+  
+  const hasLoan = document.getElementById('travel-has-loan')?.checked || false;
+  let budget = 0;
+  if (hasLoan) {
+    const allow = parseFloat(document.getElementById('travel-loan-allowance')?.value || 0);
+    const rent = parseFloat(document.getElementById('travel-loan-rent')?.value || 0);
+    const fuel = parseFloat(document.getElementById('travel-loan-fuel')?.value || 0);
+    budget = allow + rent + fuel;
+  }
   
   if (totalDays <= 0) {
     Swal.fire('ข้อผิดพลาด', 'วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด', 'error');
@@ -3374,11 +3392,17 @@ async function handleTravelSubmit(e) {
       rate: parseFloat(document.getElementById('travel-rate-rent')?.value) || 0,
       total: parseFloat(document.getElementById('travel-total-rent-txt')?.textContent?.replace(/,/g,'')) || 0
     },
-    hasLoan: document.getElementById('travel-has-loan')?.checked || false,
+    hasLoan,
     loan: {
-      docNo: document.getElementById('travel-loan-doc-no')?.value || '',
-      loanAmount: parseFloat(document.getElementById('travel-loan-amount')?.value) || 0,
-      thaiBathText: document.getElementById('travel-loan-thai-bath')?.value || ''
+      to: document.getElementById('travel-loan-to')?.value || '',
+      office: document.getElementById('travel-loan-office')?.value || '',
+      purpose: document.getElementById('travel-loan-purpose')?.value || '',
+      location: document.getElementById('travel-loan-location')?.value || '',
+      allowance: parseFloat(document.getElementById('travel-loan-allowance')?.value || 0),
+      rent: parseFloat(document.getElementById('travel-loan-rent')?.value || 0),
+      fuel: parseFloat(document.getElementById('travel-loan-fuel')?.value || 0),
+      loanAmount: budget,
+      thaiBathText: document.getElementById('travel-loan-total-thai-txt')?.textContent || 'ศูนย์บาทถ้วน'
     }
   };
   
