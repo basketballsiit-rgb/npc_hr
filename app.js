@@ -606,8 +606,12 @@ function showRegisterModal() {
             <option value="ผู้บริหาร">ผู้บริหาร</option>
             <option value="ข้าราชการ">ข้าราชการ</option>
             <option value="พนักงานราชการ">พนักงานราชการ</option>
-            <option value="ครูพิเศษสอน" selected>ครูพิเศษสอน</option>
-            <option value="เจ้าหน้าที่">เจ้าหน้าที่</option>
+            <option value="ครูพิเศษสอนรายเดือน">ครูพิเศษสอนรายเดือน</option>
+            <option value="ครูพิเศษสอนรายชั่วโมง" selected>ครูพิเศษสอนรายชั่วโมง</option>
+            <option value="ลูกจ้างชั่วคราว">ลูกจ้างชั่วคราว</option>
+            <option value="จ้างเหมาบริการ">จ้างเหมาบริการ</option>
+            <option value="ครูพิเศษสอน">ครูพิเศษสอน (เก่า)</option>
+            <option value="เจ้าหน้าที่">เจ้าหน้าที่ (เก่า)</option>
           </select>
         </div>
         <div>
@@ -1820,8 +1824,12 @@ window.editUser = (u) => {
             <option value="ผู้บริหาร" ${u.staffType === 'ผู้บริหาร' ? 'selected' : ''}>ผู้บริหาร</option>
             <option value="ข้าราชการ" ${u.staffType === 'ข้าราชการ' ? 'selected' : ''}>ข้าราชการ</option>
             <option value="พนักงานราชการ" ${u.staffType === 'พนักงานราชการ' ? 'selected' : ''}>พนักงานราชการ</option>
-            <option value="ครูพิเศษสอน" ${u.staffType === 'ครูพิเศษสอน' ? 'selected' : ''}>ครูพิเศษสอน</option>
-            <option value="เจ้าหน้าที่" ${u.staffType === 'เจ้าหน้าที่' ? 'selected' : ''}>เจ้าหน้าที่</option>
+            <option value="ครูพิเศษสอนรายเดือน" ${u.staffType === 'ครูพิเศษสอนรายเดือน' ? 'selected' : ''}>ครูพิเศษสอนรายเดือน</option>
+            <option value="ครูพิเศษสอนรายชั่วโมง" ${u.staffType === 'ครูพิเศษสอนรายชั่วโมง' ? 'selected' : ''}>ครูพิเศษสอนรายชั่วโมง</option>
+            <option value="ลูกจ้างชั่วคราว" ${u.staffType === 'ลูกจ้างชั่วคราว' ? 'selected' : ''}>ลูกจ้างชั่วคราว</option>
+            <option value="จ้างเหมาบริการ" ${u.staffType === 'จ้างเหมาบริการ' ? 'selected' : ''}>จ้างเหมาบริการ</option>
+            <option value="ครูพิเศษสอน" ${u.staffType === 'ครูพิเศษสอน' ? 'selected' : ''}>ครูพิเศษสอน (เก่า)</option>
+            <option value="เจ้าหน้าที่" ${u.staffType === 'เจ้าหน้าที่' ? 'selected' : ''}>เจ้าหน้าที่ (เก่า)</option>
           </select>
         </div>
         <div>
@@ -1903,10 +1911,14 @@ window.showAddUserModal = () => {
         <div>
           <label class="form-label">ประเภทบุคลากร</label>
           <select id="add-type" class="form-input">
-            <option value="ข้าราชการ">ข้าราชการ</option>
+            <option value="ข้าราชการ" selected>ข้าราชการ</option>
             <option value="พนักงานราชการ">พนักงานราชการ</option>
-            <option value="ครูพิเศษสอน" selected>ครูพิเศษสอน</option>
-            <option value="เจ้าหน้าที่">เจ้าหน้าที่</option>
+            <option value="ครูพิเศษสอนรายเดือน">ครูพิเศษสอนรายเดือน</option>
+            <option value="ครูพิเศษสอนรายชั่วโมง">ครูพิเศษสอนรายชั่วโมง</option>
+            <option value="ลูกจ้างชั่วคราว">ลูกจ้างชั่วคราว</option>
+            <option value="จ้างเหมาบริการ">จ้างเหมาบริการ</option>
+            <option value="ครูพิเศษสอน">ครูพิเศษสอน (เก่า)</option>
+            <option value="เจ้าหน้าที่">เจ้าหน้าที่ (เก่า)</option>
             <option value="ผู้บริหาร">ผู้บริหาร</option>
           </select>
         </div>
@@ -2243,6 +2255,10 @@ async function loadAttendanceData() {
       'ผู้บริหาร',
       'ข้าราชการ',
       'พนักงานราชการ',
+      'ครูพิเศษสอนรายเดือน',
+      'ครูพิเศษสอนรายชั่วโมง',
+      'ลูกจ้างชั่วคราว',
+      'จ้างเหมาบริการ',
       'ครูพิเศษสอน',
       'เจ้าหน้าที่'
     ];
@@ -2282,7 +2298,12 @@ function filterAndRenderAttendance() {
   
   if (filterType !== 'ทั้งหมด') {
     if (filterType === 'อื่นๆ') {
-      const knownTypes = ['ผู้บริหาร', 'ข้าราชการ', 'พนักงานราชการ', 'ครูพิเศษสอน', 'เจ้าหน้าที่'];
+      const knownTypes = [
+        'ผู้บริหาร', 'ข้าราชการ', 'พนักงานราชการ', 
+        'ครูพิเศษสอนรายเดือน', 'ครูพิเศษสอนรายชั่วโมง', 
+        'ลูกจ้างชั่วคราว', 'จ้างเหมาบริการ', 
+        'ครูพิเศษสอน', 'เจ้าหน้าที่'
+      ];
       filtered = filtered.filter(u => !u.staffType || !knownTypes.includes(u.staffType));
     } else {
       filtered = filtered.filter(u => u.staffType === filterType);
