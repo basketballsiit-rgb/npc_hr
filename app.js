@@ -603,15 +603,12 @@ function showRegisterModal() {
         <div>
           <label class="form-label">ประเภทบุคลากร</label>
           <select id="reg-type" class="form-input">
-            <option value="ผู้บริหาร">ผู้บริหาร</option>
-            <option value="ข้าราชการ">ข้าราชการ</option>
+            <option value="ข้าราชการ" selected>ข้าราชการ</option>
             <option value="พนักงานราชการ">พนักงานราชการ</option>
             <option value="ครูพิเศษสอนรายเดือน">ครูพิเศษสอนรายเดือน</option>
-            <option value="ครูพิเศษสอนรายชั่วโมง" selected>ครูพิเศษสอนรายชั่วโมง</option>
+            <option value="ครูพิเศษสอนรายชั่วโมง">ครูพิเศษสอนรายชั่วโมง</option>
             <option value="ลูกจ้างชั่วคราว">ลูกจ้างชั่วคราว</option>
             <option value="จ้างเหมาบริการ">จ้างเหมาบริการ</option>
-            <option value="ครูพิเศษสอน">ครูพิเศษสอน (เก่า)</option>
-            <option value="เจ้าหน้าที่">เจ้าหน้าที่ (เก่า)</option>
           </select>
         </div>
         <div>
@@ -1821,15 +1818,12 @@ window.editUser = (u) => {
           <label class="form-label">ประเภทบุคลากร</label>
           <select id="edit-type" class="form-input">
             <option value="" ${!u.staffType ? 'selected' : ''}>-- ไม่ระบุ --</option>
-            <option value="ผู้บริหาร" ${u.staffType === 'ผู้บริหาร' ? 'selected' : ''}>ผู้บริหาร</option>
             <option value="ข้าราชการ" ${u.staffType === 'ข้าราชการ' ? 'selected' : ''}>ข้าราชการ</option>
             <option value="พนักงานราชการ" ${u.staffType === 'พนักงานราชการ' ? 'selected' : ''}>พนักงานราชการ</option>
             <option value="ครูพิเศษสอนรายเดือน" ${u.staffType === 'ครูพิเศษสอนรายเดือน' ? 'selected' : ''}>ครูพิเศษสอนรายเดือน</option>
             <option value="ครูพิเศษสอนรายชั่วโมง" ${u.staffType === 'ครูพิเศษสอนรายชั่วโมง' ? 'selected' : ''}>ครูพิเศษสอนรายชั่วโมง</option>
             <option value="ลูกจ้างชั่วคราว" ${u.staffType === 'ลูกจ้างชั่วคราว' ? 'selected' : ''}>ลูกจ้างชั่วคราว</option>
             <option value="จ้างเหมาบริการ" ${u.staffType === 'จ้างเหมาบริการ' ? 'selected' : ''}>จ้างเหมาบริการ</option>
-            <option value="ครูพิเศษสอน" ${u.staffType === 'ครูพิเศษสอน' ? 'selected' : ''}>ครูพิเศษสอน (เก่า)</option>
-            <option value="เจ้าหน้าที่" ${u.staffType === 'เจ้าหน้าที่' ? 'selected' : ''}>เจ้าหน้าที่ (เก่า)</option>
           </select>
         </div>
         <div>
@@ -1917,9 +1911,6 @@ window.showAddUserModal = () => {
             <option value="ครูพิเศษสอนรายชั่วโมง">ครูพิเศษสอนรายชั่วโมง</option>
             <option value="ลูกจ้างชั่วคราว">ลูกจ้างชั่วคราว</option>
             <option value="จ้างเหมาบริการ">จ้างเหมาบริการ</option>
-            <option value="ครูพิเศษสอน">ครูพิเศษสอน (เก่า)</option>
-            <option value="เจ้าหน้าที่">เจ้าหน้าที่ (เก่า)</option>
-            <option value="ผู้บริหาร">ผู้บริหาร</option>
           </select>
         </div>
         <div>
