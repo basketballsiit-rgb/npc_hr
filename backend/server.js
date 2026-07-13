@@ -1581,12 +1581,17 @@ app.get('/api/travel', async (req, res) => {
   const { userId, travelId } = req.query;
   try {
     let rows;
+    const selectSql = `
+      SELECT td.*, u.position as requesterPosition, u.staffType as requesterStaffType
+      FROM travel_data td
+      LEFT JOIN users u ON td.userId = u.userId
+    `;
     if (travelId) {
-      [rows] = await db.query('SELECT * FROM travel_data WHERE travelId = ?', [travelId]);
+      [rows] = await db.query(`${selectSql} WHERE td.travelId = ?`, [travelId]);
     } else if (userId) {
-      [rows] = await db.query('SELECT * FROM travel_data WHERE userId = ? ORDER BY createdAt DESC', [userId]);
+      [rows] = await db.query(`${selectSql} WHERE td.userId = ? ORDER BY td.createdAt DESC`, [userId]);
     } else {
-      [rows] = await db.query('SELECT * FROM travel_data ORDER BY createdAt DESC');
+      [rows] = await db.query(`${selectSql} ORDER BY td.createdAt DESC`);
     }
     rows.forEach(r => {
       if (r.startDate) r.startDate = normalizeDateToAD(r.startDate);

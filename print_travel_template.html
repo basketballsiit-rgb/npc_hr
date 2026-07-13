@@ -22,7 +22,7 @@
       width: 210mm;
       min-height: 297mm;
       margin: 0 auto;
-      padding: 15mm 15mm 10mm 20mm;
+      padding: 25mm 15mm 20mm 30mm; /* Top 25mm, Right 15mm, Bottom 20mm, Left 30mm */
       box-sizing: border-box;
       position: relative;
       background: #ffffff;
@@ -88,14 +88,14 @@
       body {
         background: #ffffff;
         font-family: 'TH Sarabun PSK', 'TH Sarabun New', 'Sarabun', sans-serif;
-        font-size: 15pt;
+        font-size: 16pt;
         line-height: 1.25;
         margin: 0;
       }
       .a4-page {
         width: 100%;
         height: auto;
-        padding: 15mm 15mm 10mm 20mm !important;
+        padding: 25mm 15mm 20mm 30mm !important;
         margin: 0;
         box-shadow: none;
       }
@@ -134,21 +134,41 @@
     }
 
     /* Memo Header style */
-    .memo-header {
-      display: flex;
-      align-items: center;
-      margin-bottom: 15px;
-      border-bottom: 2px solid #000;
-      padding-bottom: 8px;
+    .memo-header-container {
+      position: relative;
+      margin-bottom: 20px;
+      height: 1.5cm;
     }
     
-    .garuda-img {
-      height: 60px;
-      margin-right: 15px;
+    .garuda-img-1-5 {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 1.5cm;
+      width: 1.5cm;
+      object-fit: contain;
     }
     
-    .memo-title {
-      font-size: 22pt;
+    .memo-title-centered {
+      text-align: center;
+      font-size: 29pt;
+      font-weight: bold;
+      line-height: 1.5cm;
+      margin: 0;
+      letter-spacing: 2px;
+    }
+
+    .print-checkbox {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 1px solid #000;
+      margin-right: 6px;
+      text-align: center;
+      line-height: 11px;
+      font-size: 11pt;
+      vertical-align: middle;
+      font-family: 'Sarabun', sans-serif;
       font-weight: bold;
     }
   </style>
@@ -167,82 +187,157 @@
     
     <!-- PAGE 1: บันทึกข้อความขออนุมัติเดินทางไปราชการ -->
     <div class="a4-page" id="page-memo">
-      <div class="memo-header">
-        <img class="garuda-img" src="https://upload.wikimedia.org/wikipedia/commons/e/e4/Garuda_of_Thailand.svg" alt="ตราครุฑ">
-        <div class="memo-title">บันทึกข้อความ</div>
+      <!-- Header section -->
+      <div class="memo-header-container">
+        <img class="garuda-img-1-5" src="garuda.png" alt="ตราครุฑ">
+        <div class="memo-title-centered">บันทึกข้อความ</div>
       </div>
       
-      <div class="doc-line">
-        <span class="bold">ส่วนราชการ</span> <span class="underline-dotted" id="memo-gov-dept" style="min-width: 250px;">วิทยาลัยสารพัดช่างน่าน</span> 
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <span class="bold">โทร.</span> <span class="underline-dotted" style="min-width: 100px;">.....................</span>
-      </div>
-      <div class="doc-line">
-        <span class="bold">ที่</span> <span class="underline-dotted" id="memo-doc-no" style="min-width: 250px;">............................................................</span>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <span class="bold">วันที่</span> <span class="underline-dotted" id="memo-doc-date" style="min-width: 180px;">............................................................</span>
-      </div>
-      <div class="doc-line">
-        <span class="bold">เรื่อง</span> ขออนุมัติเดินทางไปราชการ
-      </div>
-      <div class="doc-line" style="margin-bottom: 20px;">
-        <span class="bold">เรียน</span> ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน
-      </div>
-
-      <div class="doc-line" style="text-indent: 1.5cm;">
-        ด้วยข้าพเจ้า <span id="memo-requester" class="bold underline-dotted" style="min-width: 200px;">.............................................</span>
-        ตำแหน่ง <span id="memo-requester-pos" class="underline-dotted" style="min-width: 150px;">.............................................</span>
-        ฝ่าย/งาน <span id="memo-requester-dept" class="underline-dotted" style="min-width: 150px;">.............................................</span>
-        มีความประสงค์เดินทางไปราชการเพื่อ <span id="memo-subject" class="bold underline-dotted" style="width: 80%; display: inline;">...........................................................................................</span>
+      <div style="font-size: 16pt; line-height: 1.25; margin-bottom: 10px;">
+        <div style="display: flex;">
+          <div style="flex-grow: 1;">
+            <span class="bold" style="font-size: 16pt;">ส่วนราชการ</span> 
+            <span id="memo-gov-dept" class="underline-dotted" style="min-width: 320px; font-size: 16pt;">วิทยาลัยสารพัดช่างน่าน</span>
+            <span class="bold" style="font-size: 16pt;">&nbsp;&nbsp;โทร.</span> 
+            <span id="memo-gov-phone" class="underline-dotted" style="min-width: 120px; font-size: 16pt;">...................</span>
+          </div>
+        </div>
+        <div style="display: flex; margin-top: 6px;">
+          <div style="width: 50%;">
+            <span class="bold" style="font-size: 16pt;">ที่</span> 
+            <span id="memo-doc-no" class="underline-dotted" style="min-width: 250px; font-size: 16pt;">............................................................</span>
+          </div>
+          <div style="width: 50%;">
+            <span class="bold" style="font-size: 16pt;">วันที่</span> 
+            <span id="memo-doc-date" class="underline-dotted" style="min-width: 200px; font-size: 16pt;">............................................................</span>
+          </div>
+        </div>
+        <div style="margin-top: 6px; margin-bottom: 6px;">
+          <span class="bold" style="font-size: 16pt;">เรื่อง</span> 
+          <span id="memo-subject-title" class="underline-dotted" style="min-width: 580px; font-size: 16pt;">ขออนุญาตเดินทางไปราชการ</span>
+        </div>
       </div>
       
-      <div class="doc-line" style="text-indent: 1.5cm;">
-        ณ <span id="memo-destination" class="underline-dotted" style="width: 85%; display: inline;">.................................................................................................................................</span>
+      <hr style="border: none; border-bottom: 2px solid #000; margin: 0 0 15px 0;">
+      
+      <div class="doc-line" style="margin-bottom: 15px; font-size: 16pt;">
+        <span class="bold" style="font-size: 16pt;">เรียน</span> ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน
       </div>
 
-      <div class="doc-line" style="text-indent: 1.5cm;">
-        ตั้งแต่วันที่ <span id="memo-start-date" class="bold underline-dotted" style="min-width: 140px;">........................</span> ถึงวันที่ <span id="memo-end-date" class="bold underline-dotted" style="min-width: 140px;">........................</span>
-        มีกำหนด <span id="memo-total-days" class="bold underline-dotted" style="min-width: 40px; text-align: center;">....</span> วัน
-        โดยมีผู้ร่วมเดินทางจำนวน <span id="memo-travelers-count" class="underline-dotted" style="min-width: 40px; text-align: center;">....</span> ราย ตามรายชื่อและพาหนะที่แนบในตารางประมาณการ
+      <div class="doc-line" style="text-indent: 1.5cm; font-size: 16pt; margin-bottom: 6px;">
+        ด้วยข้าพเจ้า <span id="memo-requester" class="bold underline-dotted" style="min-width: 180px;">.............................................</span>
+        ตำแหน่ง <span id="memo-requester-pos" class="underline-dotted" style="min-width: 140px;">.............................................</span>
+        สังกัด <span id="memo-requester-dept" class="underline-dotted" style="min-width: 140px;">.............................................</span>
+        พร้อมด้วย <span id="memo-accompanied-list" class="underline-dotted" style="min-width: 250px;">..........................................................................................</span>
       </div>
 
-      <div class="doc-line" style="text-indent: 1.5cm;">
-        การเดินทางไปราชการครั้งนี้ <span id="memo-claim-txt" class="bold">.........................................................................................................................</span>
+      <div class="doc-line" style="text-indent: 1.5cm; font-size: 16pt; margin-bottom: 6px;">
+        มีความประสงค์เดินทางไปราชการเพื่อ <span id="memo-purpose" class="bold underline-dotted" style="min-width: 320px;">...........................................................................................</span>
+        ตามหนังสือราชการที่ <span id="memo-ref-doc" class="underline-dotted" style="min-width: 150px;">.............................................</span>
+        ลงวันที่ <span id="memo-ref-date" class="underline-dotted" style="min-width: 130px;">.............................................</span>
+        ณ <span id="memo-destination" class="underline-dotted" style="min-width: 200px;">...........................................................................................</span>
+        ตั้งแต่วันที่ <span id="memo-start-date" class="bold underline-dotted" style="min-width: 120px;">........................</span> 
+        ถึงวันที่ <span id="memo-end-date" class="bold underline-dotted" style="min-width: 120px;">........................</span>
+        รวม <span id="memo-total-days" class="bold underline-dotted" style="min-width: 40px; text-align: center;">....</span> วัน
+        ในการเดินทางไปราชการครั้งนี้ ขอฝากหมายงานในหน้าที่ความรับผิดชอบให้แก่ <span id="memo-delegate-name" class="underline-dotted" style="min-width: 180px;">.............................................</span>
+        ตำแหน่ง <span id="memo-delegate-pos" class="underline-dotted" style="min-width: 140px;">.............................................</span>
       </div>
 
-      <div class="doc-line" style="text-indent: 1.5cm; margin-top: 15px;">
-        จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ
+      <!-- Checkbox and vehicle details -->
+      <div style="margin-top: 15px; padding-left: 1.5cm; font-size: 16pt; line-height: 1.35;">
+        <div class="bold">โดย</div>
+        <div style="display: grid; grid-template-columns: 1fr 1.2fr; margin-top: 4px;">
+          <div><span class="print-checkbox" id="chk-no-claim"></span> ไม่เบิกค่าใช้จ่ายใด ๆ ทั้งสิ้น</div>
+          <div><span class="print-checkbox" id="chk-no-claim-origin"></span> ไม่ขอเบิกเงินจากต้นสังกัด (เบิกแหล่งอื่น)</div>
+        </div>
+        <div style="margin-top: 4px;">
+          <span class="print-checkbox" id="chk-claim"></span> ขอเบิกค่าใช้จ่าย
+          <div style="padding-left: 24px; display: flex; gap: 20px; flex-wrap: wrap; margin-top: 2px; margin-bottom: 2px;">
+            <div><span class="print-checkbox" id="chk-allowance"></span> ค่าเบี้ยเลี้ยง</div>
+            <div><span class="print-checkbox" id="chk-rent"></span> ค่าที่พักแรม</div>
+            <div><span class="print-checkbox" id="chk-vehicle"></span> ค่าพาหนะ</div>
+            <div><span class="print-checkbox" id="chk-other"></span> อื่น ๆ</div>
+          </div>
+          <div style="padding-left: 24px; margin-top: 2px;">
+            โดยประมาณการค่าใช้จ่ายในการเดินทางไปราชการครั้งนี้ จำนวน <span id="memo-estimated-budget" class="underline-dotted" style="min-width: 120px; text-align: center;">................</span> บาท
+          </div>
+        </div>
+        
+        <div style="margin-top: 8px;">
+          <span class="print-checkbox" id="chk-use-car"></span> ขออนุญาตใช้รถยนต์
+          <div style="padding-left: 24px;">
+            <div style="margin-top: 2px;"><span class="print-checkbox" id="chk-car-gov"></span> ราชการ หมายเลขทะเบียน <span id="memo-plate-gov" class="underline-dotted" style="min-width: 250px;">............................................................</span></div>
+            <div style="margin-top: 2px;"><span class="print-checkbox" id="chk-car-personal"></span> ส่วนตัว หมายเลขทะเบียน <span id="memo-plate-personal" class="underline-dotted" style="min-width: 250px;">............................................................</span></div>
+            <div style="margin-top: 4px;">โดยให้ <span id="memo-driver" class="underline-dotted" style="min-width: 180px; text-align: center;">........................</span> เป็นพนักงานขับรถยนต์ และมี <span id="memo-supervisor" class="underline-dotted" style="min-width: 180px; text-align: center;">........................</span> เป็นผู้ควบคุม</div>
+          </div>
+        </div>
       </div>
 
-      <table style="width: 100%; border: none; margin-top: 50px; font-size: 15pt;">
+      <!-- Signature area -->
+      <table style="width: 100%; border: none; margin-top: 20px; font-size: 16pt; border-collapse: collapse;">
         <tr>
-          <td style="width: 50%;"></td>
-          <td style="text-align: center; width: 50%;">
-            <div>ลงชื่อ ....................................................... ผู้ขออนุมัติ</div>
+          <td style="width: 50%; vertical-align: top; padding: 10px 0;"></td>
+          <td style="width: 50%; text-align: center; vertical-align: top; padding: 10px 0;">
+            <div>ลงชื่อ ....................................................... ผู้ขออนุญาต</div>
             <div style="margin-top: 4px;">( <span id="memo-requester-full">......................................................</span> )</div>
             <div style="margin-top: 4px;">ตำแหน่ง <span id="memo-requester-pos-full">......................................................</span></div>
           </td>
         </tr>
       </table>
 
-      <!-- Approval section for Admin/Director -->
-      <div style="border: 1px solid #000; padding: 15px; margin-top: 40px; border-radius: 4px;">
-        <span class="bold">ความเห็นของผู้อำนวยการวิทยาลัยสารพัดช่างน่าน:</span>
-        <div style="margin-top: 10px; display: flex; gap: 40px;">
-          <label>[ &nbsp; ] อนุมัติ</label>
-          <label>[ &nbsp; ] ไม่อนุมัติ เนื่องจาก .........................................................................................................</label>
+      <!-- Deputy Director & Director Signatures Section -->
+      <div style="margin-top: 20px; font-size: 16pt; line-height: 1.3;">
+        <!-- รองผู้อำนวยการฝ่าย... -->
+        <div style="margin-bottom: 20px; page-break-inside: avoid;">
+          <div>ความเห็นของรองผู้อำนวยการฝ่าย <span id="memo-deputy-dept" class="underline-dotted" style="min-width: 150px;">.........................................</span></div>
+          <div style="margin-top: 6px;">......................................................................................................................................................</div>
+          <table style="width: 100%; border: none; border-collapse: collapse; margin-top: 10px;">
+            <tr>
+              <td style="width: 50%;"></td>
+              <td style="width: 50%; text-align: center;">
+                <div>ลงชื่อ .......................................................</div>
+                <div style="margin-top: 4px;">( ...................................................... )</div>
+                <div style="margin-top: 4px;">รองผู้อำนวยการฝ่าย <span id="memo-deputy-dept-sig">.........................................</span></div>
+              </td>
+            </tr>
+          </table>
         </div>
-        <table style="width: 100%; border: none; margin-top: 25px; font-size: 14pt;">
-          <tr>
-            <td style="width: 50%;"></td>
-            <td style="text-align: center; width: 50%;">
-              <div>ลงชื่อ ....................................................... ผู้อนุมัติ</div>
-              <div style="margin-top: 4px;">( ...................................................... )</div>
-              <div style="margin-top: 4px;">ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน</div>
-              <div style="margin-top: 4px;">วันที่ ........ เดือน ........................... พ.ศ. ............</div>
-            </td>
-          </tr>
-        </table>
+
+        <!-- รองผู้อำนวยการฝ่ายบริหารทรัพยากร -->
+        <div style="margin-bottom: 20px; page-break-inside: avoid;">
+          <div>ความเห็นของรองผู้อำนวยการฝ่ายบริหารทรัพยากร</div>
+          <div style="margin-top: 6px;">......................................................................................................................................................</div>
+          <table style="width: 100%; border: none; border-collapse: collapse; margin-top: 10px;">
+            <tr>
+              <td style="width: 50%;"></td>
+              <td style="width: 50%; text-align: center;">
+                <div>ลงชื่อ .......................................................</div>
+                <div style="margin-top: 4px;">( นายจักรพงษ์ ทะนันชัยพงษ์ )</div>
+                <div style="margin-top: 4px;">รองผู้อำนวยการฝ่ายบริหารทรัพยากร</div>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- ผู้อำนวยการสถานศึกษา -->
+        <div style="margin-bottom: 10px; border-top: 1px dashed #000; padding-top: 15px; page-break-inside: avoid;">
+          <div>
+            คำสั่งของผู้อำนวยการสถานศึกษา &nbsp;&nbsp;&nbsp;&nbsp; 
+            <span class="print-checkbox" id="chk-dir-approve"></span> อนุญาต &nbsp;&nbsp;&nbsp;&nbsp; 
+            <span class="print-checkbox" id="chk-dir-disapprove"></span> ไม่อนุญาต เพราะ ......................................................................
+          </div>
+          <div style="margin-top: 6px;">......................................................................................................................................................</div>
+          <table style="width: 100%; border: none; border-collapse: collapse; margin-top: 10px;">
+            <tr>
+              <td style="width: 50%;"></td>
+              <td style="width: 50%; text-align: center;">
+                <div>ลงชื่อ .......................................................</div>
+                <div style="margin-top: 4px;">( นายรณชัย ชัยชนะ )</div>
+                <div style="margin-top: 4px;">ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน</div>
+              </td>
+            </tr>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -448,32 +543,99 @@
         const details = JSON.parse(t.details);
         const isProjectClaim = details.expenseType === 'project-claim';
 
+        // Helper to set checkbox slash text
+        const setCheckbox = (id, checked) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = checked ? '/' : '';
+        };
+
         // --- PAGE 1: บันทึกข้อความ ---
+        const reqPos = t.requesterPosition || 'ครู';
         document.getElementById('memo-gov-dept').textContent = details.department || 'วิทยาลัยสารพัดช่างน่าน';
         document.getElementById('memo-doc-date').textContent = formatDateThai(details.docDate || t.createdAt);
         document.getElementById('memo-requester').textContent = t.fullName;
-        document.getElementById('memo-requester-pos').textContent = 'ครู';
+        document.getElementById('memo-requester-pos').textContent = reqPos;
         document.getElementById('memo-requester-dept').textContent = details.department || 'วิทยาลัยสารพัดช่างน่าน';
-        document.getElementById('memo-subject').textContent = t.subject;
+        
+        // Co-travelers list
+        const travelersNames = [];
+        if (details.travelers && details.travelers.length > 0) {
+          details.travelers.forEach(tr => {
+            travelersNames.push(tr.name);
+          });
+        }
+        document.getElementById('memo-accompanied-list').textContent = travelersNames.length > 0 ? travelersNames.join(', ') : '-';
+        
+        // Document details
+        document.getElementById('memo-purpose').textContent = details.purposeDetail || t.subject;
+        document.getElementById('memo-ref-doc').textContent = details.refDoc || '-';
+        document.getElementById('memo-ref-date').textContent = details.refDate ? formatDateThai(details.refDate) : '-';
         document.getElementById('memo-destination').textContent = t.destination;
         document.getElementById('memo-start-date').textContent = formatDateThai(t.startDate);
         document.getElementById('memo-end-date').textContent = formatDateThai(t.endDate);
         document.getElementById('memo-total-days').textContent = parseFloat(t.totalDays);
-        document.getElementById('memo-travelers-count').textContent = details.travelers ? details.travelers.length : 1;
-        document.getElementById('memo-requester-full').textContent = t.fullName;
-        document.getElementById('memo-requester-pos-full').textContent = 'ครู';
-
-        let claimText = '';
-        if (details.expenseType === 'no-claim') {
-          claimText = 'ไม่ขอเบิกค่าใช้จ่ายใด ๆ ทั้งสิ้น';
-        } else if (details.expenseType === 'no-claim-origin') {
-          claimText = 'ไม่ขอเบิกเงินจากต้นสังกัด (เบิกแหล่งอื่น)';
-        } else if (isProjectClaim) {
-          claimText = 'เบิกค่าใช้จ่ายจากโครงการ (ประมาณการแบบว่างเปล่า)';
+        
+        // Delegate responsibility details
+        document.getElementById('memo-delegate-name').textContent = details.delegateName || '.............................................';
+        document.getElementById('memo-delegate-pos').textContent = details.delegatePos || '.............................................';
+        
+        // Checkboxes for claims
+        setCheckbox('chk-no-claim', details.expenseType === 'no-claim');
+        setCheckbox('chk-no-claim-origin', details.expenseType === 'no-claim-origin');
+        setCheckbox('chk-claim', details.expenseType === 'claim' || details.expenseType === 'project-claim');
+        
+        const hasExpenses = details.expenseType === 'claim';
+        setCheckbox('chk-allowance', hasExpenses && details.allowance && details.allowance.total > 0);
+        setCheckbox('chk-rent', hasExpenses && details.rent && details.rent.total > 0);
+        setCheckbox('chk-vehicle', hasExpenses && details.vehicleData && details.vehicleData.routeTotal > 0);
+        setCheckbox('chk-other', hasExpenses && details.otherCost > 0);
+        
+        document.getElementById('memo-estimated-budget').textContent = (details.expenseType === 'claim') ? parseFloat(t.budget).toLocaleString() : '................';
+        
+        // Checkboxes for vehicle
+        const vType = t.vehicleType || 'public';
+        setCheckbox('chk-use-car', vType === 'gov' || vType === 'personal');
+        setCheckbox('chk-car-gov', vType === 'gov');
+        setCheckbox('chk-car-personal', vType === 'personal');
+        
+        if (vType === 'gov') {
+          document.getElementById('memo-plate-gov').textContent = details.vehiclePlate || '............................................................';
+          document.getElementById('memo-plate-personal').textContent = '............................................................';
+          document.getElementById('memo-driver').textContent = details.vehicleDriver || '........................';
+          document.getElementById('memo-supervisor').textContent = details.vehicleSupervisor || '........................';
+        } else if (vType === 'personal') {
+          document.getElementById('memo-plate-gov').textContent = '............................................................';
+          document.getElementById('memo-plate-personal').textContent = details.vehiclePlate || '............................................................';
+          document.getElementById('memo-driver').textContent = '-';
+          document.getElementById('memo-supervisor').textContent = '-';
         } else {
-          claimText = `ขอเบิกค่าใช้จ่ายในการเดินทางตามสิทธิ เป็นเงินประมาณการรวม ${parseFloat(t.budget).toLocaleString()} บาท`;
+          document.getElementById('memo-plate-gov').textContent = '............................................................';
+          document.getElementById('memo-plate-personal').textContent = '............................................................';
+          document.getElementById('memo-driver').textContent = '-';
+          document.getElementById('memo-supervisor').textContent = '-';
         }
-        document.getElementById('memo-claim-txt').textContent = claimText;
+        
+        // Director approval state
+        setCheckbox('chk-dir-approve', t.status === 'อนุมัติ');
+        setCheckbox('chk-dir-disapprove', t.status === 'ไม่อนุมัติ');
+
+        // Document subject title
+        document.getElementById('memo-subject-title').textContent = t.subject || 'ขออนุญาตเดินทางไปราชการ';
+
+        // Requester signatures
+        document.getElementById('memo-requester-full').textContent = t.fullName;
+        document.getElementById('memo-requester-pos-full').textContent = reqPos;
+        
+        // Deputy department signature label
+        const userStaffType = t.requesterStaffType || 'ครู';
+        let deputyDeptName = '.........................................';
+        if (userStaffType.includes('ครู') || userStaffType.includes('สอน')) {
+          deputyDeptName = 'วิชาการ';
+        } else if (userStaffType.includes('เจ้าหน้าที่') || userStaffType.includes('ลูกจ้าง') || userStaffType.includes('จ้างเหมา')) {
+          deputyDeptName = 'บริหารทรัพยากร';
+        }
+        document.getElementById('memo-deputy-dept').textContent = deputyDeptName;
+        document.getElementById('memo-deputy-dept-sig').textContent = deputyDeptName;
 
         // --- PAGE 2: ประมาณการค่าใช้จ่าย ---
         document.getElementById('est-date').textContent = formatDateThai(details.docDate || t.createdAt);

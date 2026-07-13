@@ -3379,6 +3379,14 @@ async function handleTravelSubmit(e) {
     docDate: document.getElementById('travel-doc-date')?.value || '',
     requesterName: document.getElementById('travel-requester-name')?.value || '',
     department: document.getElementById('travel-department')?.value || '',
+    purposeDetail: document.getElementById('travel-purpose-detail')?.value || '',
+    refDoc: document.getElementById('travel-ref-doc')?.value || '',
+    refDate: document.getElementById('travel-ref-date')?.value || '',
+    delegateName: document.getElementById('travel-delegate-name')?.value || '',
+    delegatePos: document.getElementById('travel-delegate-pos')?.value || '',
+    vehiclePlate: document.getElementById('travel-vehicle-plate')?.value || '',
+    vehicleDriver: document.getElementById('travel-vehicle-driver')?.value || '',
+    vehicleSupervisor: document.getElementById('travel-vehicle-supervisor')?.value || '',
     travelers,
     routes,
     vehicleData,
@@ -3977,7 +3985,7 @@ window.printTravelReport = (reportId) => {
 };
 
 window.printTravelRequest = (travelId) => {
-  window.open(`print_travel_template.html?travelId=${travelId}`, '_blank');
+  window.open(`print_travel_template.html?v=15.0&travelId=${travelId}`, '_blank');
 };
 
 
