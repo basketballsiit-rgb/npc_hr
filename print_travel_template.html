@@ -853,9 +853,11 @@
         let displayVehicle = details.vehicleData ? details.vehicleData.routeTotal : 0;
 
         const allowanceDays = details.allowance ? details.allowance.days : 0;
-        const allowanceRate = details.allowance ? details.allowance.rate : 0;
+        const allowanceRateVal = details.allowance ? details.allowance.rate : 0;
+        const allowanceRate = allowanceRateVal || (allowanceDays ? Math.round(displayAllowance / allowanceDays) : 0);
         const rentDays = details.rent ? details.rent.days : 0;
-        const rentRate = details.rent ? details.rent.rate : 0;
+        const rentRateVal = details.rent ? details.rent.rate : 0;
+        const rentRate = rentRateVal || (rentDays ? Math.round(displayRent / rentDays) : 0);
 
         if (isProjectClaim) {
           document.getElementById('est-allowance-calc').textContent = 'อัตราเบี้ยเลี้ยง ............. บาท x ............. วัน';
