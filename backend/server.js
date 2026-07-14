@@ -522,6 +522,10 @@ app.post('/api/leaves', async (req, res) => {
     // Notify LINE Admin Group if configured
     const adminGroupId = await getSettingValue('adminGroupId');
     if (adminGroupId) {
+      let finalFrontendUrl = leaveData.frontendUrl || 'https://service.npc.ac.th/npc_hr/';
+      if (!finalFrontendUrl.endsWith('/')) {
+        finalFrontendUrl += '/';
+      }
       const flexMessage = {
         "type": "bubble",
         "header": { "type": "box", "layout": "vertical", "contents": [{ "type": "text", "text": "🔔 มีคำขอลาใหม่", "weight": "bold", "size": "lg", "color": "#1DB446" }] },
@@ -535,7 +539,7 @@ app.post('/api/leaves', async (req, res) => {
         },
         "footer": {
           "type": "box", "layout": "vertical", "contents": [
-            { "type": "button", "style": "primary", "color": "#2E3A59", "action": { "type": "uri", "label": "ตรวจสอบ / อนุมัติ", "uri": `${leaveData.frontendUrl || 'https://nipon.github.io/npc_eleve/'}` } }
+            { "type": "button", "style": "primary", "color": "#2E3A59", "action": { "type": "uri", "label": "ตรวจสอบ / อนุมัติ", "uri": `${finalFrontendUrl}index.html` } }
           ]
         }
       };
@@ -761,8 +765,8 @@ app.post('/api/leaves/approve', async (req, res) => {
     const approvalDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
     
     // In our system, the pdfUrl is a printable template served by the frontend.
-    // e.g. https://nipon.github.io/npc_eleve/print_template.html?leaveId=xxxx
-    const finalFrontendUrl = frontendUrl || 'https://nipon.github.io/npc_eleve/';
+    // e.g. https://service.npc.ac.th/npc_hr/print_template.html?leaveId=xxxx
+    const finalFrontendUrl = frontendUrl || 'https://service.npc.ac.th/npc_hr/';
     const pdfPrintUrl = `${finalFrontendUrl}print_template.html?leaveId=${leaveId}`;
 
     await db.query(
@@ -1530,7 +1534,7 @@ app.post('/api/attendance', async (req, res) => {
 
 // --- 1. Travel Permission APIs ---
 app.post('/api/travel', async (req, res) => {
-  const { userId, fullName, subject, destination, totalDays, budget, vehicleType, details } = req.body;
+  const { userId, fullName, subject, destination, totalDays, budget, vehicleType, details, frontendUrl } = req.body;
   const startDate = normalizeDateToAD(req.body.startDate);
   const endDate = normalizeDateToAD(req.body.endDate);
   
@@ -1549,6 +1553,10 @@ app.post('/api/travel', async (req, res) => {
     // Notify LINE Admin Group if configured
     const adminGroupId = await getSettingValue('adminGroupId');
     if (adminGroupId) {
+      let finalFrontendUrl = frontendUrl || 'https://service.npc.ac.th/npc_hr/';
+      if (!finalFrontendUrl.endsWith('/')) {
+        finalFrontendUrl += '/';
+      }
       const flexMessage = {
         "type": "bubble",
         "header": { "type": "box", "layout": "vertical", "contents": [{ "type": "text", "text": "✈️ มีคำขอไปราชการใหม่", "weight": "bold", "size": "lg", "color": "#7c3aed" }] },
@@ -1563,7 +1571,7 @@ app.post('/api/travel', async (req, res) => {
         },
         "footer": {
           "type": "box", "layout": "vertical", "contents": [
-            { "type": "button", "style": "primary", "color": "#7c3aed", "action": { "type": "uri", "label": "ตรวจสอบ / อนุมัติ", "uri": `https://service.npc.ac.th/npc_eleve/` } }
+            { "type": "button", "style": "primary", "color": "#7c3aed", "action": { "type": "uri", "label": "ตรวจสอบ / อนุมัติ", "uri": `${finalFrontendUrl}index.html` } }
           ]
         }
       };

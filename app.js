@@ -7,7 +7,7 @@
 // Automatically detect backend API domain
 const API_BASE_URL = window.location.hostname !== 'service.npc.ac.th'
   ? `http://${window.location.hostname || 'localhost'}:5000`
-  : 'https://service.npc.ac.th/npc_eleve_backend'; // Replace with your production Node.js API domain
+  : 'https://service.npc.ac.th/npc_hr_backend'; // Replace with your production Node.js API domain
 
 // ---------------------------------------------------------------
 // Global fetch interceptor — converts 502/HTML responses to clear errors
@@ -59,6 +59,17 @@ function hideServerDownBanner() {
   _serverDown = false;
   const banner = document.getElementById('server-down-banner');
   if (banner) banner.remove();
+}
+
+function getCleanFrontendUrl() {
+  let url = window.location.origin + window.location.pathname;
+  if (url.endsWith('index.html')) {
+    url = url.substring(0, url.length - 10);
+  }
+  if (!url.endsWith('/')) {
+    url += '/';
+  }
+  return url;
 }
 
 
@@ -1172,7 +1183,7 @@ async function handleLeaveSubmit(e) {
     return showError('กรุณาลงลายมือชื่อก่อนกดยืนยันการลา');
   }
 
-  const frontendUrl = window.location.href.split('?')[0].split('#')[0];
+  const frontendUrl = getCleanFrontendUrl();
 
   const leavePayload = {
     currentUser,
@@ -1419,7 +1430,7 @@ async function loadApprovalPage() {
 }
 
 window.openApprovalModal = (l) => {
-  const frontendUrl = window.location.href.split('?')[0].split('#')[0];
+  const frontendUrl = getCleanFrontendUrl();
 
   Swal.fire({
     title: 'พิจารณาคำขอลา',
@@ -3429,7 +3440,8 @@ async function handleTravelSubmit(e) {
         totalDays,
         budget,
         vehicleType,
-        details: JSON.stringify(detailsObj)
+        details: JSON.stringify(detailsObj),
+        frontendUrl: getCleanFrontendUrl()
       })
     });
     
