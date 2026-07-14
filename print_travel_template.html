@@ -579,16 +579,16 @@
           if (cleanVal && cleanVal !== '-' && cleanVal !== '................' && !cleanVal.startsWith('...')) {
             el.textContent = cleanVal;
             el.style.borderBottom = 'none';
-            el.style.minWidth = '60px';
-            el.style.display = 'inline-block';
-            el.style.padding = '0 4px';
+            el.style.minWidth = '0';
+            el.style.display = 'inline';
+            el.style.padding = '0 2px';
           } else {
             el.textContent = placeholder;
             if (placeholder) {
               el.style.borderBottom = 'none';
-              el.style.minWidth = '60px';
-              el.style.display = 'inline-block';
-              el.style.padding = '0 4px';
+              el.style.minWidth = '0';
+              el.style.display = 'inline';
+              el.style.padding = '0 2px';
             } else {
               el.style.borderBottom = 'none';
               el.style.minWidth = '0';
