@@ -1546,7 +1546,7 @@ app.post('/api/travel', async (req, res) => {
   try {
     await db.query(
       `INSERT INTO travel_data (travelId, userId, fullName, subject, destination, startDate, endDate, totalDays, budget, vehicleType, details, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'รอการอนุมัติ')`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'อนุมัติ')`,
       [travelId, userId, fullName, subject, destination, startDate, endDate, totalDays, budget || 0, vehicleType, details || null]
     );
 
@@ -1571,11 +1571,11 @@ app.post('/api/travel', async (req, res) => {
         },
         "footer": {
           "type": "box", "layout": "vertical", "contents": [
-            { "type": "button", "style": "primary", "color": "#7c3aed", "action": { "type": "uri", "label": "ตรวจสอบ / อนุมัติ", "uri": `${finalFrontendUrl}index.html` } }
+            { "type": "button", "style": "primary", "color": "#7c3aed", "action": { "type": "uri", "label": "กดเพื่อรับทราบ", "uri": `${finalFrontendUrl}index.html` } }
           ]
         }
       };
-      await sendLineFlexMessage(adminGroupId, flexMessage, "มีคำขอไปราชการใหม่รออนุมัติ");
+      await sendLineFlexMessage(adminGroupId, flexMessage, "มีคำขอไปราชการใหม่");
     }
 
     res.json({ success: true, message: 'ยื่นคำขอไปราชการสำเร็จ' });
