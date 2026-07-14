@@ -859,7 +859,9 @@
         const rentRateVal = details.rent ? details.rent.rate : 0;
         const rentRate = rentRateVal || (rentDays ? Math.round(displayRent / rentDays) : 0);
 
-        if (isProjectClaim) {
+        const isNoClaim = !details.expenseType || details.expenseType === 'none' || details.expenseType === 'no-origin';
+
+        if (isProjectClaim || isNoClaim) {
           document.getElementById('est-allowance-calc').textContent = 'อัตราเบี้ยเลี้ยง ............. บาท x ............. วัน';
           document.getElementById('est-rent-calc').textContent = 'อัตราค่าเช่าที่พัก ............. บาท x ............. วัน';
 
@@ -869,10 +871,11 @@
           document.getElementById('est-amount-other').textContent = '....................';
           document.getElementById('est-amount-total').textContent = '....................';
           
-          document.getElementById('est-remark-vehicle').textContent = 'เบิกจากโครงการ';
-          document.getElementById('est-remark-allowance').textContent = 'เบิกจากโครงการ';
-          document.getElementById('est-remark-rent').textContent = 'เบิกจากโครงการ';
-          document.getElementById('est-remark-other').textContent = 'เบิกจากโครงการ';
+          const remarkText = isProjectClaim ? 'เบิกจากโครงการ' : 'ไม่ขอเบิกค่าใช้จ่าย';
+          document.getElementById('est-remark-vehicle').textContent = remarkText;
+          document.getElementById('est-remark-allowance').textContent = remarkText;
+          document.getElementById('est-remark-rent').textContent = remarkText;
+          document.getElementById('est-remark-other').textContent = remarkText;
         } else {
           document.getElementById('est-allowance-calc').textContent = `อัตราเบี้ยเลี้ยง ${allowanceRate} บาท/วัน x ${allowanceDays} วัน`;
           document.getElementById('est-rent-calc').textContent = `อัตราค่าเช่าที่พัก ${rentRate} บาท/วัน x ${rentDays} วัน`;
