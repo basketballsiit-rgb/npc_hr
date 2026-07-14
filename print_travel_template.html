@@ -173,8 +173,17 @@
 </head>
 <body>
 
-  <div class="no-print-bar no-print">
-    <button class="btn-print" onclick="window.print()">🖨️ สั่งพิมพ์ใบขออนุญาต / บันทึกเป็น PDF</button>
+  <div class="no-print-bar no-print" style="display: flex; align-items: center; justify-content: center; gap: 20px; background: #e0f2fe; border-bottom: 1px solid #bae6fd;">
+    <button class="btn-print" onclick="window.print()" style="margin: 0;">🖨️ สั่งพิมพ์ใบขออนุญาต / บันทึกเป็น PDF</button>
+    <div style="font-family: 'Sarabun', sans-serif; font-size: 14px; color: #0369a1; display: flex; align-items: center; gap: 8px;">
+      <label for="deputy-select" style="font-weight: bold;">เลือกผู้เสนอผ่าน (รองผู้อำนวยการฝ่าย):</label>
+      <select id="deputy-select" onchange="window.updateDeputySignature(this.value)" style="padding: 4px 8px; font-size: 14px; font-family: 'Sarabun', sans-serif; border: 1px solid #0284c7; border-radius: 4px; background: white; outline: none; cursor: pointer;">
+        <option value="academic">รองฝ่ายวิชาการ (นายนิพนธ์ ร่องพืช)</option>
+        <option value="strategy">รองฝ่ายยุทธศาสตร์และแผนงาน (นายนิพนธ์ ร่องพืช)</option>
+        <option value="resources">รองฝ่ายบริหารทรัพยากร (นายจักรพงศ์ พรหมสกุลปัญญา)</option>
+        <option value="student">รองฝ่ายพัฒนากิจการนักเรียน นักศึกษา (นายวิทยา ปันโน)</option>
+      </select>
+    </div>
   </div>
 
   <div id="loading-spinner" class="loader">
@@ -318,7 +327,7 @@
               <td style="width: 50%;"></td>
               <td style="width: 50%; text-align: center;">
                 <div>ลงชื่อ .......................................................</div>
-                <div style="margin-top: 4px;">( ...................................................... )</div>
+                <div style="margin-top: 4px;">( <span id="memo-deputy-name">......................................................</span> )</div>
                 <div style="margin-top: 4px;">รองผู้อำนวยการฝ่าย <span id="memo-deputy-dept-sig">.........................................</span></div>
               </td>
             </tr>
@@ -688,16 +697,50 @@
         document.getElementById('memo-requester-full').textContent = t.fullName;
         document.getElementById('memo-requester-pos-full').textContent = reqPos;
         
-        // Deputy department signature label
+        // Deputy department signature configuration map
+        const DEPUTIES = {
+          academic: {
+            dept: 'วิชาการ',
+            name: 'นายนิพนธ์ ร่องพืช',
+            sig: 'วิชาการ'
+          },
+          strategy: {
+            dept: 'ยุทธศาสตร์และแผนงาน',
+            name: 'นายนิพนธ์ ร่องพืช',
+            sig: 'ยุทธศาสตร์และแผนงาน'
+          },
+          resources: {
+            dept: 'บริหารทรัพยากร',
+            name: 'นายจักรพงศ์ พรหมสกุลปัญญา',
+            sig: 'บริหารทรัพยากร'
+          },
+          student: {
+            dept: 'พัฒนากิจการนักเรียน นักศึกษา',
+            name: 'นายวิทยา ปันโน',
+            sig: 'พัฒนากิจการนักเรียน นักศึกษา'
+          }
+        };
+
+        window.updateDeputySignature = function(key) {
+          const dep = DEPUTIES[key];
+          if (!dep) return;
+          document.getElementById('memo-deputy-dept').textContent = dep.dept;
+          document.getElementById('memo-deputy-name').textContent = dep.name;
+          document.getElementById('memo-deputy-dept-sig').textContent = dep.sig;
+        };
+
+        // Auto-select and initialize based on staff type
+        let defaultKey = 'academic';
         const userStaffType = t.requesterStaffType || 'ครู';
-        let deputyDeptName = '.........................................';
-        if (userStaffType.includes('ครู') || userStaffType.includes('สอน')) {
-          deputyDeptName = 'วิชาการ';
-        } else if (userStaffType.includes('เจ้าหน้าที่') || userStaffType.includes('ลูกจ้าง') || userStaffType.includes('จ้างเหมา')) {
-          deputyDeptName = 'บริหารทรัพยากร';
+        if (userStaffType.includes('เจ้าหน้าที่') || userStaffType.includes('ลูกจ้าง') || userStaffType.includes('จ้างเหมา')) {
+          defaultKey = 'resources';
         }
-        document.getElementById('memo-deputy-dept').textContent = deputyDeptName;
-        document.getElementById('memo-deputy-dept-sig').textContent = deputyDeptName;
+        
+        const selectEl = document.getElementById('deputy-select');
+        if (selectEl) {
+          selectEl.value = defaultKey;
+        }
+        window.updateDeputySignature(defaultKey);
 
         // --- PAGE 2: ประมาณการค่าใช้จ่าย ---
         document.getElementById('est-date').textContent = formatDateThai(details.docDate || t.createdAt);
