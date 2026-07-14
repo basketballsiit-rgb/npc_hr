@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS attendance (
     status VARCHAR(50) NOT NULL,
     updatedBy VARCHAR(50) NOT NULL,
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    memoNo VARCHAR(100) DEFAULT NULL,
     UNIQUE KEY unique_user_date (userId, attendanceDate)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

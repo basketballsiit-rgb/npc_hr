@@ -1342,10 +1342,10 @@ app.get('/api/attendance', async (req, res) => {
 
     // 2. Fetch saved attendance records for this date
     const [attendanceRecords] = await db.query(
-      "SELECT userId, status FROM attendance WHERE attendanceDate = ?", 
+      "SELECT userId, status, memoNo FROM attendance WHERE attendanceDate = ?", 
       [date]
     );
-    const attendanceMap = new Map(attendanceRecords.map(r => [r.userId, r.status]));
+    const attendanceMap = new Map(attendanceRecords.map(r => [r.userId, { status: r.status, memoNo: r.memoNo }]));
 
     // 3. Fetch overlapping leaves (approved only) for this date
     const [leaves] = await db.query(
@@ -1369,7 +1369,9 @@ app.get('/api/attendance', async (req, res) => {
 
     // 4. Combine data
     const result = users.map(user => {
-      const savedStatus = attendanceMap.get(user.userId);
+      const savedRecord = attendanceMap.get(user.userId);
+      const savedStatus = savedRecord ? savedRecord.status : null;
+      const savedMemoNo = savedRecord ? savedRecord.memoNo : null;
       const activeLeave = leavesMap.get(user.userId);
       const activeTravel = travelsMap.get(user.userId);
       
@@ -1396,6 +1398,8 @@ app.get('/api/attendance', async (req, res) => {
         staffType: user.staffType,
         status: defaultStatus,
         hasSavedRecord: !!savedStatus,
+        savedStatus: savedStatus,
+        memoNo: savedMemoNo,
         activeLeave: activeLeave ? {
           leaveId: activeLeave.leaveId,
           leaveType: activeLeave.leaveType,
@@ -1428,32 +1432,70 @@ app.post('/api/attendance', async (req, res) => {
   const updater = adminUserId || 'admin';
 
   try {
+    // Check if the updater is an admin
+    const [adminUser] = await db.query("SELECT role FROM users WHERE userId = ?", [updater]);
+    const updaterRole = adminUser.length > 0 ? adminUser[0].role : 'user';
+
     // 1. Fetch current status map for this date
     const [existing] = await db.query(
-      "SELECT userId, status FROM attendance WHERE attendanceDate = ?", 
+      "SELECT userId, status, memoNo FROM attendance WHERE attendanceDate = ?", 
       [adDate]
     );
-    const existingMap = new Map(existing.map(r => [r.userId, r.status]));
+    const existingMap = new Map(existing.map(r => [r.userId, { status: r.status, memoNo: r.memoNo }]));
 
     // 2. Loop to save and collect notification list
     const notifications = [];
 
     for (const record of records) {
-      const { userId, status } = record;
+      const { userId, status, memoNo } = record;
       if (!userId || !status) continue;
 
-      const prevStatus = existingMap.get(userId);
+      const prev = existingMap.get(userId);
+      const prevStatus = prev ? prev.status : null;
 
-      // Insert or update
+      // VALIDATION: If previous status was "ขาด" or "ไม่ทราบสาเหตุ" and status changes, require admin role & memoNo
+      if (prevStatus === 'ขาด' || prevStatus === 'ไม่ทราบสาเหตุ') {
+        if (status !== prevStatus) {
+          if (updaterRole !== 'admin') {
+            return res.status(403).json({ success: false, message: 'ไม่มีสิทธิ์ในการแก้ไขสถานะ ขาด/ไม่ทราบสาเหตุ' });
+          }
+          if (!memoNo || !memoNo.trim()) {
+            return res.status(400).json({ success: false, message: 'กรุณากรอกเลขที่บันทึกข้อความชี้แจงเพื่อเปลี่ยนสถานะ' });
+          }
+        }
+      }
+
+      // Insert or update including memoNo
       await db.query(
-        `INSERT INTO attendance (userId, attendanceDate, status, updatedBy) 
-         VALUES (?, ?, ?, ?) 
+        `INSERT INTO attendance (userId, attendanceDate, status, updatedBy, memoNo) 
+         VALUES (?, ?, ?, ?, ?) 
          ON DUPLICATE KEY UPDATE 
            status = VALUES(status), 
-           updatedBy = VALUES(updatedBy)`,
-        [userId, adDate, status, updater]
+           updatedBy = VALUES(updatedBy),
+           memoNo = VALUES(memoNo)`,
+        [userId, adDate, status, updater, memoNo ? memoNo.trim() : (prev ? prev.memoNo : null)]
       );
 
+      // Automatically change previous "ไม่ทราบสาเหตุ" to "ขาด" when user returns to work ("มาปฏิบัติงาน")
+      if (status === 'มาปฏิบัติงาน') {
+        try {
+          const [updateResult] = await db.query(
+            `UPDATE attendance 
+             SET status = 'ขาด', updatedBy = ? 
+             WHERE userId = ? 
+               AND attendanceDate < ? 
+               AND status = 'ไม่ทราบสาเหตุ' 
+               AND (memoNo IS NULL OR memoNo = '')`,
+            [updater, userId, adDate]
+          );
+          if (updateResult.affectedRows > 0) {
+            console.log(`✅ Automatically changed ${updateResult.affectedRows} 'ไม่ทราบสาเหตุ' records to 'ขาด' for user ${userId} (returned to work)`);
+          }
+        } catch (dbErr) {
+          console.error(`Error auto-updating 'ไม่ทราบสาเหตุ' to 'ขาด' for user ${userId}:`, dbErr.message);
+        }
+      }
+      
       // Check for notifications on change/new status
       if (status !== prevStatus) {
         // Special condition: "ขาด", "มาสาย", "ไม่ทราบสาเหตุ" (notify immediately)
@@ -1896,9 +1938,21 @@ app.get('/api/activities/participants/:activityId', async (req, res) => {
         status VARCHAR(50) NOT NULL,
         updatedBy VARCHAR(50) NOT NULL,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        memoNo VARCHAR(100) DEFAULT NULL,
         UNIQUE KEY unique_user_date (userId, attendanceDate)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    // Alter table to add memoNo if it exists but is missing the column
+    try {
+      const [cols] = await db.query("SHOW COLUMNS FROM attendance LIKE 'memoNo'");
+      if (cols.length === 0) {
+        await db.query("ALTER TABLE attendance ADD COLUMN memoNo VARCHAR(100) DEFAULT NULL");
+        console.log("✅ Added column 'memoNo' to 'attendance' table successfully.");
+      }
+    } catch (colErr) {
+      console.error("⚠️ Error checking/adding column 'memoNo':", colErr.message);
+    }
 
     // 2. travel_data
     await db.query(`

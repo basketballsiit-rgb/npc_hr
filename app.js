@@ -2359,6 +2359,19 @@ function renderAttendanceTable(dataList) {
       leaveBadge = `<span style="background:#f5f3ff; color:#7c3aed; padding:4px 8px; border-radius:6px; font-size:0.8rem; font-weight:600; display:inline-block;">✈️ ไปราชการ (${user.activeTravel.status})</span>`;
     }
 
+    const isRestricted = user.savedStatus === 'ขาด' || user.savedStatus === 'ไม่ทราบสาเหตุ';
+    const memoInputHtml = isRestricted ? `
+      <div style="margin-top: 6px;">
+        <input type="text" 
+               class="form-input attendance-memo-input" 
+               data-user-id="${user.userId}" 
+               placeholder="เลขที่บันทึกข้อความชี้แจง" 
+               value="${user.memoNo || ''}" 
+               style="padding: 4px 8px; font-size: 0.8rem; width: 100%; border-radius: 6px; box-sizing: border-box;"
+        >
+      </div>
+    ` : '';
+
     tbody.innerHTML += `
       <tr>
         <td style="font-weight: 500; text-align: left; padding-left: 20px;">
@@ -2381,6 +2394,7 @@ function renderAttendanceTable(dataList) {
             <option value="มาสาย" ${user.status === 'มาสาย' ? 'selected' : ''}>มาสาย</option>
             <option value="ไม่ทราบสาเหตุ" ${user.status === 'ไม่ทราบสาเหตุ' ? 'selected' : ''}>ไม่ทราบสาเหตุ</option>
           </select>
+          ${memoInputHtml}
         </td>
       </tr>
     `;
@@ -2396,6 +2410,17 @@ function renderAttendanceTable(dataList) {
         user.status = select.value;
       }
       styleAttendanceSelect(select);
+    });
+  });
+
+  const inputs = tbody.querySelectorAll('.attendance-memo-input');
+  inputs.forEach(input => {
+    input.addEventListener('input', () => {
+      const userId = input.getAttribute('data-user-id');
+      const user = currentAttendanceData.find(u => u.userId == userId);
+      if (user) {
+        user.memoNo = input.value;
+      }
     });
   });
 }
@@ -2432,9 +2457,25 @@ async function saveAttendanceData() {
     return;
   }
 
+  // VALIDATION: Check if changing from "ขาด" or "ไม่ทราบสาเหตุ" and require memoNo
+  for (const u of currentAttendanceData) {
+    const isRestricted = u.savedStatus === 'ขาด' || u.savedStatus === 'ไม่ทราบสาเหตุ';
+    if (isRestricted && u.status !== u.savedStatus) {
+      if (!u.memoNo || !u.memoNo.trim()) {
+        Swal.fire(
+          'ระบุเลขที่บันทึกข้อความ',
+          `กรุณาระบุเลขที่บันทึกข้อความชี้แจงสำหรับคุณ <strong>${u.fullName}</strong> เนื่องจากต้องการเปลี่ยนสถานะจาก "${u.savedStatus}"`,
+          'warning'
+        );
+        return;
+      }
+    }
+  }
+
   const records = currentAttendanceData.map(u => ({
     userId: u.userId,
-    status: u.status
+    status: u.status,
+    memoNo: u.memoNo || ''
   }));
 
   if (records.length === 0) {
@@ -2456,7 +2497,10 @@ async function saveAttendanceData() {
       })
     });
 
-    if (!res.ok) throw new Error('บันทึกข้อมูลล้มเหลว');
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.message || 'บันทึกข้อมูลล้มเหลว');
+    }
     const result = await res.json();
     
     if (result.success) {
