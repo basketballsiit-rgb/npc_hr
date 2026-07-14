@@ -22,7 +22,7 @@
       width: 210mm;
       min-height: 297mm;
       margin: 0 auto;
-      padding: 10mm 15mm 10mm 15mm; /* Top 25mm, Right 15mm, Bottom 20mm, Left 30mm */
+      padding: 25mm 15mm 20mm 30mm; /* Top 25mm, Right 15mm, Bottom 20mm, Left 30mm */
       box-sizing: border-box;
       position: relative;
       background: #ffffff;
@@ -45,7 +45,7 @@
     }
 
     .underline-dotted {
-      /* border-bottom: 1px dotted #000; */
+      /* /* border-bottom: 1px dotted #000; */ */
       padding: 0 2px;
       display: inline;
     }
@@ -94,7 +94,7 @@
       .a4-page {
         width: 100%;
         height: auto;
-        padding: 10mm 15mm 10mm 15mm !important;
+        padding: 25mm 15mm 20mm 30mm !important;
         margin: 0;
         box-shadow: none;
       }
@@ -269,63 +269,7 @@
         </tr>
       </table>
 
-      
-      <!-- PAGE 2 CONTENT MERGED IN PAGE 1 -->
-      <div id="page-estimation" style="margin-top: 10px; border-top: 1px dashed #000; padding-top: 10px;">
-        
-      <div class="header-title" style="font-size: 10pt;">รายละเอียดประมาณการค่าใช้จ่ายในการเดินทางไปราชการ</div>
-      <div class="text-center" style="font-size: 11pt; margin-bottom: 15px;">
-        แนบท้ายบันทึกข้อความลงวันที่ <span id="est-date" class="underline-dotted" style="min-width: 140px;">........................</span>
-        เรื่อง <span id="est-subject" class="bold">..................................................................</span>
-      </div>
-
-      <div class="doc-line">
-        <span class="bold">รายชื่อผู้เดินทางไปราชการ:</span>
-        <ol id="est-travelers-list" style="margin: 5px 0 15px 20px; padding: 0;">
-          <!-- Loaded dynamically -->
-        </ol>
-      </div>
-
-      <div class="doc-line bold" style="margin-bottom: 5px;">ตารางประมาณการค่าใช้จ่าย:</div>
-      <table class="print-table" style="text-align: center;">
-        <thead>
-          <tr style="background-color: #f8fafc;">
-            <th style="width: 8%;">ลำดับ</th>
-            <th style="width: 52%; text-align: left;">รายการประมาณการค่าใช้จ่าย</th>
-            <th style="width: 25%; text-align: right;">จำนวนเงิน (บาท)</th>
-            <th style="width: 15%;">หมายเหตุ</th>
-          </tr>
-        </thead>
-        <tbody id="est-table-body">
-          <!-- Expense items loaded dynamically -->
-        </tbody>
-      </table>
-
-      <div class="doc-line" style="margin-top: 15px; font-weight: bold; font-size: 11pt;">
-        รวมประมาณการค่าใช้จ่ายทั้งสิ้น: <span id="est-grand-total" class="underline-dotted" style="min-width: 120px; text-align: center; display: inline-block;">................</span> บาท
-        (<span id="est-grand-total-thai" style="font-weight: normal;">............................................................</span>)
-      </div>
-
-      <div class="doc-line" style="margin-top: 20px;">
-        <span class="bold">เส้นทางและพาหนะในการเดินทางที่ใช้:</span>
-        <ul id="est-routes-list" style="margin: 5px 0 15px 20px; padding: 0;">
-          <!-- Loaded dynamically -->
-        </ul>
-      </div>
-
-      <table style="width: 100%; border: none; margin-top: 40px; font-size: 11pt;">
-        <tr>
-          <td style="width: 50%;"></td>
-          <td style="text-align: center; width: 50%;">
-            <div>ลงชื่อ ....................................................... ผู้จัดทำประมาณการ</div>
-            <div style="margin-top: 4px;">( <span id="est-sig-name">......................................................</span> )</div>
-            <div style="margin-top: 4px;">ตำแหน่ง <span id="est-sig-pos">......................................................</span></div>
-          </td>
-        </tr>
-      </table>
-    
-      </div>
-<!-- Deputy Director & Director Signatures Section -->
+      <!-- Deputy Director & Director Signatures Section -->
       <div style="margin-top: 20px; font-size: 11pt; line-height: 1;">
         <!-- รองผู้อำนวยการฝ่าย... -->
         <div style="margin-bottom: 20px; page-break-inside: avoid;">
@@ -382,6 +326,59 @@
     </div>
 
     <!-- PAGE 2: ตารางประมาณการค่าใช้จ่าย -->
+    <div class="a4-page page-break" id="page-estimation">
+      <div class="header-title" style="font-size: 10pt;">รายละเอียดประมาณการค่าใช้จ่ายในการเดินทางไปราชการ</div>
+      <div class="text-center" style="font-size: 11pt; margin-bottom: 15px;">
+        แนบท้ายบันทึกข้อความลงวันที่ <span id="est-date" class="underline-dotted" style="min-width: 140px;">........................</span>
+        เรื่อง <span id="est-subject" class="bold">..................................................................</span>
+      </div>
+
+      <div class="doc-line">
+        <span class="bold">รายชื่อผู้เดินทางไปราชการ:</span>
+        <ol id="est-travelers-list" style="margin: 5px 0 15px 20px; padding: 0;">
+          <!-- Loaded dynamically -->
+        </ol>
+      </div>
+
+      <div class="doc-line bold" style="margin-bottom: 5px;">ตารางประมาณการค่าใช้จ่าย:</div>
+      <table class="print-table" style="text-align: center;">
+        <thead>
+          <tr style="background-color: #f8fafc;">
+            <th style="width: 8%;">ลำดับ</th>
+            <th style="width: 52%; text-align: left;">รายการประมาณการค่าใช้จ่าย</th>
+            <th style="width: 25%; text-align: right;">จำนวนเงิน (บาท)</th>
+            <th style="width: 15%;">หมายเหตุ</th>
+          </tr>
+        </thead>
+        <tbody id="est-table-body">
+          <!-- Expense items loaded dynamically -->
+        </tbody>
+      </table>
+
+      <div class="doc-line" style="margin-top: 15px; font-weight: bold; font-size: 11pt;">
+        รวมประมาณการค่าใช้จ่ายทั้งสิ้น: <span id="est-grand-total" class="underline-dotted" style="min-width: 120px; text-align: center; display: inline-block;">................</span> บาท
+        (<span id="est-grand-total-thai" style="font-weight: normal;">............................................................</span>)
+      </div>
+
+      <div class="doc-line" style="margin-top: 20px;">
+        <span class="bold">เส้นทางและพาหนะในการเดินทางที่ใช้:</span>
+        <ul id="est-routes-list" style="margin: 5px 0 15px 20px; padding: 0;">
+          <!-- Loaded dynamically -->
+        </ul>
+      </div>
+
+      <table style="width: 100%; border: none; margin-top: 40px; font-size: 11pt;">
+        <tr>
+          <td style="width: 50%;"></td>
+          <td style="text-align: center; width: 50%;">
+            <div>ลงชื่อ ....................................................... ผู้จัดทำประมาณการ</div>
+            <div style="margin-top: 4px;">( <span id="est-sig-name">......................................................</span> )</div>
+            <div style="margin-top: 4px;">ตำแหน่ง <span id="est-sig-pos">......................................................</span></div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
     <!-- PAGE 3: สัญญายืมเงิน (Optional) -->
     <div class="a4-page page-break hidden" id="page-loan">
       <div class="header-title" style="font-size: 10pt; margin-bottom: 10px;">สัญญายืมเงินทดรองจ่ายเพื่อใช้ในการปฏิบัติราชการ</div>
