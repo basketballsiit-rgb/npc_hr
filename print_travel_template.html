@@ -227,30 +227,64 @@
 
       <!-- Checkbox and vehicle details -->
       <div style="margin-top: 15px; padding-left: 1.5cm; font-size: 16pt; line-height: 1.25;">
-        <div class="bold">โดย</div>
-        <div style="display: grid; grid-template-columns: 1fr 1.2fr; margin-top: 4px;">
-          <div><span class="print-checkbox" id="chk-no-claim"></span> ไม่เบิกค่าใช้จ่ายใด ๆ ทั้งสิ้น</div>
-          <div><span class="print-checkbox" id="chk-no-claim-origin"></span> ไม่ขอเบิกเงินจากต้นสังกัด (เบิกแหล่งอื่น)</div>
-        </div>
-        <div style="margin-top: 4px;">
-          <span class="print-checkbox" id="chk-claim"></span> ขอเบิกค่าใช้จ่าย
-          <div style="padding-left: 24px; display: flex; gap: 20px; flex-wrap: wrap; margin-top: 2px; margin-bottom: 2px;">
-            <div><span class="print-checkbox" id="chk-allowance"></span> ค่าเบี้ยเลี้ยง</div>
-            <div><span class="print-checkbox" id="chk-rent"></span> ค่าที่พักแรม</div>
-            <div><span class="print-checkbox" id="chk-vehicle"></span> ค่าพาหนะ</div>
-            <div><span class="print-checkbox" id="chk-other"></span> อื่น ๆ</div>
-          </div>
-          <div style="padding-left: 24px; margin-top: 2px;">
-            โดยประมาณการค่าใช้จ่ายในการเดินทางไปราชการครั้งนี้ จำนวน <span id="memo-estimated-budget" class="underline-dotted" style="min-width: 120px; text-align: center;">................</span> บาท
-          </div>
-        </div>
-        
-        <div style="margin-top: 8px;">
-          <span class="print-checkbox" id="chk-use-car"></span> ขออนุญาตใช้รถยนต์
-          <div style="padding-left: 24px;">
-            <div style="margin-top: 2px;"><span class="print-checkbox" id="chk-car-gov"></span> ราชการ หมายเลขทะเบียน <span id="memo-plate-gov" class="underline-dotted" style="min-width: 250px;">............................................................</span></div>
-            <div style="margin-top: 2px;"><span class="print-checkbox" id="chk-car-personal"></span> ส่วนตัว หมายเลขทะเบียน <span id="memo-plate-personal" class="underline-dotted" style="min-width: 250px;">............................................................</span></div>
-            <div style="margin-top: 4px;">โดยให้ <span id="memo-driver" class="underline-dotted" style="min-width: 180px; text-align: center;">........................</span> เป็นพนักงานขับรถยนต์ และมี <span id="memo-supervisor" class="underline-dotted" style="min-width: 180px; text-align: center;">........................</span> เป็นผู้ควบคุม</div>
+        <div style="display: flex;">
+          <div style="width: 1.2cm; flex-shrink: 0;" class="bold">โดย</div>
+          <div style="flex-grow: 1;">
+            
+            <!-- Row 1: No claim & No claim origin -->
+            <div style="display: flex; gap: 40px; align-items: center;">
+              <div style="min-width: 320px;">
+                <span class="print-checkbox" id="chk-no-claim"></span> ไม่เบิกค่าใช้จ่ายใดๆ ทั้งสิ้น
+              </div>
+              <div>
+                <span class="print-checkbox" id="chk-no-claim-origin"></span> ไม่ขอเบิกเงินจากต้นสังกัด
+              </div>
+            </div>
+
+            <!-- Row 2: Claim -->
+            <div style="margin-top: 4px;">
+              <span class="print-checkbox" id="chk-claim"></span> -ขอเบิก (พลิกด้านหลัง)
+            </div>
+
+            <!-- Row 3: Claim sub-checkboxes -->
+            <div style="display: flex; gap: 20px; align-items: center; padding-left: 28px; margin-top: 4px;">
+              <div><span class="print-checkbox" id="chk-allowance"></span> ค่าเบี้ยเลี้ยง</div>
+              <div><span class="print-checkbox" id="chk-rent"></span> ค่าที่พัก</div>
+              <div><span class="print-checkbox" id="chk-vehicle"></span> ค่าพาหนะ</div>
+              <div style="display: flex; align-items: baseline; flex-grow: 1;">
+                <span class="print-checkbox" id="chk-other"></span> อื่น...........................................................................................
+              </div>
+            </div>
+
+            <!-- Row 4: Budget estimation -->
+            <div style="margin-top: 4px;">
+              โดยประมาณการค่าใช้จ่ายในการเดินทางไปราชการครั้งนี้ จำนวน <span id="memo-estimated-budget" class="underline-dotted" style="min-width: 150px; text-align: center; display: inline-block;">................</span> บาท
+            </div>
+
+            <!-- Row 5: Request car & Gov car -->
+            <div style="display: flex; gap: 40px; align-items: center; margin-top: 4px;">
+              <div style="min-width: 320px;">
+                <span class="print-checkbox" id="chk-use-car"></span> ขออนุญาตใช้รถยนต์
+              </div>
+              <div style="display: flex; align-items: center; flex-grow: 1;">
+                <span class="print-checkbox" id="chk-car-gov"></span> ราชการ หมายเลขทะเบียน <span id="memo-plate-gov" class="underline-dotted" style="min-width: 250px; display: inline-block; text-align: center;">............................................................</span>
+              </div>
+            </div>
+
+            <!-- Row 6: Personal car -->
+            <div style="display: flex; gap: 40px; align-items: center; margin-top: 4px;">
+              <div style="min-width: 320px;"></div>
+              <div style="display: flex; align-items: center; flex-grow: 1;">
+                <span class="print-checkbox" id="chk-car-personal"></span> ส่วนตัว หมายเลขทะเบียน <span id="memo-plate-personal" class="underline-dotted" style="min-width: 250px; display: inline-block; text-align: center;">............................................................</span>
+              </div>
+            </div>
+
+            <!-- Hidden placeholders to maintain JS compatibility -->
+            <div style="display: none;">
+              <span id="memo-driver"></span>
+              <span id="memo-supervisor"></span>
+            </div>
+
           </div>
         </div>
       </div>
