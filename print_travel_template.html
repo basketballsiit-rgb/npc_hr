@@ -148,7 +148,7 @@
     
     .memo-title-centered {
       text-align: center;
-      font-size: 14pt;
+      font-size: 18pt;
       font-weight: bold;
       line-height: 1.5cm;
       margin: 0;
@@ -594,7 +594,8 @@
         };
 
         // --- PAGE 1: บันทึกข้อความ ---
-        const reqPos = t.requesterPosition || 'ครู';
+        let reqPos = t.requesterPosition || 'ครู';
+        if (reqPos === 'ผู้ดูแลระบบ') reqPos = 'ผู้ขออนุญาต';
         document.getElementById('memo-gov-dept').textContent = details.department || 'วิทยาลัยสารพัดช่างน่าน';
         document.getElementById('memo-doc-date').textContent = formatDateThai(details.docDate || t.createdAt);
         document.getElementById('memo-requester').textContent = t.fullName;
