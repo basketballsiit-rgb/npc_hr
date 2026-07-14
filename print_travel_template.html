@@ -373,54 +373,132 @@
     </div>
 
     <!-- PAGE 2: ตารางประมาณการค่าใช้จ่าย -->
-    <div class="a4-page page-break" id="page-estimation">
-      <div class="header-title" style="font-size: 14pt;">รายละเอียดประมาณการค่าใช้จ่ายในการเดินทางไปราชการ</div>
-      <div class="text-center" style="font-size: 16pt; margin-bottom: 15px;">
-        แนบท้ายบันทึกข้อความลงวันที่ <span id="est-date" class="underline-dotted" style="min-width: 140px;">........................</span>
-        เรื่อง <span id="est-subject" class="bold">..................................................................</span>
+    <div class="a4-page page-break" id="page-estimation" style="font-size: 16pt; line-height: 1.15; padding: 10mm 15mm 10mm 20mm;">
+      <div class="header-title" style="font-size: 16pt; font-weight: bold; text-align: center; margin-bottom: 5px;">ประมาณการค่าใช้จ่ายในการเดินทางไปราชการ</div>
+      
+      <!-- Travel type checkboxes -->
+      <div style="display: flex; justify-content: center; gap: 30px; margin-bottom: 10px; font-size: 16pt;">
+        <div>( <span id="est-type-temp" style="font-weight: bold;">/</span> ) เดินทางไปราชการชั่วคราว จังหวัด <span id="est-prov-temp">........................................</span></div>
+        <div>( <span id="est-type-perm" style="font-weight: bold;">&nbsp;</span> ) เดินทางไปราชการประจำ จังหวัด <span id="est-prov-perm">........................................</span></div>
       </div>
 
-      <div class="doc-line">
-        <span class="bold">รายชื่อผู้เดินทางไปราชการ:</span>
-        <ol id="est-travelers-list" style="margin: 5px 0 15px 20px; padding: 0;">
-          <!-- Loaded dynamically -->
-        </ol>
+      <!-- Travelers List (5 Rows) -->
+      <div style="margin-bottom: 10px; font-size: 16pt; display: flex; flex-direction: column; gap: 2px;">
+        <div style="display: flex; align-items: baseline;">
+          <div style="flex-grow: 1; white-space: nowrap; overflow: hidden;">ชื่อผู้เดินทาง <span id="est-traveler-1">...........................................................................................................</span></div>
+          <div style="width: 320px; flex-shrink: 0; white-space: nowrap; overflow: hidden; margin-left: 10px;">ตำแหน่ง <span id="est-pos-1">..........................................................................</span></div>
+        </div>
+        <div style="display: flex; align-items: baseline;">
+          <div style="flex-grow: 1; white-space: nowrap; overflow: hidden;">ชื่อผู้เดินทาง <span id="est-traveler-2">...........................................................................................................</span></div>
+          <div style="width: 320px; flex-shrink: 0; white-space: nowrap; overflow: hidden; margin-left: 10px;">ตำแหน่ง <span id="est-pos-2">..........................................................................</span></div>
+        </div>
+        <div style="display: flex; align-items: baseline;">
+          <div style="flex-grow: 1; white-space: nowrap; overflow: hidden;">ชื่อผู้เดินทาง <span id="est-traveler-3">...........................................................................................................</span></div>
+          <div style="width: 320px; flex-shrink: 0; white-space: nowrap; overflow: hidden; margin-left: 10px;">ตำแหน่ง <span id="est-pos-3">..........................................................................</span></div>
+        </div>
+        <div style="display: flex; align-items: baseline;">
+          <div style="flex-grow: 1; white-space: nowrap; overflow: hidden;">ชื่อผู้เดินทาง <span id="est-traveler-4">...........................................................................................................</span></div>
+          <div style="width: 320px; flex-shrink: 0; white-space: nowrap; overflow: hidden; margin-left: 10px;">ตำแหน่ง <span id="est-pos-4">..........................................................................</span></div>
+        </div>
+        <div style="display: flex; align-items: baseline;">
+          <div style="flex-grow: 1; white-space: nowrap; overflow: hidden;">ชื่อผู้เดินทาง <span id="est-traveler-5">...........................................................................................................</span></div>
+          <div style="width: 320px; flex-shrink: 0; white-space: nowrap; overflow: hidden; margin-left: 10px;">ตำแหน่ง <span id="est-pos-5">..........................................................................</span></div>
+        </div>
       </div>
 
-      <div class="doc-line bold" style="margin-bottom: 5px;">ตารางประมาณการค่าใช้จ่าย:</div>
-      <table class="print-table" style="text-align: center;">
+      <!-- Estimation standard government table -->
+      <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; font-size: 16pt; line-height: 1.1;">
         <thead>
-          <tr style="background-color: #f8fafc;">
-            <th style="width: 8%;">ลำดับ</th>
-            <th style="width: 52%; text-align: left;">รายการประมาณการค่าใช้จ่าย</th>
-            <th style="width: 25%; text-align: right;">จำนวนเงิน (บาท)</th>
-            <th style="width: 15%;">หมายเหตุ</th>
+          <tr style="border-bottom: 1px solid #000; background: #fff;">
+            <th style="border: 1px solid #000; text-align: center; padding: 4px; font-weight: bold; width: 6%;">ที่</th>
+            <th style="border: 1px solid #000; text-align: center; padding: 4px; font-weight: bold; width: 50%;">รายการ</th>
+            <th style="border: 1px solid #000; text-align: center; padding: 4px; font-weight: bold; width: 10%;">น้ำหนัก</th>
+            <th style="border: 1px solid #000; text-align: center; padding: 4px; font-weight: bold; width: 10%;">ปริมาตร</th>
+            <th style="border: 1px solid #000; text-align: center; padding: 4px; font-weight: bold; width: 14%;">จำนวนเงิน</th>
+            <th style="border: 1px solid #000; text-align: center; padding: 4px; font-weight: bold; width: 10%;">หมายเหตุ</th>
           </tr>
         </thead>
-        <tbody id="est-table-body">
-          <!-- Expense items loaded dynamically -->
+        <tbody>
+          <!-- Row 1: ค่าพาหนะ -->
+          <tr>
+            <td style="border: 1px solid #000; text-align: center; padding: 4px; vertical-align: top;">1</td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: left; vertical-align: top;">
+              <div>ค่าพาหนะในการเดินทาง</div>
+              <div style="font-size: 13pt; color: #333;">(รถไฟ รถประจำทาง รถยนต์ รถสามล้อ ฯลฯ)</div>
+              <div style="margin-top: 2px; display: flex; flex-direction: column; gap: 2px; font-size: 15pt;">
+                <div>จาก <span id="est-route-from-1">........................................</span> ถึง <span id="est-route-to-1">........................................</span></div>
+                <div>จาก <span id="est-route-from-2">........................................</span> ถึง <span id="est-route-to-2">........................................</span></div>
+                <div>จาก <span id="est-route-from-3">........................................</span> ถึง <span id="est-route-to-3">........................................</span></div>
+                <div>จาก <span id="est-route-from-4">........................................</span> ถึง <span id="est-route-to-4">........................................</span></div>
+                <div>จาก <span id="est-route-from-5">........................................</span> ถึง <span id="est-route-to-5">........................................</span></div>
+              </div>
+            </td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
+            <td style="border: 1px solid #000; padding: 4px 6px; text-align: right; vertical-align: top; font-weight: bold;" id="est-amount-vehicle">-</td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top; font-size: 14px;" id="est-remark-vehicle"></td>
+          </tr>
+          <!-- Row 2: ค่าเบี้ยเลี้ยง -->
+          <tr>
+            <td style="border: 1px solid #000; text-align: center; padding: 4px; vertical-align: top;">2</td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: left; vertical-align: top;">
+              <div>ค่าเบี้ยเลี้ยงในการเดินทาง</div>
+              <div id="est-allowance-calc" style="font-size: 15pt; margin-top: 2px;">อัตราเบี้ยเลี้ยง x จำนวนวัน</div>
+              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
+              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
+            </td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
+            <td style="border: 1px solid #000; padding: 4px 6px; text-align: right; vertical-align: top; font-weight: bold;" id="est-amount-allowance">-</td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top; font-size: 14px;" id="est-remark-allowance"></td>
+          </tr>
+          <!-- Row 3: ค่าเช่าที่พัก -->
+          <tr>
+            <td style="border: 1px solid #000; text-align: center; padding: 4px; vertical-align: top;">3</td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: left; vertical-align: top;">
+              <div>ค่าเช่าที่พัก</div>
+              <div id="est-rent-calc" style="font-size: 15pt; margin-top: 2px;">อัตราค่าเช่าที่พัก x จำนวนวัน</div>
+              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
+              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
+            </td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
+            <td style="border: 1px solid #000; padding: 4px 6px; text-align: right; vertical-align: top; font-weight: bold;" id="est-amount-rent">-</td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top; font-size: 14px;" id="est-remark-rent"></td>
+          </tr>
+          <!-- Row 4: ค่าใช้จ่ายอื่น ๆ -->
+          <tr>
+            <td style="border: 1px solid #000; text-align: center; padding: 4px; vertical-align: top;">4</td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: left; vertical-align: top;">
+              <div>ค่าใช้จ่ายอื่นๆ</div>
+              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
+              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
+              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
+            </td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
+            <td style="border: 1px solid #000; padding: 4px 6px; text-align: right; vertical-align: top; font-weight: bold;" id="est-amount-other">-</td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top; font-size: 14px;" id="est-remark-other"></td>
+          </tr>
+          <!-- Grand Total -->
+          <tr style="font-weight: bold;">
+            <td style="border: 1px solid #000; text-align: center; padding: 6px;"></td>
+            <td style="border: 1px solid #000; text-align: center; padding: 6px;">รวมทั้งสิ้น</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;"></td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;"></td>
+            <td style="border: 1px solid #000; padding: 6px 6px; text-align: right;" id="est-amount-total">-</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;"></td>
+          </tr>
         </tbody>
       </table>
 
-      <div class="doc-line" style="margin-top: 15px; font-weight: bold; font-size: 16pt;">
-        รวมประมาณการค่าใช้จ่ายทั้งสิ้น: <span id="est-grand-total" class="underline-dotted" style="min-width: 120px; text-align: center; display: inline-block;">................</span> บาท
-        (<span id="est-grand-total-thai" style="font-weight: normal;">............................................................</span>)
-      </div>
-
-      <div class="doc-line" style="margin-top: 20px;">
-        <span class="bold">เส้นทางและพาหนะในการเดินทางที่ใช้:</span>
-        <ul id="est-routes-list" style="margin: 5px 0 15px 20px; padding: 0;">
-          <!-- Loaded dynamically -->
-        </ul>
-      </div>
-
-      <table style="width: 100%; border: none; margin-top: 40px; font-size: 16pt;">
+      <!-- Proposer signature block -->
+      <table style="width: 100%; border: none; margin-top: 20px; font-size: 16pt; border-collapse: collapse;">
         <tr>
-          <td style="width: 50%;"></td>
-          <td style="text-align: center; width: 50%;">
-            <div>ลงชื่อ ....................................................... ผู้จัดทำประมาณการ</div>
-            <div style="margin-top: 4px;">( <span id="est-sig-name">......................................................</span> )</div>
-            <div style="margin-top: 4px;">ตำแหน่ง <span id="est-sig-pos">......................................................</span></div>
+          <td style="width: 40%;"></td>
+          <td style="width: 60%; text-align: center; vertical-align: top; padding: 2px 0;">
+            <div>(ลงชื่อ)....................................................... ผู้ยื่นประมาณการ</div>
+            <div style="margin-top: 4px;">( <span id="est-sig-name-full">......................................................</span> )</div>
           </td>
         </tr>
       </table>
@@ -743,115 +821,74 @@
         window.updateDeputySignature(defaultKey);
 
         // --- PAGE 2: ประมาณการค่าใช้จ่าย ---
-        document.getElementById('est-date').textContent = formatDateThai(details.docDate || t.createdAt);
-        document.getElementById('est-subject').textContent = t.subject;
-        document.getElementById('est-sig-name').textContent = t.fullName;
-        document.getElementById('est-sig-pos').textContent = 'ครู';
+        // Destination province setting
+        setFieldVal('est-prov-temp', t.destination, '........................................');
+        setFieldVal('est-prov-perm', '', '........................................');
 
-        // Render Travelers
-        const travelersList = document.getElementById('est-travelers-list');
-        travelersList.innerHTML = '';
-        if (details.travelers && details.travelers.length > 0) {
-          details.travelers.forEach(tr => {
-            const li = document.createElement('li');
-            li.innerHTML = `<span class="bold">${tr.name}</span> ตำแหน่ง ${tr.position || 'ครู'}`;
-            travelersList.appendChild(li);
-          });
-        } else {
-          const li = document.createElement('li');
-          li.innerHTML = `<span class="bold">${t.fullName}</span> ตำแหน่ง ครู`;
-          travelersList.appendChild(li);
+        // Render 5 Travelers rows
+        const travelers = details.travelers || [];
+        const allTravelers = travelers.length > 0 ? travelers : [{ name: t.fullName, position: reqPos }];
+        for (let i = 1; i <= 5; i++) {
+          const tr = allTravelers[i - 1];
+          const nameVal = tr ? tr.name : '';
+          const posVal = tr ? (tr.position || 'ครู') : '';
+          setFieldVal(`est-traveler-${i}`, nameVal, '...........................................................................................................');
+          setFieldVal(`est-pos-${i}`, posVal, '..........................................................................');
         }
 
-        // Render Routes/Vehicles
-        const routesList = document.getElementById('est-routes-list');
-        routesList.innerHTML = '';
-        if (details.routes && details.routes.length > 0) {
-          details.routes.forEach(r => {
-            const li = document.createElement('li');
-            li.innerHTML = `เดินทางจาก <span class="bold">${r.from}</span> ถึง <span class="bold">${r.to}</span> โดยพาหนะ: <span class="bold">${r.vehicle}</span>`;
-            routesList.appendChild(li);
-          });
-        } else {
-          const li = document.createElement('li');
-          li.innerHTML = `เดินทางโดยพาหนะ: ${t.vehicleType}`;
-          routesList.appendChild(li);
+        // Render 5 routes paths
+        const routes = details.routes || [];
+        for (let i = 1; i <= 5; i++) {
+          const r = routes[i - 1];
+          const fromVal = r ? r.from : '';
+          const toVal = r ? r.to : '';
+          setFieldVal(`est-route-from-${i}`, fromVal, '........................................');
+          setFieldVal(`est-route-to-${i}`, toVal, '........................................');
         }
 
-        // Render Estimation Table (Conditional values)
-        const estTbody = document.getElementById('est-table-body');
-        estTbody.innerHTML = '';
-        
+        // Setup amounts and formulas
         let displayBudget = t.budget;
         let displayAllowance = details.allowance ? details.allowance.total : 0;
         let displayRent = details.rent ? details.rent.total : 0;
         let displayVehicle = details.vehicleData ? details.vehicleData.routeTotal : 0;
 
-        if (isProjectClaim) {
-          // Empty dotted values for project claims as requested
-          displayBudget = 0;
-          displayAllowance = 0;
-          displayRent = 0;
-          displayVehicle = 0;
+        const allowanceDays = details.allowance ? details.allowance.days : 0;
+        const allowanceRate = details.allowance ? details.allowance.rate : 0;
+        const rentDays = details.rent ? details.rent.days : 0;
+        const rentRate = details.rent ? details.rent.rate : 0;
 
-          estTbody.innerHTML = `
-            <tr>
-              <td>1</td>
-              <td style="text-align: left;">ค่าเบี้ยเลี้ยงเดินทาง</td>
-              <td style="text-align: right; font-family: monospace;">....................................</td>
-              <td>เบิกจากโครงการ</td>
-            </tr>
-            <tr>
-              <td>2</td>
-              <td style="text-align: left;">ค่าที่พักแรม</td>
-              <td style="text-align: right; font-family: monospace;">....................................</td>
-              <td>เบิกจากโครงการ</td>
-            </tr>
-            <tr>
-              <td>3</td>
-              <td style="text-align: left;">ค่าพาหนะ/ยานพาหนะเดินทาง</td>
-              <td style="text-align: right; font-family: monospace;">....................................</td>
-              <td>เบิกจากโครงการ</td>
-            </tr>
-            <tr>
-              <td>4</td>
-              <td style="text-align: left;">ค่าใช้จ่ายอื่น ๆ ที่จำเป็นในการเดินทาง</td>
-              <td style="text-align: right; font-family: monospace;">....................................</td>
-              <td>เบิกจากโครงการ</td>
-            </tr>
-          `;
-          document.getElementById('est-grand-total').textContent = '....................................';
-          document.getElementById('est-grand-total-thai').textContent = '................................................................';
+        if (isProjectClaim) {
+          document.getElementById('est-allowance-calc').textContent = 'อัตราเบี้ยเลี้ยง ............. บาท x ............. วัน';
+          document.getElementById('est-rent-calc').textContent = 'อัตราค่าเช่าที่พัก ............. บาท x ............. วัน';
+
+          document.getElementById('est-amount-vehicle').textContent = '....................';
+          document.getElementById('est-amount-allowance').textContent = '....................';
+          document.getElementById('est-amount-rent').textContent = '....................';
+          document.getElementById('est-amount-other').textContent = '....................';
+          document.getElementById('est-amount-total').textContent = '....................';
+          
+          document.getElementById('est-remark-vehicle').textContent = 'เบิกจากโครงการ';
+          document.getElementById('est-remark-allowance').textContent = 'เบิกจากโครงการ';
+          document.getElementById('est-remark-rent').textContent = 'เบิกจากโครงการ';
+          document.getElementById('est-remark-other').textContent = 'เบิกจากโครงการ';
         } else {
-          estTbody.innerHTML = `
-            <tr>
-              <td>1</td>
-              <td style="text-align: left;">ค่าเบี้ยเลี้ยงเดินทาง (${details.allowance ? details.allowance.days : 0} วัน)</td>
-              <td style="text-align: right; font-weight: bold;">${parseFloat(displayAllowance).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-              <td>-</td>
-            </tr>
-            <tr>
-              <td>2</td>
-              <td style="text-align: left;">ค่าที่พักแรม (${details.rent ? details.rent.days : 0} วัน)</td>
-              <td style="text-align: right; font-weight: bold;">${parseFloat(displayRent).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-              <td>-</td>
-            </tr>
-            <tr>
-              <td>3</td>
-              <td style="text-align: left;">ค่าพาหนะ/ยานพาหนะเดินทาง</td>
-              <td style="text-align: right; font-weight: bold;">${parseFloat(displayVehicle).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-              <td>-</td>
-            </tr>
-            <tr>
-              <td>4</td>
-              <td style="text-align: left;">ค่าใช้จ่ายอื่น ๆ ที่จำเป็นในการเดินทาง</td>
-              <td style="text-align: right; font-weight: bold;">0.00</td>
-              <td>-</td>
-            </tr>
-          `;
-          document.getElementById('est-grand-total').textContent = parseFloat(displayBudget).toLocaleString();
-          document.getElementById('est-grand-total-thai').textContent = numToThaiBath(displayBudget);
+          document.getElementById('est-allowance-calc').textContent = `อัตราเบี้ยเลี้ยง ${allowanceRate} บาท/วัน x ${allowanceDays} วัน`;
+          document.getElementById('est-rent-calc').textContent = `อัตราค่าเช่าที่พัก ${rentRate} บาท/วัน x ${rentDays} วัน`;
+
+          document.getElementById('est-amount-vehicle').textContent = parseFloat(displayVehicle).toLocaleString('en-US', { minimumFractionDigits: 2 });
+          document.getElementById('est-amount-allowance').textContent = parseFloat(displayAllowance).toLocaleString('en-US', { minimumFractionDigits: 2 });
+          document.getElementById('est-amount-rent').textContent = parseFloat(displayRent).toLocaleString('en-US', { minimumFractionDigits: 2 });
+          document.getElementById('est-amount-other').textContent = '0.00';
+          document.getElementById('est-amount-total').textContent = parseFloat(displayBudget).toLocaleString('en-US', { minimumFractionDigits: 2 });
+          
+          document.getElementById('est-remark-vehicle').textContent = '-';
+          document.getElementById('est-remark-allowance').textContent = '-';
+          document.getElementById('est-remark-rent').textContent = '-';
+          document.getElementById('est-remark-other').textContent = '-';
         }
+
+        // Requester name in proposer signature
+        document.getElementById('est-sig-name-full').textContent = t.fullName;
 
         // --- PAGE 3: สัญญายืมเงิน (Optional) ---
         if (details.hasLoan) {
