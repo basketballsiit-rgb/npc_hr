@@ -2103,6 +2103,8 @@ function renderBadge(status, isUserStatus = false) {
   } else {
     if (status === 'อนุมัติ') {
       className = 'badge-approved';
+    } else if (status === 'รับทราบ') {
+      className = 'badge-acknowledged';
     } else if (status === 'รอการอนุมัติ') {
       className = 'badge-pending';
     } else if (status === 'ไม่อนุมัติ') {
@@ -3487,7 +3489,7 @@ async function loadApprovedTravelsDropdown() {
   try {
     const res = await fetch(`${API_BASE_URL}/api/travel?userId=${currentUser.userId}`);
     const travels = await res.json();
-    approvedTravelsList = travels.filter(t => t.status === 'อนุมัติ');
+    approvedTravelsList = travels.filter(t => t.status === 'อนุมัติ' || t.status === 'รับทราบ');
     
     if (approvedTravelsList.length === 0) {
       select.innerHTML = '<option value="">-- ไม่มีประวัติเดินทางที่อนุมัติ --</option>';

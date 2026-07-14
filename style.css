@@ -860,6 +860,12 @@ select.form-input {
   border: 1px solid var(--neutral-200);
 }
 
+.badge-acknowledged {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
 /* ================================================================= */
 /* Signatures Layout                                                 */
 /* ================================================================= */

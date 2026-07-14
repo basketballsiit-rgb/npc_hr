@@ -928,7 +928,7 @@ app.get('/api/dashboard', async (req, res) => {
       totalStaffVal = totalStaff || 0;
 
       const [[{ totalTravels }]] = await db.query(
-        `SELECT COUNT(*) as totalTravels FROM travel_data WHERE status = 'อนุมัติ' AND ${dateFilterSql}`,
+        `SELECT COUNT(*) as totalTravels FROM travel_data WHERE status IN ('อนุมัติ', 'รับทราบ') AND ${dateFilterSql}`,
         [fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
       totalTravelsVal = totalTravels || 0;
@@ -991,7 +991,7 @@ app.get('/api/dashboard', async (req, res) => {
         `SELECT 
           COALESCE(SUM(budget), 0) as totalBudget
          FROM travel_data 
-         WHERE budget > 0 AND status = 'อนุมัติ' AND ${dateFilterSql}`,
+         WHERE budget > 0 AND status IN ('อนุมัติ', 'รับทราบ') AND ${dateFilterSql}`,
         [fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
       totalLoanBudgetVal = parseFloat(adminLoanRow.totalBudget) || 0;
@@ -1013,7 +1013,7 @@ app.get('/api/dashboard', async (req, res) => {
         `SELECT COALESCE(SUM(totalDays), 0) as totalTravels 
          FROM travel_data 
          WHERE userId IN (${userIds.map(() => '?').join(', ')}) 
-           AND status = 'อนุมัติ' 
+           AND status IN ('อนุมัติ', 'รับทราบ') 
            AND ${dateFilterSql}`,
         [...userIds, fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
@@ -1096,7 +1096,7 @@ app.get('/api/dashboard', async (req, res) => {
         `SELECT COALESCE(SUM(budget), 0) as totalBudget
          FROM travel_data 
          WHERE userId IN (${userIds2.map(() => '?').join(', ')}) 
-           AND budget > 0 AND status = 'อนุมัติ' AND ${dateFilterSql}`,
+           AND budget > 0 AND status IN ('อนุมัติ', 'รับทราบ') AND ${dateFilterSql}`,
         [...userIds2, fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
       totalLoanBudgetVal = parseFloat(userLoanRow.totalBudget) || 0;
@@ -1362,7 +1362,7 @@ app.get('/api/attendance', async (req, res) => {
       `SELECT travelId, userId, subject, status 
        FROM travel_data 
        WHERE ? BETWEEN startDate AND endDate 
-         AND status = 'อนุมัติ'`,
+         AND status IN ('อนุมัติ', 'รับทราบ')`,
       [date]
     );
     const travelsMap = new Map(travels.map(t => [t.userId, t]));
@@ -1546,7 +1546,7 @@ app.post('/api/travel', async (req, res) => {
   try {
     await db.query(
       `INSERT INTO travel_data (travelId, userId, fullName, subject, destination, startDate, endDate, totalDays, budget, vehicleType, details, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'อนุมัติ')`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'รับทราบ')`,
       [travelId, userId, fullName, subject, destination, startDate, endDate, totalDays, budget || 0, vehicleType, details || null]
     );
 
