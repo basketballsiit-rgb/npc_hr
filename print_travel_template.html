@@ -859,7 +859,7 @@
         const rentRateVal = details.rent ? details.rent.rate : 0;
         const rentRate = rentRateVal || (rentDays ? Math.round(displayRent / rentDays) : 0);
 
-        const isNoClaim = !details.expenseType || details.expenseType === 'none' || details.expenseType === 'no-origin';
+        const isNoClaim = !details.expenseType || details.expenseType === 'no-claim' || details.expenseType === 'no-claim-origin';
 
         if (isProjectClaim || isNoClaim) {
           document.getElementById('est-allowance-calc').textContent = 'อัตราเบี้ยเลี้ยง ............. บาท x ............. วัน';
