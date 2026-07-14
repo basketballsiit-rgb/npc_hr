@@ -7,7 +7,7 @@
 // Automatically detect backend API domain
 const API_BASE_URL = window.location.hostname !== 'service.npc.ac.th'
   ? `http://${window.location.hostname || 'localhost'}:5000`
-  : 'https://service.npc.ac.th/npc_hr_backend'; // Replace with your production Node.js API domain
+  : 'https://service.npc.ac.th/npc_eleve_backend'; // Replace with your production Node.js API domain
 
 // ---------------------------------------------------------------
 // Global fetch interceptor — converts 502/HTML responses to clear errors
