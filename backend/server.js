@@ -1260,10 +1260,8 @@ app.post('/api/leaves/calculate-days', async (req, res) => {
   const adStartDate = normalizeDateToAD(startDate);
   const adEndDate = normalizeDateToAD(endDate);
 
-  const start = new Date(adStartDate);
-  const end = new Date(adEndDate);
-  start.setHours(0,0,0,0);
-  end.setHours(0,0,0,0);
+  const start = new Date(adStartDate + 'T00:00:00Z');
+  const end = new Date(adEndDate + 'T00:00:00Z');
 
   if (end < start) return res.json({ days: 0 });
 
