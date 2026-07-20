@@ -652,6 +652,10 @@
         const details = JSON.parse(t.details);
         const isProjectClaim = details.expenseType === 'project-claim';
 
+        if (t && t.fullName) {
+          document.title = `ใบขออนุมัติเดินทางไปราชการ - ${t.fullName}`;
+        }
+
         // Helper to set checkbox slash text
         const setCheckbox = (id, checked) => {
           const el = document.getElementById(id);

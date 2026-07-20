@@ -432,6 +432,10 @@
         
         const cl = clearances[0];
         const clDetails = JSON.parse(cl.details);
+
+        if (cl && cl.fullName) {
+          document.title = `เอกสารเคลียร์เงินยืม - ${cl.fullName}`;
+        }
         
         // 2. Fetch report details to get travel metadata
         const repResponse = await fetch(`${API_BASE_URL}/api/travel-report?reportId=${reportId}`);
