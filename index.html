@@ -835,6 +835,53 @@
             </div>
           </div>
           
+          <!-- Card 3: Special Days & Compensatory Workdays -->
+          <div class="glass-card" style="grid-column: 1 / -1; margin-top: 12px;">
+            <h3 style="font-size:1.15rem; font-weight:600; color:var(--neutral-800); margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+              <span>🗓️</span> กำหนดวันทำงานชดเชย / วันหยุดพิเศษ
+            </h3>
+            <p style="font-size:0.9rem; color:#64748b; margin-bottom:16px;">
+              กำหนดวันเสาร์-อาทิตย์ให้เป็นวันทำงานชดเชย หรือกำหนดวันธรรมดาให้เป็นวันหยุดพิเศษ/วันหยุดราชการ
+            </p>
+
+            <div style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:20px; align-items:flex-end;">
+              <div style="flex:1; min-width:160px;">
+                <label style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:4px;">วันที่:</label>
+                <input type="date" id="setting-special-date" class="form-input" style="padding:8px 12px; font-size:0.9rem;">
+              </div>
+              <div style="flex:1; min-width:200px;">
+                <label style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:4px;">ประเภท:</label>
+                <select id="setting-special-type" class="form-input" style="padding:8px 12px; font-size:0.9rem; background:white; color:#0f172a;">
+                  <option value="workday">🔨 วันทำงานชดเชย (Compensatory Workday)</option>
+                  <option value="holiday">🏖️ วันหยุดพิเศษ / วันหยุดราชการ (Holiday)</option>
+                </select>
+              </div>
+              <div style="flex:2; min-width:220px;">
+                <label style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:4px;">รายละเอียด / หมายเหตุ:</label>
+                <input type="text" id="setting-special-desc" placeholder="เช่น สอนชดเชยวันสงกรานต์" class="form-input" style="padding:8px 12px; font-size:0.9rem;">
+              </div>
+              <div>
+                <button onclick="addSpecialDaySetting()" class="btn btn-primary" style="padding:10px 18px; font-size:0.9rem; margin-top:0;">➕ บันทึกข้อมูล</button>
+              </div>
+            </div>
+
+            <div class="table-container" style="max-height: 350px; overflow-y: auto;">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th style="width: 140px;">วันที่</th>
+                    <th style="width: 200px;">ประเภท</th>
+                    <th>รายละเอียด / หมายเหตุ</th>
+                    <th style="text-align: center; width: 80px;">เครื่องมือ</th>
+                  </tr>
+                </thead>
+                <tbody id="special-days-list-body">
+                  <!-- Loaded dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <!-- Card 2: Default Fiscal Year Configuration -->
           <div class="glass-card" style="display: flex; flex-direction: column; justify-content: space-between;">
             <div>

@@ -1169,6 +1169,56 @@ app.post('/api/settings', async (req, res) => {
   }
 });
 
+// 5.5 Special Days / Compensatory Workday Routes
+app.get('/api/special-days', async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT dateKey, dayType, description FROM special_days ORDER BY dateKey DESC');
+    rows.forEach(r => {
+      if (r.dateKey) r.dateKey = normalizeDateToAD(r.dateKey);
+    });
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/special-days', async (req, res) => {
+  const { dateKey, dayType, description } = req.body;
+  if (!dateKey || !dayType || !description) {
+    return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
+  }
+  const adDate = normalizeDateToAD(dateKey);
+  try {
+    await db.query(
+      'INSERT INTO special_days (dateKey, dayType, description) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE dayType = ?, description = ?',
+      [adDate, dayType, description, dayType, description]
+    );
+    if (dayType === 'holiday') {
+      await db.query(
+        'INSERT INTO holidays (holidayDate, description) VALUES (?, ?) ON DUPLICATE KEY UPDATE description = ?',
+        [adDate, description, description]
+      );
+    } else {
+      await db.query('DELETE FROM holidays WHERE holidayDate = ?', [adDate]);
+    }
+    res.json({ success: true, message: 'บันทึกข้อมูลสำเร็จ' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.delete('/api/special-days/:dateKey', async (req, res) => {
+  const { dateKey } = req.params;
+  const adDate = normalizeDateToAD(dateKey);
+  try {
+    await db.query('DELETE FROM special_days WHERE dateKey = ?', [adDate]);
+    await db.query('DELETE FROM holidays WHERE holidayDate = ?', [adDate]);
+    res.json({ success: true, message: 'ลบข้อมูลสำเร็จ' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // 6. Holidays Routes
 app.get('/api/holidays', async (req, res) => {
   try {
@@ -1270,19 +1320,27 @@ app.post('/api/leaves/calculate-days', async (req, res) => {
 
   if (workDayTypes.includes(leaveType)) {
     try {
-      const [holidaysRows] = await db.query('SELECT holidayDate FROM holidays');
-      const holidaysList = holidaysRows.map(row => {
-        return normalizeDateToAD(row.holidayDate);
+      const [specialRows] = await db.query('SELECT dateKey, dayType FROM special_days');
+      const specialMap = {};
+      specialRows.forEach(row => {
+        specialMap[normalizeDateToAD(row.dateKey)] = row.dayType;
       });
 
       let loopDate = new Date(start);
       while (loopDate <= end) {
         const dayOfWeek = loopDate.getUTCDay();
         const dateString = loopDate.toISOString().split('T')[0];
+        const customType = specialMap[dateString];
         
-        // Exclude Sunday (0), Saturday (6) and holidays
-        if (dayOfWeek !== 0 && dayOfWeek !== 6 && !holidaysList.includes(dateString)) {
-          count++;
+        if (customType === 'workday') {
+          count++; // Explicit compensatory workday
+        } else if (customType === 'holiday') {
+          // Explicit holiday (skipped)
+        } else {
+          // Default: exclude Sunday (0) and Saturday (6)
+          if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+            count++;
+          }
         }
         loopDate.setUTCDate(loopDate.getUTCDate() + 1);
       }
@@ -2029,6 +2087,26 @@ app.get('/api/activities/participants/:activityId', async (req, res) => {
         UNIQUE KEY unique_user_activity (activityId, userId)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    // 7. special_days
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS special_days (
+        dateKey DATE PRIMARY KEY,
+        dayType VARCHAR(50) NOT NULL,
+        description VARCHAR(255) NOT NULL,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    try {
+      const [spCount] = await db.query('SELECT COUNT(*) as cnt FROM special_days');
+      if (spCount[0].cnt === 0) {
+        const [hols] = await db.query('SELECT holidayDate, description FROM holidays');
+        for (const h of hols) {
+          await db.query('INSERT IGNORE INTO special_days (dateKey, dayType, description) VALUES (?, ?, ?)', [h.holidayDate, 'holiday', h.description || 'วันหยุดราชการ']);
+        }
+      }
+    } catch(e) {}
 
     console.log('✅ All portal database tables verified/created successfully.');
   } catch (err) {

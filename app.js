@@ -4617,3 +4617,112 @@ window.saveAdminSettings = saveAdminSettings;
 window.approveTravel = approveTravel;
 window.registerActivity = registerActivity;
 window.viewParticipants = viewParticipants;
+
+
+async function renderSpecialDaysList() {
+  const tbody = document.getElementById('special-days-list-body');
+  if (!tbody) return;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/special-days`);
+    const list = await res.json();
+
+    tbody.innerHTML = '';
+    if (!Array.isArray(list) || list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="text-center" style="color:var(--neutral-400); padding:16px;">ยังไม่มีข้อมูลวันทำงานชดเชยหรือวันหยุดพิเศษ</td></tr>`;
+      return;
+    }
+
+    list.forEach(item => {
+      const isWorkday = item.dayType === 'workday';
+      const badge = isWorkday 
+        ? `<span style="background:#ecfdf5; color:#047857; padding:4px 10px; border-radius:12px; font-size:0.8rem; font-weight:600;">🔨 วันทำงานชดเชย</span>`
+        : `<span style="background:#fef2f2; color:#b91c1c; padding:4px 10px; border-radius:12px; font-size:0.8rem; font-weight:600;">🏖️ วันหยุดพิเศษ</span>`;
+
+      tbody.innerHTML += `
+        <tr>
+          <td style="font-weight:600; padding:12px 16px;">${formatDateThai(item.dateKey)}</td>
+          <td style="padding:12px 16px;">${badge}</td>
+          <td style="padding:12px 16px; color:#334155;">${item.description}</td>
+          <td style="text-align:center; padding:12px 16px;">
+            <button class="btn btn-outline" style="border-color:#ef4444; color:#ef4444; padding:4px 8px; font-size:0.8rem; margin:0;" onclick="removeSpecialDaySetting('${item.dateKey}')">ลบ</button>
+          </td>
+        </tr>
+      `;
+    });
+  } catch (err) {
+    console.error('Error fetching special days:', err);
+  }
+}
+
+async function addSpecialDaySetting() {
+  const dateInput = document.getElementById('setting-special-date');
+  const typeSelect = document.getElementById('setting-special-type');
+  const descInput = document.getElementById('setting-special-desc');
+
+  if (!dateInput || !typeSelect || !descInput) return;
+
+  const dateKey = dateInput.value;
+  const dayType = typeSelect.value;
+  const description = descInput.value.trim();
+
+  if (!dateKey || !description) {
+    Swal.fire({ icon: 'warning', title: 'กรุณากรอกข้อมูลให้ครบถ้วน', text: 'ต้องระบุวันที่และรายละเอียด/หมายเหตุ' });
+    return;
+  }
+
+  showLoading('กำลังบันทึกข้อมูล...');
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/special-days`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dateKey, dayType, description })
+    });
+    const data = await res.json();
+    Swal.close();
+
+    if (data.success) {
+      dateInput.value = '';
+      descInput.value = '';
+      renderSpecialDaysList();
+      Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 1500, showConfirmButton: false });
+    } else {
+      showError(data.message);
+    }
+  } catch (err) {
+    showError('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message);
+  }
+}
+
+async function removeSpecialDaySetting(dateKey) {
+  const confirm = await Swal.fire({
+    title: 'ยืนยันการลบรายการ?',
+    text: `ต้องการลบวันตั้งค่าพิเศษ ${formatDateThai(dateKey)} ใช่หรือไม่?`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'ใช่, ลบรายการ',
+    cancelButtonText: 'ยกเลิก'
+  });
+
+  if (confirm.isConfirmed) {
+    showLoading('กำลังลบรายการ...');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/special-days/${dateKey}`, { method: 'DELETE' });
+      const data = await res.json();
+      Swal.close();
+
+      if (data.success) {
+        renderSpecialDaysList();
+        Swal.fire({ icon: 'success', title: 'ลบรายการสำเร็จ', timer: 1500, showConfirmButton: false });
+      } else {
+        showError(data.message);
+      }
+    } catch (err) {
+      showError('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message);
+    }
+  }
+}
+
+window.renderSpecialDaysList = renderSpecialDaysList;
+window.addSpecialDaySetting = addSpecialDaySetting;
+window.removeSpecialDaySetting = removeSpecialDaySetting;
