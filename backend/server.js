@@ -1304,6 +1304,13 @@ app.post('/api/leaves/calculate-days', async (req, res) => {
     count = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
   }
 
+  // Fallback: If count is 0 because the requested date range falls on weekends/holidays,
+  // count the actual calendar days so approved leave requests never display 0 days.
+  if (count === 0) {
+    const diffTime = Math.abs(end - start);
+    count = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  }
+
   res.json({ days: count });
 });
 
@@ -2059,6 +2066,10 @@ async function repairZeroDaysLeaves() {
             count++;
           }
           curr.setUTCDate(curr.getUTCDate() + 1);
+        }
+        if (count === 0) {
+          const diffTime = Math.abs(e - s);
+          count = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
         }
         if (count > 0) {
           await db.query('UPDATE leave_data SET totalDays = ? WHERE leaveId = ?', [count, r.leaveId]);
