@@ -131,7 +131,7 @@ async function enterModule(pageId, adminOnly) {
           const data = await res.json();
           if (data.success && data.aprStaffId) {
             currentUser.aprStaffId = data.aprStaffId;
-            sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+            localStorage.setItem('currentUser', JSON.stringify(currentUser)); sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
           }
         } catch (e) {
           console.error('Failed to fetch APR staff ID dynamically:', e);
@@ -329,7 +329,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     settings = await setRes.json();
     
     // Check local session
-    const storedUser = sessionStorage.getItem('currentUser');
+    const storedUser = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
     if (storedUser) {
       currentUser = JSON.parse(storedUser);
       updateUIAfterLogin();
@@ -337,7 +337,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       updateUIAfterLogout();
     }
     
-    loadDashboardData();
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetPage = urlParams.get('page');
+    if (targetPage) {
+      const isAdminPage = ['approval-page', 'user-management-page', 'admin-settings-page'].includes(targetPage);
+      enterModule(targetPage, isAdminPage);
+    } else {
+      loadDashboardData();
+    }
     Swal.close();
   } catch (err) {
     showError("เกิดข้อผิดพลาดในการเชื่อมต่อหลังบ้าน: " + err.message);
@@ -540,7 +547,7 @@ window.showSelfEditModal = () => {
           currentUser.fullName = payload.fullName;
           currentUser.position = payload.position;
           currentUser.lineUserId = payload.lineUserId;
-          sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+          localStorage.setItem('currentUser', JSON.stringify(currentUser)); sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
           
           // Refresh UI
           updateUIAfterLogin();
@@ -572,7 +579,7 @@ window.handleCustomLogin = async (e) => {
     
     if (data.success) {
       currentUser = data.user;
-      sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+      localStorage.setItem('currentUser', JSON.stringify(currentUser)); sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
       updateUIAfterLogin();
       hideLoginModal();
       
@@ -686,7 +693,7 @@ function showRegisterModal() {
 
 function handleLogout() {
   currentUser = null;
-  sessionStorage.removeItem('currentUser');
+  localStorage.removeItem('currentUser'); sessionStorage.removeItem('currentUser');
   updateUIAfterLogout();
   Swal.fire({
     icon: 'info',

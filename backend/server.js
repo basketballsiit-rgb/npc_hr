@@ -539,7 +539,7 @@ app.post('/api/leaves', async (req, res) => {
         },
         "footer": {
           "type": "box", "layout": "vertical", "contents": [
-            { "type": "button", "style": "primary", "color": "#2E3A59", "action": { "type": "uri", "label": "ตรวจสอบ / อนุมัติ", "uri": `${finalFrontendUrl}index.html` } }
+            { "type": "button", "style": "primary", "color": "#2E3A59", "action": { "type": "uri", "label": "ตรวจสอบ / อนุมัติ", "uri": `${finalFrontendUrl}index.html?page=approval-page` } }
           ]
         }
       };
@@ -1611,7 +1611,7 @@ app.post('/api/travel', async (req, res) => {
         },
         "footer": {
           "type": "box", "layout": "vertical", "contents": [
-            { "type": "button", "style": "primary", "color": "#7c3aed", "action": { "type": "uri", "label": "กดเพื่อรับทราบ", "uri": `${finalFrontendUrl}index.html` } }
+            { "type": "button", "style": "primary", "color": "#7c3aed", "action": { "type": "uri", "label": "กดเพื่อรับทราบ", "uri": `${finalFrontendUrl}index.html?page=travel-page` } }
           ]
         }
       };
