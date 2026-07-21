@@ -2032,4 +2032,41 @@ app.get('/api/activities/participants/:activityId', async (req, res) => {
 // Start Server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  repairZeroDaysLeaves();
 });
+
+async function repairZeroDaysLeaves() {
+  try {
+    const [rows] = await db.query('SELECT leaveId, startDate, endDate, leaveType, totalDays FROM leave_data WHERE totalDays = 0 OR totalDays IS NULL');
+    if (rows && rows.length > 0) {
+      console.log(`Found ${rows.length} leave records with 0 totalDays. Repairing...`);
+      for (const r of rows) {
+        if (!r.startDate || !r.endDate) continue;
+        const adS = normalizeDateToAD(r.startDate);
+        const adE = normalizeDateToAD(r.endDate);
+        const s = new Date(adS + 'T00:00:00Z');
+        const e = new Date(adE + 'T00:00:00Z');
+        if (isNaN(s.getTime()) || isNaN(e.getTime()) || e < s) continue;
+        
+        const workDayTypes = ['ลาป่วย', 'ลากิจส่วนตัว', 'ลาพักผ่อน', 'ลาไปช่วยเหลือภริยาที่คลอดบุตร'];
+        let count = 0;
+        let curr = new Date(s);
+        while (curr <= e) {
+          const day = curr.getUTCDay();
+          if (workDayTypes.includes(r.leaveType)) {
+            if (day !== 0 && day !== 6) count++;
+          } else {
+            count++;
+          }
+          curr.setUTCDate(curr.getUTCDate() + 1);
+        }
+        if (count > 0) {
+          await db.query('UPDATE leave_data SET totalDays = ? WHERE leaveId = ?', [count, r.leaveId]);
+          console.log(`Repaired leaveId ${r.leaveId}: totalDays set to ${count}`);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error repairing zero days leaves:', err);
+  }
+}

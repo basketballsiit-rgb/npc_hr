@@ -345,6 +345,47 @@
       return `https://lh3.googleusercontent.com/d/${str}`;
     }
 
+    
+    function normalizeDateToAD(dateStr) {
+      if (!dateStr) return dateStr;
+      const str = String(dateStr).trim();
+      let match = str.match(/^(\d{4})[-/](\d{2})[-/](\d{2})/);
+      if (match) {
+        const year = parseInt(match[1]);
+        if (year > 2400) return `${year - 543}-${match[2]}-${match[3]}`;
+        return `${year}-${match[2]}-${match[3]}`;
+      }
+      match = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+      if (match) {
+        const day = match[1].padStart(2, '0');
+        const month = match[2].padStart(2, '0');
+        let year = parseInt(match[3]);
+        if (year > 2400) year -= 543;
+        return `${year}-${month}-${day}`;
+      }
+      return dateStr;
+    }
+
+    function calculateDaysFallback(sStr, eStr, type) {
+      if (!sStr || !eStr) return 0;
+      const s = new Date(normalizeDateToAD(sStr) + 'T00:00:00Z');
+      const e = new Date(normalizeDateToAD(eStr) + 'T00:00:00Z');
+      if (isNaN(s.getTime()) || isNaN(e.getTime()) || e < s) return 0;
+      const workDayTypes = ['ลาป่วย', 'ลากิจส่วนตัว', 'ลาพักผ่อน', 'ลาไปช่วยเหลือภริยาที่คลอดบุตร'];
+      let count = 0;
+      let curr = new Date(s);
+      while (curr <= e) {
+        const day = curr.getUTCDay();
+        if (workDayTypes.includes(type)) {
+          if (day !== 0 && day !== 6) count++;
+        } else {
+          count++;
+        }
+        curr.setUTCDate(curr.getUTCDate() + 1);
+      }
+      return count;
+    }
+
     window.addEventListener('DOMContentLoaded', async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const leaveId = urlParams.get('leaveId');
@@ -380,7 +421,12 @@
         document.getElementById('leave-reason').textContent = leave.reason;
         document.getElementById('start-date-full').textContent = formatDateThai(leave.startDate);
         document.getElementById('end-date-full').textContent = formatDateThai(leave.endDate);
-        document.getElementById('total-days').textContent = parseFloat(leave.totalDays).toFixed(1).replace('.0', '');
+        
+        let displayDays = parseFloat(leave.totalDays) || 0;
+        if (displayDays === 0 && leave.startDate && leave.endDate) {
+          displayDays = calculateDaysFallback(leave.startDate, leave.endDate, leave.leaveType);
+        }
+        document.getElementById('total-days').textContent = displayDays.toFixed(1).replace('.0', '');
         
         document.getElementById('contact-address').textContent = leave.contactAddress;
         document.getElementById('contact-phone').textContent = leave.contactPhone;
