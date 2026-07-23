@@ -372,138 +372,6 @@
       </div>
     </div>
 
-    <!-- PAGE 2: ตารางประมาณการค่าใช้จ่าย -->
-    <div class="a4-page page-break" id="page-estimation" style="font-size: 16pt; line-height: 1.15; padding: 10mm 15mm 10mm 20mm;">
-      <div class="header-title" style="font-size: 16pt; font-weight: bold; text-align: center; margin-bottom: 5px;">ประมาณการค่าใช้จ่ายในการเดินทางไปราชการ</div>
-      
-      <!-- Travel type checkboxes -->
-      <div style="display: flex; justify-content: center; gap: 30px; margin-bottom: 10px; font-size: 16pt;">
-        <div>( <span id="est-type-temp" style="font-weight: bold;">/</span> ) เดินทางไปราชการชั่วคราว จังหวัด <span id="est-prov-temp">........................................</span></div>
-        <div>( <span id="est-type-perm" style="font-weight: bold;">&nbsp;</span> ) เดินทางไปราชการประจำ จังหวัด <span id="est-prov-perm">........................................</span></div>
-      </div>
-
-      <!-- Travelers List (5 Rows) -->
-      <div style="margin-bottom: 10px; font-size: 16pt; display: flex; flex-direction: column; gap: 2px;">
-        <div style="display: flex; align-items: baseline;">
-          <div style="flex-grow: 1; white-space: nowrap; overflow: hidden;">ชื่อผู้เดินทาง <span id="est-traveler-1">...........................................................................................................</span></div>
-          <div style="width: 320px; flex-shrink: 0; white-space: nowrap; overflow: hidden; margin-left: 10px;">ตำแหน่ง <span id="est-pos-1">..........................................................................</span></div>
-        </div>
-        <div style="display: flex; align-items: baseline;">
-          <div style="flex-grow: 1; white-space: nowrap; overflow: hidden;">ชื่อผู้เดินทาง <span id="est-traveler-2">...........................................................................................................</span></div>
-          <div style="width: 320px; flex-shrink: 0; white-space: nowrap; overflow: hidden; margin-left: 10px;">ตำแหน่ง <span id="est-pos-2">..........................................................................</span></div>
-        </div>
-        <div style="display: flex; align-items: baseline;">
-          <div style="flex-grow: 1; white-space: nowrap; overflow: hidden;">ชื่อผู้เดินทาง <span id="est-traveler-3">...........................................................................................................</span></div>
-          <div style="width: 320px; flex-shrink: 0; white-space: nowrap; overflow: hidden; margin-left: 10px;">ตำแหน่ง <span id="est-pos-3">..........................................................................</span></div>
-        </div>
-        <div style="display: flex; align-items: baseline;">
-          <div style="flex-grow: 1; white-space: nowrap; overflow: hidden;">ชื่อผู้เดินทาง <span id="est-traveler-4">...........................................................................................................</span></div>
-          <div style="width: 320px; flex-shrink: 0; white-space: nowrap; overflow: hidden; margin-left: 10px;">ตำแหน่ง <span id="est-pos-4">..........................................................................</span></div>
-        </div>
-        <div style="display: flex; align-items: baseline;">
-          <div style="flex-grow: 1; white-space: nowrap; overflow: hidden;">ชื่อผู้เดินทาง <span id="est-traveler-5">...........................................................................................................</span></div>
-          <div style="width: 320px; flex-shrink: 0; white-space: nowrap; overflow: hidden; margin-left: 10px;">ตำแหน่ง <span id="est-pos-5">..........................................................................</span></div>
-        </div>
-      </div>
-
-      <!-- Estimation standard government table -->
-      <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; font-size: 16pt; line-height: 1.1;">
-        <thead>
-          <tr style="border-bottom: 1px solid #000; background: #fff;">
-            <th style="border: 1px solid #000; text-align: center; padding: 4px; font-weight: bold; width: 6%;">ที่</th>
-            <th style="border: 1px solid #000; text-align: center; padding: 4px; font-weight: bold; width: 50%;">รายการ</th>
-            <th style="border: 1px solid #000; text-align: center; padding: 4px; font-weight: bold; width: 10%;">น้ำหนัก</th>
-            <th style="border: 1px solid #000; text-align: center; padding: 4px; font-weight: bold; width: 10%;">ปริมาตร</th>
-            <th style="border: 1px solid #000; text-align: center; padding: 4px; font-weight: bold; width: 14%;">จำนวนเงิน</th>
-            <th style="border: 1px solid #000; text-align: center; padding: 4px; font-weight: bold; width: 10%;">หมายเหตุ</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Row 1: ค่าพาหนะ -->
-          <tr>
-            <td style="border: 1px solid #000; text-align: center; padding: 4px; vertical-align: top;">1</td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: left; vertical-align: top;">
-              <div>ค่าพาหนะในการเดินทาง</div>
-              <div style="font-size: 13pt; color: #333;">(รถไฟ รถประจำทาง รถยนต์ รถสามล้อ ฯลฯ)</div>
-              <div style="margin-top: 2px; display: flex; flex-direction: column; gap: 2px; font-size: 15pt;">
-                <div>จาก <span id="est-route-from-1">........................................</span> ถึง <span id="est-route-to-1">........................................</span></div>
-                <div>จาก <span id="est-route-from-2">........................................</span> ถึง <span id="est-route-to-2">........................................</span></div>
-                <div>จาก <span id="est-route-from-3">........................................</span> ถึง <span id="est-route-to-3">........................................</span></div>
-                <div>จาก <span id="est-route-from-4">........................................</span> ถึง <span id="est-route-to-4">........................................</span></div>
-                <div>จาก <span id="est-route-from-5">........................................</span> ถึง <span id="est-route-to-5">........................................</span></div>
-              </div>
-            </td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
-            <td style="border: 1px solid #000; padding: 4px 6px; text-align: right; vertical-align: top; font-weight: bold;" id="est-amount-vehicle">-</td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top; font-size: 14px;" id="est-remark-vehicle"></td>
-          </tr>
-          <!-- Row 2: ค่าเบี้ยเลี้ยง -->
-          <tr>
-            <td style="border: 1px solid #000; text-align: center; padding: 4px; vertical-align: top;">2</td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: left; vertical-align: top;">
-              <div>ค่าเบี้ยเลี้ยงในการเดินทาง</div>
-              <div id="est-allowance-calc" style="font-size: 15pt; margin-top: 2px;">อัตราเบี้ยเลี้ยง x จำนวนวัน</div>
-              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
-              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
-            </td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
-            <td style="border: 1px solid #000; padding: 4px 6px; text-align: right; vertical-align: top; font-weight: bold;" id="est-amount-allowance">-</td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top; font-size: 14px;" id="est-remark-allowance"></td>
-          </tr>
-          <!-- Row 3: ค่าเช่าที่พัก -->
-          <tr>
-            <td style="border: 1px solid #000; text-align: center; padding: 4px; vertical-align: top;">3</td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: left; vertical-align: top;">
-              <div>ค่าเช่าที่พัก</div>
-              <div id="est-rent-calc" style="font-size: 15pt; margin-top: 2px;">อัตราค่าเช่าที่พัก x จำนวนวัน</div>
-              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
-              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
-            </td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
-            <td style="border: 1px solid #000; padding: 4px 6px; text-align: right; vertical-align: top; font-weight: bold;" id="est-amount-rent">-</td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top; font-size: 14px;" id="est-remark-rent"></td>
-          </tr>
-          <!-- Row 4: ค่าใช้จ่ายอื่น ๆ -->
-          <tr>
-            <td style="border: 1px solid #000; text-align: center; padding: 4px; vertical-align: top;">4</td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: left; vertical-align: top;">
-              <div>ค่าใช้จ่ายอื่นๆ</div>
-              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
-              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
-              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
-            </td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
-            <td style="border: 1px solid #000; padding: 4px 6px; text-align: right; vertical-align: top; font-weight: bold;" id="est-amount-other">-</td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top; font-size: 14px;" id="est-remark-other"></td>
-          </tr>
-          <!-- Grand Total -->
-          <tr style="font-weight: bold;">
-            <td style="border: 1px solid #000; text-align: center; padding: 6px;"></td>
-            <td style="border: 1px solid #000; text-align: center; padding: 6px;">รวมทั้งสิ้น</td>
-            <td style="border: 1px solid #000; padding: 6px; text-align: center;"></td>
-            <td style="border: 1px solid #000; padding: 6px; text-align: center;"></td>
-            <td style="border: 1px solid #000; padding: 6px 6px; text-align: right;" id="est-amount-total">-</td>
-            <td style="border: 1px solid #000; padding: 6px; text-align: center;"></td>
-          </tr>
-        </tbody>
-      </table>
-
-      <!-- Proposer signature block -->
-      <table style="width: 100%; border: none; margin-top: 20px; font-size: 16pt; border-collapse: collapse;">
-        <tr>
-          <td style="width: 40%;"></td>
-          <td style="width: 60%; text-align: center; vertical-align: top; padding: 2px 0;">
-            <div>(ลงชื่อ)....................................................... ผู้ยื่นประมาณการ</div>
-            <div style="margin-top: 4px;">( <span id="est-sig-name-full">......................................................</span> )</div>
-          </td>
-        </tr>
-      </table>
-    </div>
-
     <!-- PAGE 3: สัญญายืมเงิน (Optional) -->
     <div class="a4-page page-break hidden" id="page-loan" style="padding: 5mm 15mm 5mm 20mm; font-size: 16pt; line-height: 1.25;">
       
@@ -890,7 +758,142 @@
           </tr>
         </table>
       </div>
-    </div>div>
+    </div>
+
+    <!-- PAGE 2: ตารางประมาณการค่าใช้จ่าย -->
+    <div class="a4-page page-break" id="page-estimation" style="font-size: 16pt; line-height: 1.15; padding: 10mm 15mm 10mm 20mm;">
+      <div class="header-title" style="font-size: 16pt; font-weight: bold; text-align: center; margin-bottom: 5px;">ประมาณการค่าใช้จ่ายในการเดินทางไปราชการ</div>
+      
+      <!-- Travel type checkboxes -->
+      <div style="display: flex; justify-content: center; gap: 30px; margin-bottom: 10px; font-size: 16pt;">
+        <div>( <span id="est-type-temp" style="font-weight: bold;">/</span> ) เดินทางไปราชการชั่วคราว จังหวัด <span id="est-prov-temp">........................................</span></div>
+        <div>( <span id="est-type-perm" style="font-weight: bold;">&nbsp;</span> ) เดินทางไปราชการประจำ จังหวัด <span id="est-prov-perm">........................................</span></div>
+      </div>
+
+      <!-- Travelers List (5 Rows) -->
+      <div style="margin-bottom: 10px; font-size: 16pt; display: flex; flex-direction: column; gap: 2px;">
+        <div style="display: flex; align-items: baseline;">
+          <div style="flex-grow: 1; white-space: nowrap; overflow: hidden;">ชื่อผู้เดินทาง <span id="est-traveler-1">...........................................................................................................</span></div>
+          <div style="width: 320px; flex-shrink: 0; white-space: nowrap; overflow: hidden; margin-left: 10px;">ตำแหน่ง <span id="est-pos-1">..........................................................................</span></div>
+        </div>
+        <div style="display: flex; align-items: baseline;">
+          <div style="flex-grow: 1; white-space: nowrap; overflow: hidden;">ชื่อผู้เดินทาง <span id="est-traveler-2">...........................................................................................................</span></div>
+          <div style="width: 320px; flex-shrink: 0; white-space: nowrap; overflow: hidden; margin-left: 10px;">ตำแหน่ง <span id="est-pos-2">..........................................................................</span></div>
+        </div>
+        <div style="display: flex; align-items: baseline;">
+          <div style="flex-grow: 1; white-space: nowrap; overflow: hidden;">ชื่อผู้เดินทาง <span id="est-traveler-3">...........................................................................................................</span></div>
+          <div style="width: 320px; flex-shrink: 0; white-space: nowrap; overflow: hidden; margin-left: 10px;">ตำแหน่ง <span id="est-pos-3">..........................................................................</span></div>
+        </div>
+        <div style="display: flex; align-items: baseline;">
+          <div style="flex-grow: 1; white-space: nowrap; overflow: hidden;">ชื่อผู้เดินทาง <span id="est-traveler-4">...........................................................................................................</span></div>
+          <div style="width: 320px; flex-shrink: 0; white-space: nowrap; overflow: hidden; margin-left: 10px;">ตำแหน่ง <span id="est-pos-4">..........................................................................</span></div>
+        </div>
+        <div style="display: flex; align-items: baseline;">
+          <div style="flex-grow: 1; white-space: nowrap; overflow: hidden;">ชื่อผู้เดินทาง <span id="est-traveler-5">...........................................................................................................</span></div>
+          <div style="width: 320px; flex-shrink: 0; white-space: nowrap; overflow: hidden; margin-left: 10px;">ตำแหน่ง <span id="est-pos-5">..........................................................................</span></div>
+        </div>
+      </div>
+
+      <!-- Estimation standard government table -->
+      <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; font-size: 16pt; line-height: 1.1;">
+        <thead>
+          <tr style="border-bottom: 1px solid #000; background: #fff;">
+            <th style="border: 1px solid #000; text-align: center; padding: 4px; font-weight: bold; width: 6%;">ที่</th>
+            <th style="border: 1px solid #000; text-align: center; padding: 4px; font-weight: bold; width: 50%;">รายการ</th>
+            <th style="border: 1px solid #000; text-align: center; padding: 4px; font-weight: bold; width: 10%;">น้ำหนัก</th>
+            <th style="border: 1px solid #000; text-align: center; padding: 4px; font-weight: bold; width: 10%;">ปริมาตร</th>
+            <th style="border: 1px solid #000; text-align: center; padding: 4px; font-weight: bold; width: 14%;">จำนวนเงิน</th>
+            <th style="border: 1px solid #000; text-align: center; padding: 4px; font-weight: bold; width: 10%;">หมายเหตุ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Row 1: ค่าพาหนะ -->
+          <tr>
+            <td style="border: 1px solid #000; text-align: center; padding: 4px; vertical-align: top;">1</td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: left; vertical-align: top;">
+              <div>ค่าพาหนะในการเดินทาง</div>
+              <div style="font-size: 13pt; color: #333;">(รถไฟ รถประจำทาง รถยนต์ รถสามล้อ ฯลฯ)</div>
+              <div style="margin-top: 2px; display: flex; flex-direction: column; gap: 2px; font-size: 15pt;">
+                <div>จาก <span id="est-route-from-1">........................................</span> ถึง <span id="est-route-to-1">........................................</span></div>
+                <div>จาก <span id="est-route-from-2">........................................</span> ถึง <span id="est-route-to-2">........................................</span></div>
+                <div>จาก <span id="est-route-from-3">........................................</span> ถึง <span id="est-route-to-3">........................................</span></div>
+                <div>จาก <span id="est-route-from-4">........................................</span> ถึง <span id="est-route-to-4">........................................</span></div>
+                <div>จาก <span id="est-route-from-5">........................................</span> ถึง <span id="est-route-to-5">........................................</span></div>
+              </div>
+            </td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
+            <td style="border: 1px solid #000; padding: 4px 6px; text-align: right; vertical-align: top; font-weight: bold;" id="est-amount-vehicle">-</td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top; font-size: 14px;" id="est-remark-vehicle"></td>
+          </tr>
+          <!-- Row 2: ค่าเบี้ยเลี้ยง -->
+          <tr>
+            <td style="border: 1px solid #000; text-align: center; padding: 4px; vertical-align: top;">2</td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: left; vertical-align: top;">
+              <div>ค่าเบี้ยเลี้ยงในการเดินทาง</div>
+              <div id="est-allowance-calc" style="font-size: 15pt; margin-top: 2px;">อัตราเบี้ยเลี้ยง x จำนวนวัน</div>
+              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
+              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
+            </td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
+            <td style="border: 1px solid #000; padding: 4px 6px; text-align: right; vertical-align: top; font-weight: bold;" id="est-amount-allowance">-</td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top; font-size: 14px;" id="est-remark-allowance"></td>
+          </tr>
+          <!-- Row 3: ค่าเช่าที่พัก -->
+          <tr>
+            <td style="border: 1px solid #000; text-align: center; padding: 4px; vertical-align: top;">3</td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: left; vertical-align: top;">
+              <div>ค่าเช่าที่พัก</div>
+              <div id="est-rent-calc" style="font-size: 15pt; margin-top: 2px;">อัตราค่าเช่าที่พัก x จำนวนวัน</div>
+              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
+              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
+            </td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
+            <td style="border: 1px solid #000; padding: 4px 6px; text-align: right; vertical-align: top; font-weight: bold;" id="est-amount-rent">-</td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top; font-size: 14px;" id="est-remark-rent"></td>
+          </tr>
+          <!-- Row 4: ค่าใช้จ่ายอื่น ๆ -->
+          <tr>
+            <td style="border: 1px solid #000; text-align: center; padding: 4px; vertical-align: top;">4</td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: left; vertical-align: top;">
+              <div>ค่าใช้จ่ายอื่นๆ</div>
+              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
+              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
+              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
+            </td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
+            <td style="border: 1px solid #000; padding: 4px 6px; text-align: right; vertical-align: top; font-weight: bold;" id="est-amount-other">-</td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top; font-size: 14px;" id="est-remark-other"></td>
+          </tr>
+          <!-- Grand Total -->
+          <tr style="font-weight: bold;">
+            <td style="border: 1px solid #000; text-align: center; padding: 6px;"></td>
+            <td style="border: 1px solid #000; text-align: center; padding: 6px;">รวมทั้งสิ้น</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;"></td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;"></td>
+            <td style="border: 1px solid #000; padding: 6px 6px; text-align: right;" id="est-amount-total">-</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Proposer signature block -->
+      <table style="width: 100%; border: none; margin-top: 20px; font-size: 16pt; border-collapse: collapse;">
+        <tr>
+          <td style="width: 40%;"></td>
+          <td style="width: 60%; text-align: center; vertical-align: top; padding: 2px 0;">
+            <div>(ลงชื่อ)....................................................... ผู้ยื่นประมาณการ</div>
+            <div style="margin-top: 4px;">( <span id="est-sig-name-full">......................................................</span> )</div>
+            <div style="margin-top: 4px;">ตำแหน่ง <span id="est-sig-pos-full">......................................................</span></div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+div>
 
   </div>
 
@@ -1228,6 +1231,7 @@
 
         // Requester name in proposer signature
         document.getElementById('est-sig-name-full').textContent = t.fullName;
+        document.getElementById('est-sig-pos-full').textContent = t.position || 'ครู';
 
         // --- PAGE 3: สัญญายืมเงิน (Optional) ---
         if (details.hasLoan) {
