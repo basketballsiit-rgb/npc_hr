@@ -2681,6 +2681,12 @@ window.switchTravelTab = (tabId) => {
       }
     }
   }
+
+  if (tabId === 'travel-tab-loan') {
+    if (typeof toggleLoanForm === 'function') {
+      toggleLoanForm();
+    }
+  }
 };
 
 // Alias used by Next / Back buttons inside the tabs
@@ -3067,10 +3073,7 @@ window.toggleLoanForm = () => {
       document.getElementById('travel-loan-rent').value = parseFloat(document.getElementById('travel-total-rent-txt').textContent.replace(/,/g, '')) || 0;
       
       // Calculate total transportation cost from routes
-      let routeTotal = 0;
-      document.querySelectorAll('.travel-route-cost').forEach(input => {
-        routeTotal += parseFloat(input.value) || 0;
-      });
+      const routeTotal = parseFloat(document.getElementById('travel-legs-grand')?.value) || 0;
       document.getElementById('travel-loan-fuel').value = routeTotal;
       
       // Sync purpose and location
