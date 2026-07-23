@@ -2594,6 +2594,37 @@ window.switchTravelTab = (tabId) => {
 
   if (tabId === 'travel-tab-estimation') {
     calculateTravelDays();
+
+    // 1. Pre-populate the date of the first daily allowance row if empty
+    const startInput = document.getElementById('travel-start-date');
+    if (startInput && startInput.value) {
+      const firstAdayDate = document.querySelector('.aday-date');
+      if (firstAdayDate && !firstAdayDate.value) {
+        firstAdayDate.value = startInput.value;
+      }
+    }
+
+    // 2. Auto-select first leg vehicle type from Tab 1 radio selection if unselected
+    const vehicleTypeRadio = document.querySelector('input[name="travel-vehicle-type"]:checked');
+    if (vehicleTypeRadio) {
+      const firstLegSelect = document.querySelector('#tleg-1 .leg-vehicle-select');
+      if (firstLegSelect && !firstLegSelect.value) {
+        let defaultVal = '';
+        if (vehicleTypeRadio.value === 'gov') {
+          defaultVal = 'gov_car';
+        } else if (vehicleTypeRadio.value === 'personal') {
+          defaultVal = 'personal_car';
+        } else {
+          defaultVal = 'bus';
+        }
+        if (defaultVal) {
+          firstLegSelect.value = defaultVal;
+          if (typeof onLegVehicleChange === 'function') {
+            onLegVehicleChange(1);
+          }
+        }
+      }
+    }
   }
 };
 
