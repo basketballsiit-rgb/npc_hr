@@ -2526,6 +2526,64 @@ async function saveAttendanceData() {
 // --- Travel Request & Report Controllers ---
 // ==========================================
 
+
+function syncAllowanceDaysToRange() {
+  const startInput = document.getElementById('travel-start-date');
+  const endInput = document.getElementById('travel-end-date');
+  if (!startInput || !endInput || !startInput.value || !endInput.value) return;
+
+  const s = new Date(startInput.value + 'T00:00:00Z');
+  const e = new Date(endInput.value + 'T00:00:00Z');
+  if (isNaN(s.getTime()) || isNaN(e.getTime()) || e < s) return;
+
+  const container = document.getElementById('allowance-days-container');
+  if (!container) return;
+
+  const rows = container.querySelectorAll('.aday-date');
+  
+  // If we have only one blank row, clear it to start clean
+  const hasOnlyBlankRows = rows.length === 1 && !rows[0].value;
+  if (hasOnlyBlankRows) {
+    container.innerHTML = '';
+    _allowanceDayCounter = 0;
+  }
+
+  // Generate rows for each date in the range
+  let curr = new Date(s);
+  while (curr <= e) {
+    const dateStr = curr.toISOString().split('T')[0];
+    
+    // Check if a row with this date already exists
+    let exists = false;
+    const currentRows = container.querySelectorAll('.aday-date');
+    currentRows.forEach(r => {
+      if (r.value === dateStr) exists = true;
+    });
+
+    if (!exists) {
+      // Find the first blank row if any, and set its date
+      let blankRow = null;
+      const updatedRows = container.querySelectorAll('.aday-date');
+      updatedRows.forEach(r => {
+        if (!r.value) blankRow = r;
+      });
+
+      if (blankRow) {
+        blankRow.value = dateStr;
+      } else {
+        if (typeof addAllowanceDay === 'function') {
+          addAllowanceDay(240, dateStr);
+        }
+      }
+    }
+    curr.setUTCDate(curr.getUTCDate() + 1);
+  }
+
+  if (typeof calcAllAllowanceDays === 'function') {
+    calcAllAllowanceDays();
+  }
+}
+
 function calculateTravelDays() {
   const startInput = document.getElementById('travel-start-date');
   const endInput = document.getElementById('travel-end-date');
@@ -2543,6 +2601,9 @@ function calculateTravelDays() {
       if (daysInput) daysInput.value = diffDays;
       if (allowanceDays) allowanceDays.value = diffDays;
       if (rentDays) rentDays.value = Math.max(0, diffDays - 1);
+      
+      // Auto sync daily allowance rows
+      syncAllowanceDaysToRange();
       
       calculateExpenses();
       return;
@@ -2595,14 +2656,8 @@ window.switchTravelTab = (tabId) => {
   if (tabId === 'travel-tab-estimation') {
     calculateTravelDays();
 
-    // 1. Pre-populate the date of the first daily allowance row if empty
-    const startInput = document.getElementById('travel-start-date');
-    if (startInput && startInput.value) {
-      const firstAdayDate = document.querySelector('.aday-date');
-      if (firstAdayDate && !firstAdayDate.value) {
-        firstAdayDate.value = startInput.value;
-      }
-    }
+    // 1. Sync daily allowance rows to range
+    syncAllowanceDaysToRange();
 
     // 2. Auto-select first leg vehicle type from Tab 1 radio selection if unselected
     const vehicleTypeRadio = document.querySelector('input[name="travel-vehicle-type"]:checked');
