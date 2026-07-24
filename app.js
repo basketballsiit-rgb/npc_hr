@@ -491,7 +491,7 @@ window.showSelfEditModal = () => {
 
       <div style="text-align: left; display:flex; flex-direction:column; gap:12px;">
         <div>
-          <label class="form-label">ชื่อ-นามสกุล</label>
+          <label class="form-label">ชื่อ-นามสกุล (ระบุคำนำหน้าด้วย เช่น นาย / นาง / นางสาว)</label>
           <input id="self-fn" class="form-input" value="${currentUser.fullName || ''}" autocomplete="off">
         </div>
         <div>
@@ -611,7 +611,7 @@ function showRegisterModal() {
     html: `
       <div style="text-align: left; display:flex; flex-direction:column; gap:12px;">
         <div>
-          <label class="form-label">ชื่อ-นามสกุล</label>
+          <label class="form-label">ชื่อ-นามสกุล (ระบุคำนำหน้าด้วย เช่น นาย / นาง / นางสาว)</label>
           <input id="reg-fn" class="form-input" placeholder="เช่น นายสมชาย ใจดี">
         </div>
         <div>
@@ -1825,7 +1825,7 @@ window.editUser = (u) => {
 
       <div style="text-align: left; display:flex; flex-direction:column; gap:12px;">
         <div>
-          <label class="form-label">ชื่อ-นามสกุล</label>
+          <label class="form-label">ชื่อ-นามสกุล (ระบุคำนำหน้าด้วย เช่น นาย / นาง / นางสาว)</label>
           <input id="edit-fn" class="form-input" value="${u.fullName}" autocomplete="off">
         </div>
         <div>
