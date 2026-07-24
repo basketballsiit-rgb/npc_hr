@@ -373,127 +373,136 @@
     </div>
 
     <!-- PAGE 3: สัญญายืมเงิน (Optional) -->
-    <div class="a4-page page-break hidden" id="page-loan" style="padding: 8mm 10mm; font-size: 16pt; line-height: 1.35; box-sizing: border-box;">
-      <div style="border: 1.5px solid black; padding: 6mm 10mm; min-height: 280mm; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
-        <!-- Top Title Box -->
-      <table style="width: 100%; border-collapse: collapse; border: 1.5px solid black; margin-bottom: 12px; font-size: 16pt;">
-        <tr>
-          <td style="width: 70%; border-right: 1.5px solid black; padding: 8px 10px; vertical-align: middle; text-align: center;">
-            <div style="font-size: 20pt; font-weight: bold; margin-bottom: 6px;">สัญญายืมเงิน</div>
-            <div style="text-align: left; font-size: 16pt; white-space: nowrap; overflow: hidden;">
-              ยื่นต่อ...ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน..................................................
+    <div class="a4-page page-break hidden" id="page-loan" style="padding: 10mm 15mm 10mm 20mm; font-size: 16pt; line-height: 1.25; box-sizing: border-box;">
+      <div style="border: 1.5px solid black; min-height: 272mm; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+        
+        <div>
+          <!-- Top Title Box -->
+          <table style="width: 100%; border-collapse: collapse; border: none; border-bottom: 1.5px solid black; font-size: 16pt; margin: 0;">
+            <tr>
+              <td style="width: 70%; border-right: 1.5px solid black; padding: 6px 10px; vertical-align: middle; text-align: center;">
+                <div style="font-size: 19pt; font-weight: bold; margin-bottom: 4px;">สัญญายืมเงิน</div>
+                <div style="text-align: left; font-size: 16pt; white-space: nowrap; overflow: hidden;">
+                  ยื่นต่อ...ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน..................................................
+                </div>
+              </td>
+              <td style="width: 30%; padding: 6px 10px; vertical-align: top;">
+                <div style="font-size: 16pt; margin-bottom: 2px; display: flex; align-items: baseline; gap: 4px;">
+                  <span style="white-space: nowrap;">เลขที่</span>
+                  <span id="loan-contract-no" style="flex-grow: 1; border-bottom: 1px dotted black; text-align: center; min-width: 50px;"></span>
+                </div>
+                <div style="font-size: 16pt; line-height: 1.0;">วันครบกำหนด</div>
+                <div style="font-size: 16pt; margin-top: 2px; border-bottom: 1px dotted black; min-height: 22px; text-align: center; width: 100%;" id="loan-contract-due-date"></div>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Paragraph 1 -->
+          <div style="padding: 6px 12px 2px 12px; text-indent: 1.2cm; text-align: justify; font-size: 16pt;">
+            ข้าพเจ้า <span id="loan-requester-name">......................................................</span>
+            ตำแหน่ง <span id="loan-requester-position">......................................................</span>
+            สังกัด <span id="loan-requester-org">วิทยาลัยสารพัดช่างน่าน</span>
+            จังหวัด <span class="bold">น่าน</span>
+            มีความประสงค์ขอยืมเงินจาก <span class="bold">วิทยาลัยสารพัดช่างน่าน</span>
+          </div>
+
+          <div style="padding: 0 12px 4px 12px; text-indent: 1.2cm; text-align: justify; line-height: 1.2; font-size: 16pt;">
+            เพื่อเป็นค่าใช้จ่ายในการ <span id="loan-purpose-full">................................................................................................................................................................................................................................................................................................................</span>
+            ดังรายละเอียดต่อไปนี้
+          </div>
+
+          <!-- Details Table (touches left and right borders of page box) -->
+          <table style="width: 100%; border-collapse: collapse; border: none; border-top: 1.5px solid black; border-bottom: 1.5px solid black; font-size: 16pt; margin: 0;">
+            <tbody id="loan-details-table-body">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+
+          <!-- Paragraph 2 -->
+          <div style="padding: 6px 12px; text-indent: 1.2cm; text-align: justify; font-size: 16pt; line-height: 1.2;">
+            ข้าพเจ้าสัญญาว่าจะปฏิบัติตามระเบียบของทางราชการทุกประการ และจะนำใบสำคัญคู่จ่ายที่ถูกต้อง พร้อมทั้งเงินเหลือจ่าย (ถ้ามี) ส่งใช้ภายในกำหนดไว้ในระเบียบการเบิกจ่ายจากคลัง คือ ภายใน <span id="loan-return-days">30</span> วัน นับแต่วันที่ได้รับเงินนี้ หากข้าพเจ้าไม่ส่งตามกำหนด ข้าพเจ้ายินยอมให้หักเงินเดือน ค่าจ้าง เบี้ยหวัด บำนาญ หรือเงินอื่นใดที่ข้าพเจ้าพึงได้รับจากทางราชการชดใช้จำนวนเงินที่ยืมไปจนครบถ้วนได้ทันที
+          </div>
+
+          <!-- Signature of Borrower -->
+          <div style="padding: 0 12px; margin-top: 4px; margin-bottom: 4px; font-size: 16pt; text-align: left; padding-left: 1.5cm;">
+            ลายมือชื่อ ........................................................................... ผู้ยืม
+          </div>
+        </div>
+
+        <div>
+          <!-- Divider line touching outer borders -->
+          <div style="border-top: 1.5px solid black; width: 100%; margin: 0;"></div>
+
+          <!-- Lower Section 1: Checked by Financial & Deputy -->
+          <div style="font-size: 16pt; line-height: 1.2; padding: 6px 12px 4px 12px;">
+            <div style="margin-bottom: 2px;">เสนอ......ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน</div>
+            <div style="text-indent: 1.2cm; margin-bottom: 2px;">
+              ได้ตรวจสอบแล้ว เห็นสมควรอนุมัติให้ยืมเงินตามใบยืมฉบับนี้ได้ จำนวน <span id="loan-checked-amount" class="underline-dotted" style="font-weight: bold;">................</span> บาท
+              ( <span id="loan-checked-amount-thai" class="underline-dotted" style="font-weight: bold;">............................................................</span> )
             </div>
-          </td>
-          <td style="width: 30%; padding: 8px 10px; vertical-align: top;">
-            <div style="font-size: 16pt; margin-bottom: 4px; display: flex; align-items: baseline; gap: 4px;">
-              <span style="white-space: nowrap;">เลขที่</span>
-              <span id="loan-contract-no" style="flex-grow: 1; border-bottom: 1px dotted black; text-align: center; min-width: 50px;"></span>
+            
+            <table style="width: 100%; border: none; font-size: 15pt; margin-top: 6px; border-collapse: collapse;">
+              <tr>
+                <td style="width: 50%; text-align: center; vertical-align: top; padding: 2px 0;">
+                  <div>ลงชื่อ............................................</div>
+                  <div style="margin-top: 2px;">(นางสาวดวงดาว ไชยเขียว)</div>
+                  <div style="margin-top: 1px; font-size: 14pt; color: #475569;">หัวหน้างานการเงิน</div>
+                </td>
+                <td style="width: 50%; text-align: center; vertical-align: top; padding: 2px 0;">
+                  <div>ลงชื่อ............................................</div>
+                  <div style="margin-top: 2px;">(นายจักรพงศ์ พรหมสกุลปัญญา)</div>
+                  <div style="margin-top: 1px; font-size: 14pt; color: #475569; line-height: 1.1;">รองผู้อำนวยการฝ่ายบริหารทรัพยากร</div>
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Divider line touching outer borders -->
+          <div style="border-top: 1.5px solid black; width: 100%; margin: 0;"></div>
+
+          <!-- Lower Section 2: Approved by Director -->
+          <div style="font-size: 16pt; line-height: 1.2; padding: 4px 12px;">
+            <div style="font-weight: bold; text-align: center; margin-bottom: 2px; font-size: 16pt;">คำอนุมัติ</div>
+            <div style="text-indent: 1.2cm; margin-bottom: 2px;">
+              อนุมัติให้ยืมตามเงื่อนไขข้างต้นได้ เป็นเงิน <span id="loan-approved-amount" class="underline-dotted" style="font-weight: bold;">................</span> บาท
             </div>
-            <div style="font-size: 16pt; line-height: 1.1;">วันครบกำหนด</div>
-            <div style="font-size: 16pt; margin-top: 4px; border-bottom: 1px dotted black; min-height: 24px; text-align: center; width: 100%;" id="loan-contract-due-date"></div>
-          </td>
-        </tr>
-      </table>
+            
+            <table style="width: 100%; border: none; font-size: 15pt; margin-top: 4px; border-collapse: collapse;">
+              <tr>
+                <td style="width: 45%;"></td>
+                <td style="width: 55%; text-align: center; vertical-align: top; padding: 2px 0;">
+                  <div>ลงชื่อผู้อนุมัติ............................................</div>
+                  <div style="margin-top: 2px; font-weight: bold;">(นายกเชษฐ์ กิ่งชนะ)</div>
+                  <div style="margin-top: 1px; font-size: 14pt; color: #475569;">ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน</div>
+                </td>
+              </tr>
+            </table>
+          </div>
 
-      <!-- Paragraph 1 -->
-      <div style="text-indent: 1.2cm; margin-bottom: 6px; text-align: justify;">
-        ข้าพเจ้า <span id="loan-requester-name">......................................................</span>
-        ตำแหน่ง <span id="loan-requester-position">......................................................</span>
-        สังกัด <span id="loan-requester-org">วิทยาลัยสารพัดช่างน่าน</span>
-        จังหวัด <span class="bold">น่าน</span>
-        มีความประสงค์ขอยืมเงินจาก <span class="bold">วิทยาลัยสารพัดช่างน่าน</span>
-      </div>
+          <!-- Divider line touching outer borders -->
+          <div style="border-top: 1.5px solid black; width: 100%; margin: 0;"></div>
 
-      <div style="text-indent: 1.2cm; margin-bottom: 10px; text-align: justify; line-height: 1.35;">
-        เพื่อเป็นค่าใช้จ่ายในการ <span id="loan-purpose-full">................................................................................................................................................................................................................................................................................................................</span>
-        ดังรายละเอียดต่อไปนี้
-      </div>
-
-      <!-- Details Table -->
-      <table style="width: 100%; border-collapse: collapse; border: 1.5px solid black; font-size: 16pt; margin: 10px 0;">
-        <tbody id="loan-details-table-body">
-          <!-- Populated dynamically -->
-        </tbody>
-      </table>
-
-      <!-- Paragraph 2 -->
-      <div style="text-indent: 1.2cm; margin-bottom: 10px; text-align: justify; font-size: 16pt; line-height: 1.35;">
-        ข้าพเจ้าสัญญาว่าจะปฏิบัติตามระเบียบของทางราชการทุกประการ และจะนำใบสำคัญคู่จ่ายที่ถูกต้อง พร้อมทั้งเงินเหลือจ่าย (ถ้ามี) ส่งใช้ภายในกำหนดไว้ในระเบียบการเบิกจ่ายจากคลัง คือ ภายใน <span id="loan-return-days">30</span> วัน นับแต่วันที่ได้รับเงินนี้ หากข้าพเจ้าไม่ส่งตามกำหนด ข้าพเจ้ายินยอมให้หักเงินเดือน ค่าจ้าง เบี้ยหวัด บำนาญ หรือเงินอื่นใดที่ข้าพเจ้าพึงได้รับจากทางราชการชดใช้จำนวนเงินที่ยืมไปจนครบถ้วนได้ทันที
-      </div>
-
-      <!-- Signature of Borrower -->
-      <div style="margin-top: 15px; margin-bottom: 8px; font-size: 16pt; text-align: left; padding-left: 1.2cm;">
-        ลายมือชื่อ ........................................................................... ผู้ยืม
-      </div>
-
-      <hr style="border: 0.5px solid black; margin: 4px 0 8px 0;">
-
-      <!-- Lower Section 1: Checked by Financial & Deputy -->
-      <div style="font-size: 16pt; line-height: 1.35; margin-bottom: 15px;">
-        <div style="margin-bottom: 4px;">เสนอ......ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน</div>
-        <div style="text-indent: 1.2cm; margin-bottom: 4px;">
-          ได้ตรวจสอบแล้ว เห็นสมควรอนุมัติให้ยืมเงินตามใบยืมฉบับนี้ได้ จำนวน <span id="loan-checked-amount" class="underline-dotted" style="font-weight: bold;">................</span> บาท
-          ( <span id="loan-checked-amount-thai" class="underline-dotted" style="font-weight: bold;">............................................................</span> )
+          <!-- Lower Section 3: Receipt -->
+          <div style="font-size: 16pt; line-height: 1.2; padding: 4px 12px 6px 12px;">
+            <div style="font-weight: bold; text-align: center; margin-bottom: 2px; font-size: 16pt;">ใบรับเงิน</div>
+            <div style="text-indent: 1.2cm; margin-bottom: 4px;">
+              ได้รับเงินยืมจำนวน <span id="loan-receipt-amount" class="underline-dotted" style="font-weight: bold;">................</span> บาท
+              ( <span id="loan-receipt-amount-thai" class="underline-dotted" style="font-weight: bold;">............................................................</span> ) ไปเป็นการถูกต้องแล้ว
+            </div>
+            
+            <table style="width: 100%; border: none; margin-top: 6px; font-size: 15pt; border-collapse: collapse;">
+              <tr>
+                <td style="width: 50%; text-align: center; vertical-align: middle; padding: 2px 0;">
+                  ลงชื่อ............................................ผู้รับเงิน
+                </td>
+                <td style="width: 50%; text-align: center; vertical-align: middle; padding: 2px 0;">
+                  วันที่............................................
+                </td>
+              </tr>
+            </table>
+          </div>
         </div>
-        
-        <table style="width: 100%; border: none; font-size: 15pt; margin-top: 15px; border-collapse: collapse;">
-          <tr>
-            <td style="width: 50%; text-align: center; vertical-align: top;">
-              <div>ลงชื่อ............................................</div>
-              <div style="margin-top: 2px;">(นางสาวดวงดาว ไชยเขียว)</div>
-              <div style="margin-top: 2px; font-size: 14pt; color: #475569;">หัวหน้างานการเงิน</div>
-            </td>
-            <td style="width: 50%; text-align: center; vertical-align: top;">
-              <div>ลงชื่อ............................................</div>
-              <div style="margin-top: 2px;">(นายจักรพงศ์ พรหมสกุลปัญญา)</div>
-              <div style="margin-top: 2px; font-size: 14pt; color: #475569; line-height: 1.1;">รองผู้อำนวยการฝ่ายบริหารทรัพยากร</div>
-            </td>
-          </tr>
-        </table>
-      </div>
 
-      <hr style="border: 0.5px solid black; margin: 8px 0;">
-
-      <!-- Lower Section 2: Approved by Director -->
-      <div style="font-size: 16pt; line-height: 1.35; margin-bottom: 15px;">
-        <div style="font-weight: bold; text-align: center; margin-bottom: 6px; font-size: 16pt;">คำอนุมัติ</div>
-        <div style="text-indent: 1.2cm; margin-bottom: 10px;">
-          อนุมัติให้ยืมตามเงื่อนไขข้างต้นได้ เป็นเงิน <span id="loan-approved-amount" class="underline-dotted" style="font-weight: bold;">................</span> บาท
-        </div>
-        
-        <table style="width: 100%; border: none; font-size: 15pt; margin-top: 10px; border-collapse: collapse;">
-          <tr>
-            <td style="width: 45%;"></td>
-            <td style="width: 55%; text-align: center; vertical-align: top;">
-              <div>ลงชื่อผู้อนุมัติ............................................</div>
-              <div style="margin-top: 4px; font-weight: bold;">(นายกเชษฐ์ กิ่งชนะ)</div>
-              <div style="margin-top: 2px; font-size: 14pt; color: #475569;">ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน</div>
-            </td>
-          </tr>
-        </table>
-      </div>
-
-      <hr style="border: 0.5px solid black; margin: 8px 0;">
-
-      <!-- Lower Section 3: Receipt -->
-      <div style="font-size: 16pt; line-height: 1.35;">
-        <div style="font-weight: bold; text-align: center; margin-bottom: 6px; font-size: 16pt;">ใบรับเงิน</div>
-        <div style="text-indent: 1.2cm; margin-bottom: 10px;">
-          ได้รับเงินยืมจำนวน <span id="loan-receipt-amount" class="underline-dotted" style="font-weight: bold;">................</span> บาท
-          ( <span id="loan-receipt-amount-thai" class="underline-dotted" style="font-weight: bold;">............................................................</span> ) ไปเป็นการถูกต้องแล้ว
-        </div>
-        
-        <table style="width: 100%; border: none; margin-top: 15px; font-size: 15pt; border-collapse: collapse;">
-          <tr>
-            <td style="width: 50%; text-align: center; vertical-align: middle;">
-              ลงชื่อ............................................ผู้รับเงิน
-            </td>
-            <td style="width: 50%; text-align: center; vertical-align: middle;">
-              วันที่............................................
-            </td>
-          </tr>
-        </table>
-      </div>
       </div>
     </div>
 
