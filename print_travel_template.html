@@ -988,11 +988,12 @@
           document.getElementById('loan-purpose-full').textContent = purposeFullText;
           
           // Pull exact requested loan values (not estimation values) to guarantee matching figures
-          let displayLoanAmount = details.loan ? (details.loan.loanAmount || 0) : 0;
-          let displayLoanAllowance = details.loan && details.loan.allowance !== undefined ? details.loan.allowance : (details.allowance ? (details.allowance.total || 0) : 0);
-          let displayLoanRent = details.loan && details.loan.rent !== undefined ? details.loan.rent : (details.rent ? (details.rent.total || 0) : 0);
-          let displayLoanVehicle = details.loan && details.loan.fuel !== undefined ? details.loan.fuel : (details.vehicleData ? (details.vehicleData.routeTotal || 0) : 0);
+          // Added on-the-fly fallback to recover old records saved with 0 or null due to previous bugs
+          let displayLoanAllowance = details.loan && parseFloat(details.loan.allowance) > 0 ? parseFloat(details.loan.allowance) : (details.allowance ? (parseFloat(details.allowance.total) || 0) : 0);
+          let displayLoanRent = details.loan && parseFloat(details.loan.rent) > 0 ? parseFloat(details.loan.rent) : (details.rent ? (parseFloat(details.rent.total) || 0) : 0);
+          let displayLoanVehicle = details.loan && parseFloat(details.loan.fuel) > 0 ? parseFloat(details.loan.fuel) : (details.vehicleData ? (parseFloat(details.vehicleData.routeTotal) || 0) : 0);
           let displayOtherCost = details.otherCost ? (parseFloat(details.otherCost) || 0) : 0;
+          let displayLoanAmount = details.loan && parseFloat(details.loan.loanAmount) > 0 ? parseFloat(details.loan.loanAmount) : (parseFloat(displayLoanAllowance) + parseFloat(displayLoanRent) + parseFloat(displayLoanVehicle) + parseFloat(displayOtherCost));
 
           if (isProjectClaim) {
             displayLoanAmount = 0;
