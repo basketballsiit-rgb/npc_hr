@@ -1059,7 +1059,8 @@ ${details.otherRemark || 'ระบุ'})</td>
 
           // Populate remaining sections
           document.getElementById('loan-return-days').textContent = details.loan && details.loan.returnDays ? details.loan.returnDays : '30';
-          document.getElementById('loan-sig-name-full').textContent = t.fullName;
+          const loanSigNameEl = document.getElementById('loan-sig-name-full');
+          if (loanSigNameEl) loanSigNameEl.textContent = t.fullName;
 
           // Check/Approved amounts
           document.getElementById('loan-checked-amount').textContent = isProjectClaim ? '................' : parseFloat(displayLoanAmount).toLocaleString('en-US', { minimumFractionDigits: 2 });
