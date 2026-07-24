@@ -422,15 +422,10 @@
       </div>
 
       <!-- Signature of Borrower -->
-      <table style="width: 100%; border: none; margin-top: 15px; margin-bottom: 15px; font-size: 16pt;">
-        <tr>
-          <td style="width: 45%;"></td>
-          <td style="text-align: center; width: 55%;">
-            <div>ลายมือชื่อ ....................................................... ผู้ยืม</div>
-            <div style="margin-top: 2px;">( <span id="loan-sig-name-full">......................................................</span> )</div>
-          </td>
-        </tr>
-      </table>
+      <div style="margin-top: 15px; margin-bottom: 15px; font-size: 16pt; text-align: left; padding-left: 1.2cm;">
+        <div>ลายมือชื่อ ........................................................................... ผู้ยืม</div>
+        <div style="padding-left: 2cm; margin-top: 4px;">( <span id="loan-sig-name-full">......................................................</span> )</div>
+      </div>
 
       <hr style="border: 0.5px solid black; margin: 8px 0;">
 
@@ -438,8 +433,8 @@
       <div style="font-size: 16pt; line-height: 1.35; margin-bottom: 15px;">
         <div style="margin-bottom: 4px;">เสนอ......ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน</div>
         <div style="text-indent: 1.2cm; margin-bottom: 4px;">
-          ได้ตรวจสอบแล้ว เห็นสมควรอนุมัติให้ยืมเงินตามใบยืมฉบับนี้ได้ จำนวน <span id="loan-checked-amount" class="underline-dotted">................</span> บาท
-          ( <span id="loan-checked-amount-thai" class="underline-dotted">............................................................</span> )
+          ได้ตรวจสอบแล้ว เห็นสมควรอนุมัติให้ยืมเงินตามใบยืมฉบับนี้ได้ จำนวน <span id="loan-checked-amount" class="underline-dotted" style="font-weight: bold;">................</span> บาท
+          ( <span id="loan-checked-amount-thai" class="underline-dotted" style="font-weight: bold;">............................................................</span> )
         </div>
         
         <table style="width: 100%; border: none; font-size: 15pt; margin-top: 15px; border-collapse: collapse;">
@@ -464,7 +459,7 @@
       <div style="font-size: 16pt; line-height: 1.35; margin-bottom: 15px;">
         <div style="font-weight: bold; text-align: center; margin-bottom: 6px; font-size: 16pt;">คำอนุมัติ</div>
         <div style="text-indent: 1.2cm; margin-bottom: 10px;">
-          อนุมัติให้ยืมตามเงื่อนไขข้างต้นได้ เป็นเงิน <span id="loan-approved-amount" class="underline-dotted">................</span> บาท
+          อนุมัติให้ยืมตามเงื่อนไขข้างต้นได้ เป็นเงิน <span id="loan-approved-amount" class="underline-dotted" style="font-weight: bold;">................</span> บาท
         </div>
         
         <table style="width: 100%; border: none; font-size: 15pt; margin-top: 10px; border-collapse: collapse;">
@@ -485,8 +480,8 @@
       <div style="font-size: 16pt; line-height: 1.35;">
         <div style="font-weight: bold; text-align: center; margin-bottom: 6px; font-size: 16pt;">ใบรับเงิน</div>
         <div style="text-indent: 1.2cm; margin-bottom: 10px;">
-          ได้รับเงินยืมจำนวน <span id="loan-receipt-amount" class="underline-dotted">................</span> บาท
-          ( <span id="loan-receipt-amount-thai" class="underline-dotted">............................................................</span> ) ไปเป็นการถูกต้องแล้ว
+          ได้รับเงินยืมจำนวน <span id="loan-receipt-amount" class="underline-dotted" style="font-weight: bold;">................</span> บาท
+          ( <span id="loan-receipt-amount-thai" class="underline-dotted" style="font-weight: bold;">............................................................</span> ) ไปเป็นการถูกต้องแล้ว
         </div>
         
         <table style="width: 100%; border: none; margin-top: 15px; font-size: 15pt; border-collapse: collapse;">
@@ -1052,10 +1047,10 @@ ${details.otherRemark || 'ระบุ'})</td>
           // Append bottom row
           tableHtml += `
             <tr>
-              <td style="border-right: 1.5px solid black; padding: 8px 10px;">
-                ตัวอักษร ( <span id="loan-amount-thai-text">&nbsp;... ${isProjectClaim ? '............................................................' : numToThaiBath(displayLoanAmount)} ...&nbsp;</span> )
+              <td style="border-right: 1.5px solid black; padding: 8px 10px; font-weight: bold;">
+                ตัวอักษร ( <span id="loan-amount-thai-text" style="font-weight: bold;">&nbsp;... ${isProjectClaim ? '............................................................' : numToThaiBath(displayLoanAmount)} ...&nbsp;</span> )
               </td>
-              <td style="text-align: right; padding: 8px 10px;" id="loan-total-amount">
+              <td style="text-align: right; padding: 8px 10px; font-weight: bold; border-bottom: 3px double black;" id="loan-total-amount">
                 ${isProjectClaim ? '....................' : parseFloat(displayLoanAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </td>
             </tr>
