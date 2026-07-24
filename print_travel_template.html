@@ -422,12 +422,11 @@
       </div>
 
       <!-- Signature of Borrower -->
-      <div style="margin-top: 15px; margin-bottom: 15px; font-size: 16pt; text-align: left; padding-left: 1.2cm;">
-        <div>ลายมือชื่อ ........................................................................... ผู้ยืม</div>
-        <div style="padding-left: 2cm; margin-top: 4px;">( <span id="loan-sig-name-full">......................................................</span> )</div>
+      <div style="margin-top: 15px; margin-bottom: 8px; font-size: 16pt; text-align: left; padding-left: 1.2cm;">
+        ลายมือชื่อ ........................................................................... ผู้ยืม
       </div>
 
-      <hr style="border: 0.5px solid black; margin: 8px 0;">
+      <hr style="border: 0.5px solid black; margin: 4px 0 8px 0;">
 
       <!-- Lower Section 1: Checked by Financial & Deputy -->
       <div style="font-size: 16pt; line-height: 1.35; margin-bottom: 15px;">
@@ -1005,8 +1004,8 @@ div>
           if (parseFloat(displayLoanAllowance) > 0 || isProjectClaim) {
             tableHtml += `
               <tr>
-                <td style="border: 1.5px solid black; padding: 6px 10px;">ค่าเบี้ยเลี้ยง</td>
-                <td style="border: 1.5px solid black; text-align: right; padding: 6px 10px; width: 25%;">
+                <td style="border: none; border-right: 1.5px solid black; padding: 4px 10px; border-bottom: none;">ค่าเบี้ยเลี้ยง</td>
+                <td style="border: none; text-align: right; padding: 4px 10px; width: 25%; border-bottom: none;">
                   ${isProjectClaim ? '....................' : parseFloat(displayLoanAllowance).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </td>
               </tr>
@@ -1015,8 +1014,8 @@ div>
           if (parseFloat(displayLoanRent) > 0 || isProjectClaim) {
             tableHtml += `
               <tr>
-                <td style="border: 1.5px solid black; padding: 6px 10px;">ค่าเช่าที่พัก</td>
-                <td style="border: 1.5px solid black; text-align: right; padding: 6px 10px; width: 25%;">
+                <td style="border: none; border-right: 1.5px solid black; padding: 4px 10px; border-bottom: none;">ค่าเช่าที่พัก</td>
+                <td style="border: none; text-align: right; padding: 4px 10px; width: 25%; border-bottom: none;">
                   ${isProjectClaim ? '....................' : parseFloat(displayLoanRent).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </td>
               </tr>
@@ -1025,8 +1024,8 @@ div>
           if (parseFloat(displayLoanVehicle) > 0 || isProjectClaim) {
             tableHtml += `
               <tr>
-                <td style="border: 1.5px solid black; padding: 6px 10px;">ค่าน้ำมันเชื้อเพลิง</td>
-                <td style="border: 1.5px solid black; text-align: right; padding: 6px 10px; width: 25%;">
+                <td style="border: none; border-right: 1.5px solid black; padding: 4px 10px; border-bottom: none;">ค่าน้ำมันเชื้อเพลิง</td>
+                <td style="border: none; text-align: right; padding: 4px 10px; width: 25%; border-bottom: none;">
                   ${isProjectClaim ? '....................' : parseFloat(displayLoanVehicle).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </td>
               </tr>
@@ -1035,9 +1034,9 @@ div>
           if (parseFloat(displayOtherCost) > 0) {
             tableHtml += `
               <tr>
-                <td style="border: 1.5px solid black; padding: 6px 10px;">ค่าใช้จ่ายอื่น ๆ (
+                <td style="border: none; border-right: 1.5px solid black; padding: 4px 10px; border-bottom: none;">ค่าใช้จ่ายอื่น ๆ (
 ${details.otherRemark || 'ระบุ'})</td>
-                <td style="border: 1.5px solid black; text-align: right; padding: 6px 10px; width: 25%;">
+                <td style="border: none; text-align: right; padding: 4px 10px; width: 25%; border-bottom: none;">
                   ${parseFloat(displayOtherCost).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </td>
               </tr>
@@ -1047,10 +1046,10 @@ ${details.otherRemark || 'ระบุ'})</td>
           // Append bottom row
           tableHtml += `
             <tr>
-              <td style="border: 1.5px solid black; padding: 8px 10px; font-weight: bold;">
+              <td style="border: none; border-top: 1.5px solid black; border-right: 1.5px solid black; padding: 8px 10px; font-weight: bold;">
                 ตัวอักษร ( <span id="loan-amount-thai-text" style="font-weight: bold;">&nbsp;... ${isProjectClaim ? '............................................................' : numToThaiBath(displayLoanAmount)} ...&nbsp;</span> )
               </td>
-              <td style="border: 1.5px solid black; border-bottom: 3px double black; text-align: right; padding: 8px 10px; font-weight: bold;" id="loan-total-amount">
+              <td style="border: none; border-top: 1.5px solid black; border-bottom: 3px double black; text-align: right; padding: 8px 10px; font-weight: bold;" id="loan-total-amount">
                 ${isProjectClaim ? '....................' : parseFloat(displayLoanAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </td>
             </tr>
