@@ -701,6 +701,29 @@
       return bahtText;
     }
 
+    function extractThaiProvince(destination) {
+      if (!destination) return '';
+      destination = destination.trim();
+      
+      // Match "จังหวัด" or "จ." followed by Thai characters
+      const match1 = destination.match(/จังหวัด\s*([ก-๙]+)/);
+      if (match1) return match1[1];
+      
+      const match2 = destination.match(/จ\.\s*([ก-๙]+)/);
+      if (match2) return match2[1];
+      
+      const provinces = [
+        "กรุงเทพมหานคร", "กระบี่", "กาญจนบุรี", "กาฬสินธุ์", "กำแพงเพชร", "ขอนแก่น", "จันทบุรี", "ฉะเชิงเทรา", "ชลบุรี", "ชัยนาท", "ชัยภูมิ", "ชุมพร", "เชียงราย", "เชียงใหม่", "ตรัง", "ตราด", "ตาก", "นครนายก", "นครปฐม", "นครพนม", "นครราชสีมา", "นครศรีธรรมราช", "นครสวรรค์", "นนทบุรี", "นราธิวาส", "น่าน", "บึงกาฬ", "บุรีรัมย์", "ปทุมธานี", "ประจวบคีรีขันธ์", "ปราจีนบุรี", "ปัตตานี", "พระนครศรีอยุธยา", "พะเยา", "พังงา", "พัทลุง", "พิจิตร", "พิษณุโลก", "เพชรบุรี", "เพชรบูรณ์", "แพร่", "ภูเก็ต", "มหาสารคาม", "มุกดาหาร", "แม่ฮ่องสอน", "ยโสธร", "ยะลา", "ร้อยเอ็ด", "ระนอง", "ระยอง", "ราชบุรี", "ลพบุรี", "ลำปาง", "ลำพูน", "เลย", "ศรีสะเกษ", "สกลนคร", "สงขลา", "สตูล", "สมุทรปราการ", "สมุทรสงคราม", "สมุทรสาคร", "สระแก้ว", "สระบุรี", "สิงห์บุรี", "สุโขทัย", "สุพรรณบุรี", "สุราษฎร์ธานี", "สุรินทร์", "หนองคาย", "หนองบัวลำภู", "อ่างทอง", "อุดรธานี", "อุทัยธานี", "อุตรดิตถ์", "อุบลราชธานี", "อำนาจเจริญ"
+      ];
+      
+      for (const prov of provinces) {
+        if (destination.includes(prov)) {
+          return prov;
+        }
+      }
+      return destination;
+    }
+
     window.addEventListener('DOMContentLoaded', async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const travelId = urlParams.get('travelId');
@@ -898,7 +921,7 @@
 
         // --- PAGE 2: ประมาณการค่าใช้จ่าย ---
         // Destination province setting
-        setFieldVal('est-prov-temp', t.destination, '........................................');
+        setFieldVal('est-prov-temp', extractThaiProvince(t.destination), '........................................');
         setFieldVal('est-prov-perm', '', '........................................');
 
         // Render 5 Travelers rows
@@ -970,7 +993,7 @@
 
         // Requester name in proposer signature
         document.getElementById('est-sig-name-full').textContent = t.fullName;
-        document.getElementById('est-sig-pos-full').textContent = t.position || 'ครู';
+        document.getElementById('est-sig-pos-full').textContent = t.requesterPosition || 'ครู';
 
         // --- PAGE 3: สัญญายืมเงิน (Optional) ---
         if (details.hasLoan) {
@@ -980,7 +1003,7 @@
           document.getElementById('loan-contract-due-date').textContent = details.loan && details.loan.dueDate ? formatDateThai(details.loan.dueDate) : '';
           
           document.getElementById('loan-requester-name').textContent = t.fullName;
-          document.getElementById('loan-requester-position').textContent = t.position || 'ครู';
+          document.getElementById('loan-requester-position').textContent = t.requesterPosition || 'ครู';
           document.getElementById('loan-requester-org').textContent = details.department || 'วิทยาลัยสารพัดช่างน่าน';
           
           // Construct purpose full text: "เพื่อเป็นค่าใช้จ่ายในการ... ณ ... ระหว่างวันที่..."
