@@ -2199,7 +2199,14 @@ function renderSpecificDashboardTab(tabName, d) {
     const attAbsentEl = document.getElementById('stat-att-absent');
     const attUnknownEl = document.getElementById('stat-att-unknown');
 
-    if (attPresentEl) attPresentEl.textContent = attStats.present + ' ครั้ง';
+    const attPresentLabel = document.getElementById('stat-att-present-label');
+    if (currentUser && currentUser.role === 'admin') {
+      if (attPresentLabel) attPresentLabel.textContent = 'จำนวนบุคลากรทั้งหมด';
+      if (attPresentEl) attPresentEl.textContent = d.stats.totalStaff + ' คน';
+    } else {
+      if (attPresentLabel) attPresentLabel.textContent = 'มาปฏิบัติงานปกติ (ครั้ง)';
+      if (attPresentEl) attPresentEl.textContent = attStats.present + ' ครั้ง';
+    }
     if (attLateEl) attLateEl.textContent = attStats.late + ' ครั้ง';
     if (attAbsentEl) attAbsentEl.textContent = attStats.absent + ' ครั้ง';
     if (attUnknownEl) attUnknownEl.textContent = attStats.unknown + ' ครั้ง';
@@ -4552,7 +4559,7 @@ window.printTravelReport = (reportId) => {
 };
 
 window.printTravelRequest = (travelId) => {
-  window.open(`print_travel_template.html?v=26.0&travelId=${travelId}`, '_blank');
+  window.open(`print_travel_template.html?v=27.0&travelId=${travelId}`, '_blank');
 };
 
 

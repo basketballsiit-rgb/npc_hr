@@ -1075,13 +1075,16 @@ app.get('/api/dashboard', async (req, res) => {
       });
 
       // 2. Activity Stats
+      const dateFilterSqlAct = `((activityDate >= ? AND activityDate <= ?) OR (activityDate >= ? AND activityDate <= ?))`;
+      const dateFilterSqlActJoined = `((a.activityDate >= ? AND a.activityDate <= ?) OR (a.activityDate >= ? AND a.activityDate <= ?))`;
+
       const [[actTotal]] = await db.query(
-        `SELECT COUNT(*) as total FROM activities WHERE activityDate >= ? AND activityDate <= ?`,
-        [fiscalStartAD, fiscalEndAD]
+        `SELECT COUNT(*) as total FROM activities WHERE ${dateFilterSqlAct}`,
+        [fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
       const [[actReg]] = await db.query(
-        `SELECT COUNT(*) as total FROM activity_participants ap JOIN activities a ON ap.activityId = a.activityId WHERE a.activityDate >= ? AND a.activityDate <= ?`,
-        [fiscalStartAD, fiscalEndAD]
+        `SELECT COUNT(*) as total FROM activity_participants ap JOIN activities a ON ap.activityId = a.activityId WHERE ${dateFilterSqlActJoined}`,
+        [fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
       const [[actThisMonth]] = await db.query(
         `SELECT COUNT(*) as total FROM activities WHERE MONTH(activityDate) = MONTH(CURRENT_DATE) AND YEAR(activityDate) = YEAR(CURRENT_DATE)`
@@ -1094,12 +1097,12 @@ app.get('/api/dashboard', async (req, res) => {
 
       // Monthly Activity counts (activities vs registrations)
       const [monthlyActs] = await db.query(
-        `SELECT MONTH(activityDate) as month, COUNT(*) as count FROM activities WHERE activityDate >= ? AND activityDate <= ? GROUP BY MONTH(activityDate)`,
-        [fiscalStartAD, fiscalEndAD]
+        `SELECT MONTH(activityDate) as month, COUNT(*) as count FROM activities WHERE ${dateFilterSqlAct} GROUP BY MONTH(activityDate)`,
+        [fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
       const [monthlyRegs] = await db.query(
-        `SELECT MONTH(a.activityDate) as month, COUNT(*) as count FROM activity_participants ap JOIN activities a ON ap.activityId = a.activityId WHERE a.activityDate >= ? AND a.activityDate <= ? GROUP BY MONTH(a.activityDate)`,
-        [fiscalStartAD, fiscalEndAD]
+        `SELECT MONTH(a.activityDate) as month, COUNT(*) as count FROM activity_participants ap JOIN activities a ON ap.activityId = a.activityId WHERE ${dateFilterSqlActJoined} GROUP BY MONTH(a.activityDate)`,
+        [fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
       monthlyActs.forEach(item => {
         const idx = fiscalMonths.indexOf(item.month);
@@ -1315,13 +1318,16 @@ app.get('/api/dashboard', async (req, res) => {
       });
 
       // 2. Activity Stats
+      const dateFilterSqlAct = `((activityDate >= ? AND activityDate <= ?) OR (activityDate >= ? AND activityDate <= ?))`;
+      const dateFilterSqlActJoined = `((a.activityDate >= ? AND a.activityDate <= ?) OR (a.activityDate >= ? AND a.activityDate <= ?))`;
+
       const [[actTotal]] = await db.query(
-        `SELECT COUNT(*) as total FROM activities WHERE activityDate >= ? AND activityDate <= ?`,
-        [fiscalStartAD, fiscalEndAD]
+        `SELECT COUNT(*) as total FROM activities WHERE ${dateFilterSqlAct}`,
+        [fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
       const [[actReg]] = await db.query(
-        `SELECT COUNT(*) as total FROM activity_participants ap JOIN activities a ON ap.activityId = a.activityId WHERE ap.userId IN (&nbsp;${userIds.map(() => '?').join(', ')}&nbsp;) AND a.activityDate >= ? AND a.activityDate <= ?`.replace(/&nbsp;/g, ''),
-        [...userIds, fiscalStartAD, fiscalEndAD]
+        `SELECT COUNT(*) as total FROM activity_participants ap JOIN activities a ON ap.activityId = a.activityId WHERE ap.userId IN (${userIds.map(() => '?').join(', ')}) AND ${dateFilterSqlActJoined}`,
+        [...userIds, fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
       const [[actThisMonth]] = await db.query(
         `SELECT COUNT(*) as total FROM activities WHERE MONTH(activityDate) = MONTH(CURRENT_DATE) AND YEAR(activityDate) = YEAR(CURRENT_DATE)`
@@ -1334,12 +1340,12 @@ app.get('/api/dashboard', async (req, res) => {
 
       // Monthly Activity counts
       const [monthlyActs] = await db.query(
-        `SELECT MONTH(activityDate) as month, COUNT(*) as count FROM activities WHERE activityDate >= ? AND activityDate <= ? GROUP BY MONTH(activityDate)`,
-        [fiscalStartAD, fiscalEndAD]
+        `SELECT MONTH(activityDate) as month, COUNT(*) as count FROM activities WHERE ${dateFilterSqlAct} GROUP BY MONTH(activityDate)`,
+        [fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
       const [monthlyRegs] = await db.query(
-        `SELECT MONTH(a.activityDate) as month, COUNT(*) as count FROM activity_participants ap JOIN activities a ON ap.activityId = a.activityId WHERE ap.userId IN (&nbsp;${userIds.map(() => '?').join(', ')}&nbsp;) AND a.activityDate >= ? AND a.activityDate <= ? GROUP BY MONTH(a.activityDate)`.replace(/&nbsp;/g, ''),
-        [...userIds, fiscalStartAD, fiscalEndAD]
+        `SELECT MONTH(a.activityDate) as month, COUNT(*) as count FROM activity_participants ap JOIN activities a ON ap.activityId = a.activityId WHERE ap.userId IN (${userIds.map(() => '?').join(', ')}) AND ${dateFilterSqlActJoined} GROUP BY MONTH(a.activityDate)`,
+        [...userIds, fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
       );
       monthlyActs.forEach(item => {
         const idx = fiscalMonths.indexOf(item.month);
