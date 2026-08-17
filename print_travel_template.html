@@ -761,6 +761,14 @@
       return destination;
     }
 
+    function cleanPurposeText(text) {
+      if (!text) return '';
+      text = text.trim();
+      // Remove common prefix duplications to align with the static template text
+      text = text.replace(/^(มีความประสงค์เดินทางไปราชการเพื่อ|มีความประสงค์เดินทางไปราชการ|มีความประสงค์ขออนุญาต|มีความประสงค์ขออนุมัติ|มีความประสงค์จะเดินทางไปราชการเพื่อ|มีความประสงค์จะเดินทางไปราชการ|มีความประสงค์|เพื่อไป|เพื่อ)/g, '');
+      return text.trim();
+    }
+
     window.addEventListener('DOMContentLoaded', async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const travelId = urlParams.get('travelId');
@@ -854,7 +862,7 @@
         }
         
         // Document details
-        setFieldVal('memo-purpose', details.purposeDetail || t.subject);
+        setFieldVal('memo-purpose', cleanPurposeText(details.purposeDetail || t.subject));
         
         const hasRef = !!(details.refDoc || details.refDate);
         document.getElementById('memo-ref-wrapper').style.display = hasRef ? 'inline' : 'none';
@@ -887,7 +895,9 @@
         setCheckbox('chk-vehicle', hasExpenses && details.vehicleData && details.vehicleData.routeTotal > 0);
         setCheckbox('chk-other', hasExpenses && details.otherCost > 0);
         
-        document.getElementById('memo-estimated-budget').textContent = (details.expenseType === 'claim') ? parseFloat(t.budget).toLocaleString() : '................';
+        const estTotalBudget = parseFloat(details.allowance?.total || 0) + parseFloat(details.rent?.total || 0) + parseFloat(details.vehicleData?.routeTotal || 0) + parseFloat(details.otherCost || 0);
+        const resolvedBudget = parseFloat(t.budget) > 0 ? parseFloat(t.budget) : estTotalBudget;
+        document.getElementById('memo-estimated-budget').textContent = (details.expenseType === 'claim') ? resolvedBudget.toLocaleString() : '................';
         
         // Checkboxes for vehicle
         const vType = t.vehicleType || 'public';
@@ -983,10 +993,12 @@
         }
 
         // Setup amounts and formulas
-        let displayBudget = t.budget;
         let displayAllowance = details.allowance ? details.allowance.total : 0;
         let displayRent = details.rent ? details.rent.total : 0;
         let displayVehicle = details.vehicleData ? details.vehicleData.routeTotal : 0;
+        let displayOther = parseFloat(details.otherCost) || 0;
+        const estTotalBudget = parseFloat(displayAllowance) + parseFloat(displayRent) + parseFloat(displayVehicle) + displayOther;
+        let displayBudget = parseFloat(t.budget) > 0 ? parseFloat(t.budget) : estTotalBudget;
 
         const allowanceDays = details.allowance ? details.allowance.days : 0;
         const allowanceRateVal = details.allowance ? details.allowance.rate : 0;

@@ -3448,12 +3448,19 @@ async function handleTravelSubmit(e) {
   const vehicleType = vehicleRadio ? vehicleRadio.value : 'public';
   
   const hasLoan = document.getElementById('travel-has-loan')?.checked || false;
+  const expenseType = document.querySelector('input[name="travel-expense-type"]:checked')?.value || 'claim';
   let budget = 0;
   if (hasLoan) {
     const allow = parseFloat(document.getElementById('travel-loan-allowance')?.value || 0);
     const rent = parseFloat(document.getElementById('travel-loan-rent')?.value || 0);
     const fuel = parseFloat(document.getElementById('travel-loan-fuel')?.value || 0);
     budget = allow + rent + fuel;
+  } else if (expenseType === 'claim') {
+    const allow = parseFloat(document.getElementById('travel-total-allowance-txt')?.textContent?.replace(/,/g,'')) || 0;
+    const rent = parseFloat(document.getElementById('travel-total-rent-txt')?.textContent?.replace(/,/g,'')) || 0;
+    const fuel = parseFloat(document.getElementById('travel-legs-grand')?.value) || 0;
+    const other = parseFloat(document.getElementById('travel-other-cost')?.value) || 0;
+    budget = allow + rent + fuel + other;
   }
   
   if (totalDays <= 0) {
@@ -3526,7 +3533,6 @@ async function handleTravelSubmit(e) {
     routeTotal: parseFloat(document.getElementById('travel-legs-grand')?.value) || 0
   };
 
-  const expenseType = document.querySelector('input[name="travel-expense-type"]:checked')?.value || 'claim';
   const detailsObj = {
     expenseType,
     docDate: document.getElementById('travel-doc-date')?.value || '',
@@ -4139,7 +4145,7 @@ window.printTravelReport = (reportId) => {
 };
 
 window.printTravelRequest = (travelId) => {
-  window.open(`print_travel_template.html?v=19.0&travelId=${travelId}`, '_blank');
+  window.open(`print_travel_template.html?v=20.0&travelId=${travelId}`, '_blank');
 };
 
 
