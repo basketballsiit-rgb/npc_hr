@@ -3620,6 +3620,14 @@ async function handleTravelSubmit(e) {
     }
   });
 
+  const allowanceDaysList = [];
+  document.querySelectorAll('#allowance-days-container > div[id^="aday-"]').forEach(row => {
+    if (!row.id.startsWith('aday-') || row.id.includes('sub')) return;
+    const rateVal = parseFloat(row.querySelector('.aday-rate-val')?.value) || 0;
+    const dateVal = row.querySelector('.aday-date')?.value || '';
+    allowanceDaysList.push({ rate: rateVal, date: dateVal });
+  });
+
   // Collect vehicle transport data from multi-leg system
   const routes = [];
   const vehicleLegs = [];
@@ -3687,8 +3695,11 @@ async function handleTravelSubmit(e) {
     vehicleDriver: document.getElementById('travel-vehicle-driver')?.value || '',
     vehicleSupervisor: document.getElementById('travel-vehicle-supervisor')?.value || '',
     travelers,
+    allowanceDaysList,
     routes,
     vehicleData,
+    otherCost: parseFloat(document.getElementById('travel-other-cost')?.value) || 0,
+    otherDetail: document.getElementById('travel-other-detail')?.value || '',
     allowance: {
       days: parseFloat(document.getElementById('travel-days-allowance')?.value) || 0,
       rate: parseFloat(document.getElementById('travel-rate-allowance')?.value) || 0,

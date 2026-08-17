@@ -1086,11 +1086,52 @@
             displayOtherCost = 0;
           }
 
+          // Build dynamic labels matching Page 2 estimations
+          const peopleCount = 1 + (details.travelers ? details.travelers.length : 0);
+          
+          // Allowance Label
+          let allowanceText = '';
+          const allowanceDays = details.allowance ? details.allowance.days : 0;
+          const allowanceRateVal = details.allowance ? details.allowance.rate : 0;
+          if (details.allowanceDaysList && details.allowanceDaysList.length > 0) {
+            const rateGroups = {};
+            details.allowanceDaysList.forEach(item => {
+              const r = item.rate;
+              rateGroups[r] = (rateGroups[r] || 0) + 1;
+            });
+            const groupTexts = Object.keys(rateGroups).map(rate => {
+              const days = rateGroups[rate];
+              return `(${peopleCount} คน x ${rate} บาท x ${days} วัน)`;
+            });
+            allowanceText = groupTexts.join(' + ');
+          } else {
+            const fallbackRate = allowanceRateVal || (allowanceDays ? Math.round(displayLoanAllowance / (allowanceDays * peopleCount)) : 0);
+            allowanceText = `(${peopleCount} คน x ${fallbackRate} บาท x ${allowanceDays} วัน)`;
+          }
+          const allowanceLabel = `ค่าเบี้ยเลี้ยง ${allowanceText}`;
+
+          // Rent/Lodging Label
+          const rentDays = details.rent ? details.rent.days : 0;
+          const rentRateVal = details.rent ? details.rent.rate : 0;
+          const rentRate = rentRateVal || (rentDays ? Math.round(displayLoanRent / (rentDays * peopleCount)) : 0);
+          const rentLabel = `ค่าเช่าที่พัก (${peopleCount} คน x ${rentRate} บาท/วัน x ${rentDays} วัน)`;
+
+          // Vehicle/Fuel Label
+          let routesText = '';
+          if (details.routes && details.routes.length > 0) {
+            routesText = details.routes.map(r => `จาก ${r.from || '...'} ถึง ${r.to || '...'}`).join(' ');
+          }
+          const vehicleLabel = `ค่าพาหนะในการเดินทาง ${routesText ? `(${routesText})` : ''}`;
+
+          // Other Cost Label
+          const otherRemarkText = details.otherDetail || details.otherRemark || 'ระบุ';
+          const otherLabel = `ค่าใช้จ่ายอื่น ๆ (${otherRemarkText})`;
+
           let tableHtml = '';
           if (parseFloat(displayLoanAllowance) > 0 || isProjectClaim) {
             tableHtml += `
               <tr>
-                <td style="border: none; border-right: 1.5px solid black; padding: 4px 10px; border-bottom: none;">ค่าเบี้ยเลี้ยง</td>
+                <td style="border: none; border-right: 1.5px solid black; padding: 4px 10px; border-bottom: none;">${allowanceLabel}</td>
                 <td style="border: none; text-align: right; padding: 4px 10px; width: 25%; border-bottom: none;">
                   ${isProjectClaim ? '....................' : parseFloat(displayLoanAllowance).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </td>
@@ -1100,7 +1141,7 @@
           if (parseFloat(displayLoanRent) > 0 || isProjectClaim) {
             tableHtml += `
               <tr>
-                <td style="border: none; border-right: 1.5px solid black; padding: 4px 10px; border-bottom: none;">ค่าเช่าที่พัก</td>
+                <td style="border: none; border-right: 1.5px solid black; padding: 4px 10px; border-bottom: none;">${rentLabel}</td>
                 <td style="border: none; text-align: right; padding: 4px 10px; width: 25%; border-bottom: none;">
                   ${isProjectClaim ? '....................' : parseFloat(displayLoanRent).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </td>
@@ -1110,7 +1151,7 @@
           if (parseFloat(displayLoanVehicle) > 0 || isProjectClaim) {
             tableHtml += `
               <tr>
-                <td style="border: none; border-right: 1.5px solid black; padding: 4px 10px; border-bottom: none;">ค่าน้ำมันเชื้อเพลิง</td>
+                <td style="border: none; border-right: 1.5px solid black; padding: 4px 10px; border-bottom: none;">${vehicleLabel}</td>
                 <td style="border: none; text-align: right; padding: 4px 10px; width: 25%; border-bottom: none;">
                   ${isProjectClaim ? '....................' : parseFloat(displayLoanVehicle).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </td>
@@ -1120,8 +1161,7 @@
           if (parseFloat(displayOtherCost) > 0) {
             tableHtml += `
               <tr>
-                <td style="border: none; border-right: 1.5px solid black; padding: 4px 10px; border-bottom: none;">ค่าใช้จ่ายอื่น ๆ (
-${details.otherRemark || 'ระบุ'})</td>
+                <td style="border: none; border-right: 1.5px solid black; padding: 4px 10px; border-bottom: none;">${otherLabel}</td>
                 <td style="border: none; text-align: right; padding: 4px 10px; width: 25%; border-bottom: none;">
                   ${parseFloat(displayOtherCost).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </td>
