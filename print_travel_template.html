@@ -858,12 +858,7 @@
         const hasTravelers = travelersNames.length > 0;
         document.getElementById('memo-travelers-wrapper').style.display = hasTravelers ? 'inline' : 'none';
         if (hasTravelers) {
-          let displayNames = '';
-          if (travelersNames.length > 4) {
-            displayNames = travelersNames.slice(0, 4).join(', ') + ' ฯลฯ';
-          } else {
-            displayNames = travelersNames.join(', ');
-          }
+          const displayNames = travelersNames.join(', ');
           setFieldVal('memo-accompanied-list', displayNames);
         }
         
