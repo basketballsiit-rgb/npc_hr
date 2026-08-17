@@ -919,6 +919,18 @@ app.get('/api/dashboard', async (req, res) => {
     let monthlyCountsVal = Array(12).fill(0);
     let recentLeavesVal = [];
 
+    // Sub-Dashboards Stats Declarations
+    let travelStatsVal = { approved: 0, pending: 0, rejected: 0 };
+    let travelVehicleDataVal = { labels: ['รถราชการ/วิทยาลัย', 'รถส่วนตัว', 'รถโดยสาร/อื่นๆ'], data: [0, 0, 0] };
+    let monthlyTravelCountsVal = Array(12).fill(0);
+    let activityStatsVal = { total: 0, registered: 0, thisMonth: 0 };
+    let monthlyActCountsVal = Array(12).fill(0);
+    let monthlyRegCountsVal = Array(12).fill(0);
+    let attendanceStatsVal = { present: 0, late: 0, absent: 0, unknown: 0 };
+    let monthlyLateCountsVal = Array(12).fill(0);
+    let monthlyAbsentCountsVal = Array(12).fill(0);
+    const fiscalMonths = [10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+
     const dateFilterSql = `((startDate >= ? AND startDate <= ?) OR (startDate >= ? AND startDate <= ?))`;
     const dateFilterSqlTd = `((td.startDate >= ? AND td.startDate <= ?) OR (td.startDate >= ? AND td.startDate <= ?))`;
 
@@ -1005,6 +1017,140 @@ app.get('/api/dashboard', async (req, res) => {
       );
       clearedLoanBudgetVal = parseFloat(adminClearedRow.clearedTotal) || 0;
       pendingLoanBudgetVal = Math.max(0, totalLoanBudgetVal - clearedLoanBudgetVal);
+
+      // --- Admin: Sub-Dashboards Queries ---
+      // 1. Travel Stats
+      const [[travelCounts]] = await db.query(
+        `SELECT 
+          SUM(CASE WHEN status IN ('อนุมัติ', 'รับทราบ') THEN 1 ELSE 0 END) as approved,
+          SUM(CASE WHEN status = 'รอการอนุมัติ' THEN 1 ELSE 0 END) as pending,
+          SUM(CASE WHEN status = 'ไม่อนุมัติ' THEN 1 ELSE 0 END) as rejected
+         FROM travel_data
+         WHERE ${dateFilterSql}`,
+        [fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
+      );
+      travelStatsVal = {
+        approved: travelCounts.approved || 0,
+        pending: travelCounts.pending || 0,
+        rejected: travelCounts.rejected || 0
+      };
+
+      // Travel vehicles doughnut
+      const [vehicleStats] = await db.query(
+        `SELECT vehicleType, COUNT(*) as count 
+         FROM travel_data 
+         WHERE status IN ('อนุมัติ', 'รับทราบ') AND ${dateFilterSql}
+         GROUP BY vehicleType`,
+        [fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
+      );
+      let govCount = 0, personalCount = 0, publicCount = 0;
+      vehicleStats.forEach(item => {
+        const type = item.vehicleType || '';
+        if (type.includes('gov') || type.includes('ราชการ')) {
+          govCount += item.count;
+        } else if (type.includes('personal') || type.includes('ส่วนตัว')) {
+          personalCount += item.count;
+        } else {
+          publicCount += item.count;
+        }
+      });
+      travelVehicleDataVal = {
+        labels: ['รถราชการ/วิทยาลัย', 'รถส่วนตัว', 'รถโดยสาร/อื่นๆ'],
+        data: [govCount, personalCount, publicCount]
+      };
+
+      // Monthly travel count
+      const [monthlyTravels] = await db.query(
+        `SELECT MONTH(startDate) as month, COUNT(*) as count 
+         FROM travel_data 
+         WHERE status IN ('อนุมัติ', 'รับทราบ') AND ${dateFilterSql}
+         GROUP BY MONTH(startDate)`,
+        [fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
+      );
+      monthlyTravels.forEach(item => {
+        const idx = fiscalMonths.indexOf(item.month);
+        if (idx !== -1) {
+          monthlyTravelCountsVal[idx] = parseInt(item.count) || 0;
+        }
+      });
+
+      // 2. Activity Stats
+      const [[actTotal]] = await db.query(
+        `SELECT COUNT(*) as total FROM activities WHERE activityDate >= ? AND activityDate <= ?`,
+        [fiscalStartAD, fiscalEndAD]
+      );
+      const [[actReg]] = await db.query(
+        `SELECT COUNT(*) as total FROM activity_participants ap JOIN activities a ON ap.activityId = a.activityId WHERE a.activityDate >= ? AND a.activityDate <= ?`,
+        [fiscalStartAD, fiscalEndAD]
+      );
+      const [[actThisMonth]] = await db.query(
+        `SELECT COUNT(*) as total FROM activities WHERE MONTH(activityDate) = MONTH(CURRENT_DATE) AND YEAR(activityDate) = YEAR(CURRENT_DATE)`
+      );
+      activityStatsVal = {
+        total: actTotal.total || 0,
+        registered: actReg.total || 0,
+        thisMonth: actThisMonth.total || 0
+      };
+
+      // Monthly Activity counts (activities vs registrations)
+      const [monthlyActs] = await db.query(
+        `SELECT MONTH(activityDate) as month, COUNT(*) as count FROM activities WHERE activityDate >= ? AND activityDate <= ? GROUP BY MONTH(activityDate)`,
+        [fiscalStartAD, fiscalEndAD]
+      );
+      const [monthlyRegs] = await db.query(
+        `SELECT MONTH(a.activityDate) as month, COUNT(*) as count FROM activity_participants ap JOIN activities a ON ap.activityId = a.activityId WHERE a.activityDate >= ? AND a.activityDate <= ? GROUP BY MONTH(a.activityDate)`,
+        [fiscalStartAD, fiscalEndAD]
+      );
+      monthlyActs.forEach(item => {
+        const idx = fiscalMonths.indexOf(item.month);
+        if (idx !== -1) monthlyActCountsVal[idx] = parseInt(item.count) || 0;
+      });
+      monthlyRegs.forEach(item => {
+        const idx = fiscalMonths.indexOf(item.month);
+        if (idx !== -1) monthlyRegCountsVal[idx] = parseInt(item.count) || 0;
+      });
+
+      // 3. Attendance Stats
+      const [[attPresent]] = await db.query(
+        `SELECT COUNT(*) as total FROM attendance WHERE status = 'มาปฏิบัติงาน' AND attendanceDate >= ? AND attendanceDate <= ?`,
+        [fiscalStartAD, fiscalEndAD]
+      );
+      const [[attLate]] = await db.query(
+        `SELECT COUNT(*) as total FROM attendance WHERE status = 'มาสาย' AND attendanceDate >= ? AND attendanceDate <= ?`,
+        [fiscalStartAD, fiscalEndAD]
+      );
+      const [[attAbsent]] = await db.query(
+        `SELECT COUNT(*) as total FROM attendance WHERE status = 'ขาด' AND attendanceDate >= ? AND attendanceDate <= ?`,
+        [fiscalStartAD, fiscalEndAD]
+      );
+      const [[attUnknown]] = await db.query(
+        `SELECT COUNT(*) as total FROM attendance WHERE status = 'ไม่ทราบสาเหตุ' AND attendanceDate >= ? AND attendanceDate <= ?`,
+        [fiscalStartAD, fiscalEndAD]
+      );
+      attendanceStatsVal = {
+        present: attPresent.total || 0,
+        late: attLate.total || 0,
+        absent: attAbsent.total || 0,
+        unknown: attUnknown.total || 0
+      };
+
+      // Monthly attendance stats (late, absent)
+      const [monthlyAtt] = await db.query(
+        `SELECT MONTH(attendanceDate) as month, 
+                SUM(CASE WHEN status = 'มาสาย' THEN 1 ELSE 0 END) as late,
+                SUM(CASE WHEN status = 'ขาด' THEN 1 ELSE 0 END) as absent
+         FROM attendance 
+         WHERE attendanceDate >= ? AND attendanceDate <= ? 
+         GROUP BY MONTH(attendanceDate)`,
+        [fiscalStartAD, fiscalEndAD]
+      );
+      monthlyAtt.forEach(item => {
+        const idx = fiscalMonths.indexOf(item.month);
+        if (idx !== -1) {
+          monthlyLateCountsVal[idx] = parseInt(item.late) || 0;
+          monthlyAbsentCountsVal[idx] = parseInt(item.absent) || 0;
+        }
+      });
     } else {
       // Teacher: Stats for this specific user (including duplicates) in the current fiscal year
       const userIds = await getUserIdsForUser(userId);
@@ -1111,6 +1257,140 @@ app.get('/api/dashboard', async (req, res) => {
       );
       clearedLoanBudgetVal = parseFloat(userClearedRow.clearedTotal) || 0;
       pendingLoanBudgetVal = Math.max(0, totalLoanBudgetVal - clearedLoanBudgetVal);
+
+      // --- User: Sub-Dashboards Queries ---
+      // 1. Travel Stats
+      const [[travelCounts]] = await db.query(
+        `SELECT 
+          COALESCE(SUM(CASE WHEN status IN ('อนุมัติ', 'รับทราบ') THEN totalDays ELSE 0 END), 0) as approved,
+          COALESCE(SUM(CASE WHEN status = 'รอการอนุมัติ' THEN totalDays ELSE 0 END), 0) as pending,
+          COALESCE(SUM(CASE WHEN status = 'ไม่อนุมัติ' THEN totalDays ELSE 0 END), 0) as rejected
+         FROM travel_data
+         WHERE userId IN (${userIds.map(() => '?').join(', ')}) AND ${dateFilterSql}`,
+        [...userIds, fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
+      );
+      travelStatsVal = {
+        approved: parseFloat(travelCounts.approved) || 0,
+        pending: parseFloat(travelCounts.pending) || 0,
+        rejected: parseFloat(travelCounts.rejected) || 0
+      };
+
+      // Travel vehicles doughnut
+      const [vehicleStats] = await db.query(
+        `SELECT vehicleType, COALESCE(SUM(totalDays), 0) as count 
+         FROM travel_data 
+         WHERE userId IN (${userIds.map(() => '?').join(', ')}) AND status IN ('อนุมัติ', 'รับทราบ') AND ${dateFilterSql}
+         GROUP BY vehicleType`,
+        [...userIds, fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
+      );
+      let govCount = 0, personalCount = 0, publicCount = 0;
+      vehicleStats.forEach(item => {
+        const type = item.vehicleType || '';
+        if (type.includes('gov') || type.includes('ราชการ')) {
+          govCount += parseFloat(item.count) || 0;
+        } else if (type.includes('personal') || type.includes('ส่วนตัว')) {
+          personalCount += parseFloat(item.count) || 0;
+        } else {
+          publicCount += parseFloat(item.count) || 0;
+        }
+      });
+      travelVehicleDataVal = {
+        labels: ['รถราชการ/วิทยาลัย', 'รถส่วนตัว', 'รถโดยสาร/อื่นๆ'],
+        data: [govCount, personalCount, publicCount]
+      };
+
+      // Monthly travel counts
+      const [monthlyTravels] = await db.query(
+        `SELECT MONTH(startDate) as month, COALESCE(SUM(totalDays), 0) as count 
+         FROM travel_data 
+         WHERE userId IN (${userIds.map(() => '?').join(', ')}) AND status IN ('อนุมัติ', 'รับทราบ') AND ${dateFilterSql}
+         GROUP BY MONTH(startDate)`,
+        [...userIds, fiscalStartAD, fiscalEndAD, fiscalStartBE, fiscalEndBE]
+      );
+      monthlyTravels.forEach(item => {
+        const idx = fiscalMonths.indexOf(item.month);
+        if (idx !== -1) {
+          monthlyTravelCountsVal[idx] = parseFloat(item.count) || 0;
+        }
+      });
+
+      // 2. Activity Stats
+      const [[actTotal]] = await db.query(
+        `SELECT COUNT(*) as total FROM activities WHERE activityDate >= ? AND activityDate <= ?`,
+        [fiscalStartAD, fiscalEndAD]
+      );
+      const [[actReg]] = await db.query(
+        `SELECT COUNT(*) as total FROM activity_participants ap JOIN activities a ON ap.activityId = a.activityId WHERE ap.userId IN (&nbsp;${userIds.map(() => '?').join(', ')}&nbsp;) AND a.activityDate >= ? AND a.activityDate <= ?`.replace(/&nbsp;/g, ''),
+        [...userIds, fiscalStartAD, fiscalEndAD]
+      );
+      const [[actThisMonth]] = await db.query(
+        `SELECT COUNT(*) as total FROM activities WHERE MONTH(activityDate) = MONTH(CURRENT_DATE) AND YEAR(activityDate) = YEAR(CURRENT_DATE)`
+      );
+      activityStatsVal = {
+        total: actTotal.total || 0,
+        registered: actReg.total || 0,
+        thisMonth: actThisMonth.total || 0
+      };
+
+      // Monthly Activity counts
+      const [monthlyActs] = await db.query(
+        `SELECT MONTH(activityDate) as month, COUNT(*) as count FROM activities WHERE activityDate >= ? AND activityDate <= ? GROUP BY MONTH(activityDate)`,
+        [fiscalStartAD, fiscalEndAD]
+      );
+      const [monthlyRegs] = await db.query(
+        `SELECT MONTH(a.activityDate) as month, COUNT(*) as count FROM activity_participants ap JOIN activities a ON ap.activityId = a.activityId WHERE ap.userId IN (&nbsp;${userIds.map(() => '?').join(', ')}&nbsp;) AND a.activityDate >= ? AND a.activityDate <= ? GROUP BY MONTH(a.activityDate)`.replace(/&nbsp;/g, ''),
+        [...userIds, fiscalStartAD, fiscalEndAD]
+      );
+      monthlyActs.forEach(item => {
+        const idx = fiscalMonths.indexOf(item.month);
+        if (idx !== -1) monthlyActCountsVal[idx] = parseInt(item.count) || 0;
+      });
+      monthlyRegs.forEach(item => {
+        const idx = fiscalMonths.indexOf(item.month);
+        if (idx !== -1) monthlyRegCountsVal[idx] = parseInt(item.count) || 0;
+      });
+
+      // 3. Attendance Stats
+      const [[attPresent]] = await db.query(
+        `SELECT COUNT(*) as total FROM attendance WHERE userId IN (${userIds.map(() => '?').join(', ')}) AND status = 'มาปฏิบัติงาน' AND attendanceDate >= ? AND attendanceDate <= ?`,
+        [...userIds, fiscalStartAD, fiscalEndAD]
+      );
+      const [[attLate]] = await db.query(
+        `SELECT COUNT(*) as total FROM attendance WHERE userId IN (${userIds.map(() => '?').join(', ')}) AND status = 'มาสาย' AND attendanceDate >= ? AND attendanceDate <= ?`,
+        [...userIds, fiscalStartAD, fiscalEndAD]
+      );
+      const [[attAbsent]] = await db.query(
+        `SELECT COUNT(*) as total FROM attendance WHERE userId IN (${userIds.map(() => '?').join(', ')}) AND status = 'ขาด' AND attendanceDate >= ? AND attendanceDate <= ?`,
+        [...userIds, fiscalStartAD, fiscalEndAD]
+      );
+      const [[attUnknown]] = await db.query(
+        `SELECT COUNT(*) as total FROM attendance WHERE userId IN (${userIds.map(() => '?').join(', ')}) AND status = 'ไม่ทราบสาเหตุ' AND attendanceDate >= ? AND attendanceDate <= ?`,
+        [...userIds, fiscalStartAD, fiscalEndAD]
+      );
+      attendanceStatsVal = {
+        present: attPresent.total || 0,
+        late: attLate.total || 0,
+        absent: attAbsent.total || 0,
+        unknown: attUnknown.total || 0
+      };
+
+      // Monthly attendance stats (late, absent)
+      const [monthlyAtt] = await db.query(
+        `SELECT MONTH(attendanceDate) as month, 
+                SUM(CASE WHEN status = 'มาสาย' THEN 1 ELSE 0 END) as late,
+                SUM(CASE WHEN status = 'ขาด' THEN 1 ELSE 0 END) as absent
+         FROM attendance 
+         WHERE userId IN (${userIds.map(() => '?').join(', ')}) AND attendanceDate >= ? AND attendanceDate <= ? 
+         GROUP BY MONTH(attendanceDate)`,
+        [...userIds, fiscalStartAD, fiscalEndAD]
+      );
+      monthlyAtt.forEach(item => {
+        const idx = fiscalMonths.indexOf(item.month);
+        if (idx !== -1) {
+          monthlyLateCountsVal[idx] = parseInt(item.late) || 0;
+          monthlyAbsentCountsVal[idx] = parseInt(item.absent) || 0;
+        }
+      });
     }
 
     res.json({
@@ -1124,6 +1404,9 @@ app.get('/api/dashboard', async (req, res) => {
         clearedLoanBudget: clearedLoanBudgetVal,
         pendingLoanBudget: pendingLoanBudgetVal
       },
+      travelStats: travelStatsVal,
+      activityStats: activityStatsVal,
+      attendanceStats: attendanceStatsVal,
       charts: {
         leaveTypeData: {
           labels: leaveTypesVal.map(lt => lt.leaveType),
@@ -1132,6 +1415,25 @@ app.get('/api/dashboard', async (req, res) => {
         monthlyLeaveData: {
           labels: ['ต.ค.', 'พ.ย.', 'ธ.ค.', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.'],
           data: monthlyCountsVal
+        },
+        travelVehicleData: travelVehicleDataVal,
+        monthlyTravelData: {
+          labels: ['ต.ค.', 'พ.ย.', 'ธ.ค.', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.'],
+          data: monthlyTravelCountsVal
+        },
+        monthlyActivityData: {
+          labels: ['ต.ค.', 'พ.ย.', 'ธ.ค.', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.'],
+          activities: monthlyActCountsVal,
+          registrations: monthlyRegCountsVal
+        },
+        attendanceRatioData: {
+          labels: ['มาปฏิบัติงาน', 'มาสาย', 'ขาด', 'ไม่ทราบสาเหตุ'],
+          data: [attendanceStatsVal.present, attendanceStatsVal.late, attendanceStatsVal.absent, attendanceStatsVal.unknown]
+        },
+        monthlyAttendanceData: {
+          labels: ['ต.ค.', 'พ.ย.', 'ธ.ค.', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.'],
+          late: monthlyLateCountsVal,
+          absent: monthlyAbsentCountsVal
         }
       },
       recentLeaves: recentLeavesVal

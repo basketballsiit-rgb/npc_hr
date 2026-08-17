@@ -268,6 +268,17 @@
             <span style="font-size:0.8rem; font-weight:600; color:var(--primary); background:var(--primary-light); padding:4px 12px; border-radius:999px;">อัปเดตแบบเรียลไทม์</span>
           </div>
         </div>
+
+        <!-- Dashboard Tabs Container -->
+        <div class="dashboard-tabs" style="display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; flex-wrap: wrap;">
+          <button type="button" class="btn-sub-nav active" onclick="switchDashboardTab('leave')" id="dash-tab-leave" style="font-weight: bold; border-radius: 6px; padding: 8px 16px;">📊 การลา</button>
+          <button type="button" class="btn-sub-nav" onclick="switchDashboardTab('travel')" id="dash-tab-travel" style="font-weight: bold; border-radius: 6px; padding: 8px 16px;">✈️ การไปราชการ</button>
+          <button type="button" class="btn-sub-nav" onclick="switchDashboardTab('activity')" id="dash-tab-activity" style="font-weight: bold; border-radius: 6px; padding: 8px 16px;">🏆 การเข้าร่วมกิจกรรม</button>
+          <button type="button" class="btn-sub-nav" onclick="switchDashboardTab('attendance')" id="dash-tab-attendance" style="font-weight: bold; border-radius: 6px; padding: 8px 16px;">⏰ การขาดลามาสาย</button>
+        </div>
+
+        <!-- 1. LEAVE DASHBOARD CONTENT -->
+        <div id="dash-content-leave" class="dash-content-block">
         
         <!-- Stats Grid Row 1 -->
         <div class="stats-grid" style="margin-bottom: 16px;">
@@ -308,44 +319,7 @@
           </div>
         </div>
 
-        <!-- Stats Grid Row 2 -->
-        <div class="stats-grid">
-          <div class="glass-card stat-card border-danger">
-            <div class="stat-icon danger">
-              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-              </svg>
-            </div>
-            <div class="stat-info">
-              <p>ไม่อนุมัติ</p>
-              <div id="stat-rejected" class="stat-value">0</div>
-            </div>
-          </div>
 
-          <div class="glass-card stat-card" style="border-left: 4px solid #7c3aed;">
-            <div class="stat-icon" style="background:#f5f3ff; color:#7c3aed;">
-              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-            </div>
-            <div class="stat-info">
-              <p id="stat-travel-label">เดินทางไปราชการ</p>
-              <div id="stat-travels" class="stat-value">0</div>
-            </div>
-          </div>
-
-          <div class="glass-card stat-card" style="border-left: 4px solid #0d9488;">
-            <div class="stat-icon" style="background:#f0fdfa; color:#0d9488;">
-              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div class="stat-info">
-              <p>ยอดเงินยืมไปราชการ</p>
-              <div id="stat-loan-total" class="stat-value">0 บาท</div>
-            </div>
-          </div>
-        </div>
 
         <!-- Charts Grid -->
         <div class="charts-grid">
@@ -359,6 +333,200 @@
             <h3 id="chart-monthly-label">สถิติจำนวนการลาสะสมรายเดือน (ปีงบประมาณปัจจุบัน)</h3>
             <div style="position:relative; flex-grow:1; min-height:220px;">
               <canvas id="monthlyLeaveChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        </div>
+
+        <!-- 2. TRAVEL DASHBOARD CONTENT -->
+        <div id="dash-content-travel" class="dash-content-block hidden">
+          <!-- Stats Grid -->
+          <div class="stats-grid" style="margin-bottom: 16px;">
+            <div class="glass-card stat-card" style="border-left: 4px solid #7c3aed;">
+              <div class="stat-icon" style="background:#f5f3ff; color:#7c3aed;">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+              </div>
+              <div class="stat-info">
+                <p id="stat-travel-label">เดินทางไปราชการทั้งหมด</p>
+                <div id="stat-travels" class="stat-value">0</div>
+              </div>
+            </div>
+            
+            <div class="glass-card stat-card" style="border-left: 4px solid #0d9488;">
+              <div class="stat-icon" style="background:#f0fdfa; color:#0d9488;">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div class="stat-info">
+                <p>ยอดเงินยืมไปราชการ</p>
+                <div id="stat-loan-total" class="stat-value">0 บาท</div>
+              </div>
+            </div>
+
+            <div class="glass-card stat-card border-success">
+              <div class="stat-icon success">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div class="stat-info">
+                <p>อนุมัติ/รับทราบแล้ว (ครั้ง)</p>
+                <div id="stat-travel-approved" class="stat-value">0</div>
+              </div>
+            </div>
+
+            <div class="glass-card stat-card border-warning">
+              <div class="stat-icon warning">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div class="stat-info">
+                <p>รอการอนุมัติ (ครั้ง)</p>
+                <div id="stat-travel-pending" class="stat-value">0</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts -->
+          <div class="charts-grid">
+            <div class="glass-card chart-card">
+              <h3>สัดส่วนการเดินทางตามพาหนะ</h3>
+              <div style="position:relative; flex-grow:1; min-height:220px;">
+                <canvas id="travelVehicleChart"></canvas>
+              </div>
+            </div>
+            <div class="glass-card chart-card">
+              <h3>สถิติจำนวนการไปราชการรายเดือน</h3>
+              <div style="position:relative; flex-grow:1; min-height:220px;">
+                <canvas id="monthlyTravelChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. ACTIVITY DASHBOARD CONTENT -->
+        <div id="dash-content-activity" class="dash-content-block hidden">
+          <!-- Stats Grid -->
+          <div class="stats-grid" style="margin-bottom: 16px;">
+            <div class="glass-card stat-card" style="border-left: 4px solid #f43f5e;">
+              <div class="stat-icon" style="background:#fff1f2; color:#f43f5e;">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+              <div class="stat-info">
+                <p>กิจกรรมทั้งหมดในระบบ</p>
+                <div id="stat-act-total" class="stat-value">0</div>
+              </div>
+            </div>
+            
+            <div class="glass-card stat-card" style="border-left: 4px solid #3b82f6;">
+              <div class="stat-icon" style="background:#eff6ff; color:#3b82f6;">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+              <div class="stat-info">
+                <p id="stat-act-registered-label">จำนวนการเข้าร่วมของบุคลากร</p>
+                <div id="stat-act-registered" class="stat-value">0</div>
+              </div>
+            </div>
+
+            <div class="glass-card stat-card" style="border-left: 4px solid #10b981;">
+              <div class="stat-icon" style="background:#ecfdf5; color:#10b981;">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div class="stat-info">
+                <p>กิจกรรมจัดขึ้นในเดือนนี้</p>
+                <div id="stat-act-this-month" class="stat-value">0</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts -->
+          <div class="charts-grid">
+            <div class="glass-card chart-card" style="grid-column: span 2;">
+              <h3>สถิติจำนวนกิจกรรมและการเข้าร่วมสะสมรายเดือน</h3>
+              <div style="position:relative; flex-grow:1; min-height:220px;">
+                <canvas id="monthlyActivityChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. ATTENDANCE DASHBOARD CONTENT -->
+        <div id="dash-content-attendance" class="dash-content-block hidden">
+          <!-- Stats Grid -->
+          <div class="stats-grid" style="margin-bottom: 16px;">
+            <div class="glass-card stat-card border-success">
+              <div class="stat-icon success">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div class="stat-info">
+                <p>มาปฏิบัติงานปกติ (ครั้ง)</p>
+                <div id="stat-att-present" class="stat-value">0</div>
+              </div>
+            </div>
+
+            <div class="glass-card stat-card border-warning">
+              <div class="stat-icon warning">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div class="stat-info">
+                <p>มาสายสะสม (ครั้ง)</p>
+                <div id="stat-att-late" class="stat-value">0</div>
+              </div>
+            </div>
+
+            <div class="glass-card stat-card border-danger">
+              <div class="stat-icon danger">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div class="stat-info">
+                <p>ขาดงานสะสม (ครั้ง)</p>
+                <div id="stat-att-absent" class="stat-value">0</div>
+              </div>
+            </div>
+
+            <div class="glass-card stat-card" style="border-left: 4px solid #6b7280;">
+              <div class="stat-icon" style="background:#f3f4f6; color:#6b7280;">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div class="stat-info">
+                <p>ไม่ทราบสาเหตุ (ครั้ง)</p>
+                <div id="stat-att-unknown" class="stat-value">0</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts -->
+          <div class="charts-grid">
+            <div class="glass-card chart-card">
+              <h3>สัดส่วนความประพฤติเข้างาน</h3>
+              <div style="position:relative; flex-grow:1; min-height:220px;">
+                <canvas id="attendanceRatioChart"></canvas>
+              </div>
+            </div>
+            <div class="glass-card chart-card">
+              <h3>แนวโน้มสถิติจำนวน ขาด ลา มาสาย รายเดือน</h3>
+              <div style="position:relative; flex-grow:1; min-height:220px;">
+                <canvas id="monthlyAttendanceChart"></canvas>
+              </div>
             </div>
           </div>
         </div>

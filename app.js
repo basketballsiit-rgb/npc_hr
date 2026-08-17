@@ -79,6 +79,12 @@ let settings = {};
 let holidaysList = [];
 let leaveTypeChartInstance = null;
 let monthlyLeaveChartInstance = null;
+let travelVehicleChartInstance = null;
+let monthlyTravelChartInstance = null;
+let monthlyActivityChartInstance = null;
+let attendanceRatioChartInstance = null;
+let monthlyAttendanceChartInstance = null;
+let currentDashboardData = null;
 let signaturePad = null;
 let adminSignaturePad = null;
 let currentAttendanceData = [];
@@ -928,74 +934,27 @@ async function loadDashboardData() {
     const d = await res.json();
     
     if (d && d.stats) {
-      // Dynamic Labels based on Role
-      const totalLabel = document.getElementById('stat-total-label');
+      currentDashboardData = d;
+      
       const dashboardTitle = document.getElementById('dashboard-main-title');
-      const chartTypeLabel = document.getElementById('chart-type-label');
-      const chartMonthlyLabel = document.getElementById('chart-monthly-label');
-
       const yrDisplay = fiscalYear ? `ปีงบประมาณ ${fiscalYear}` : 'ปีงบประมาณปัจจุบัน';
-
-      const totalStaffEl = document.getElementById('stat-total-staff');
-      const approvedEl = document.getElementById('stat-approved');
-      const pendingEl = document.getElementById('stat-pending');
-      const rejectedEl = document.getElementById('stat-rejected');
-      const travelsEl = document.getElementById('stat-travels');
-
-      if (currentUser && currentUser.role === 'admin') {
-        if (totalLabel) totalLabel.textContent = 'บุคลากรทั้งหมด';
-        if (dashboardTitle) dashboardTitle.textContent = `แดชบอร์ดข้อมูลภาพรวม${yrDisplay}`;
-        if (chartTypeLabel) chartTypeLabel.textContent = `สัดส่วนประเภทการลาของบุคลากร (${yrDisplay})`;
-        if (chartMonthlyLabel) chartMonthlyLabel.textContent = `สถิติจำนวนการลาสะสมรายเดือน (${yrDisplay})`;
-        
-        if (totalStaffEl) totalStaffEl.textContent = d.stats.totalStaff;
-        if (approvedEl) approvedEl.textContent = d.stats.approved;
-        if (pendingEl) pendingEl.textContent = d.stats.pending;
-        if (rejectedEl) rejectedEl.textContent = d.stats.rejected;
-        
-        const travelLabel = document.getElementById('stat-travel-label');
-        if (travelLabel) travelLabel.textContent = 'ไปราชการทั้งหมด (ครั้ง)';
-        if (travelsEl) travelsEl.textContent = d.stats.totalTravels;
-
-        const loanEl = document.getElementById('stat-loan-total');
-        if (loanEl) {
-          const total = parseFloat(d.stats.totalLoanBudget) || 0;
-          const cleared = parseFloat(d.stats.clearedLoanBudget) || 0;
-          const pending = parseFloat(d.stats.pendingLoanBudget) || 0;
-          loanEl.innerHTML = `<span style="font-size:0.95rem;">${total.toLocaleString('th-TH')} บาท</span><br><small style="font-size:0.7rem;color:#0d9488;font-weight:500;">เคลียร์แล้ว ${cleared.toLocaleString('th-TH')} บาท</small><br><small style="font-size:0.7rem;color:#f59e0b;font-weight:500;">ค้างเคลียร์ ${pending.toLocaleString('th-TH')} บาท</small>`;
-        }
-      } else {
-        if (totalLabel) totalLabel.textContent = `วันลาสะสม${yrDisplay}`;
-        if (dashboardTitle) dashboardTitle.textContent = `แดชบอร์ดการลาของฉัน (${yrDisplay})`;
-        if (chartTypeLabel) chartTypeLabel.textContent = `สัดส่วนประเภทการลาของฉัน (${yrDisplay})`;
-        if (chartMonthlyLabel) chartMonthlyLabel.textContent = `สถิติจำนวนการลาสะสมรายเดือนของฉัน (${yrDisplay})`;
-        
-        if (totalStaffEl) totalStaffEl.textContent = formatDays(d.stats.totalStaff);
-        if (approvedEl) approvedEl.textContent = formatDays(d.stats.approved);
-        if (pendingEl) pendingEl.textContent = formatDays(d.stats.pending);
-        if (rejectedEl) rejectedEl.textContent = formatDays(d.stats.rejected);
-        
-        const travelLabel = document.getElementById('stat-travel-label');
-        if (travelLabel) travelLabel.textContent = 'เดินทางไปราชการ (วัน)';
-        if (travelsEl) travelsEl.textContent = formatDays(d.stats.totalTravels);
-
-        const loanEl = document.getElementById('stat-loan-total');
-        if (loanEl) {
-          const total = parseFloat(d.stats.totalLoanBudget) || 0;
-          const cleared = parseFloat(d.stats.clearedLoanBudget) || 0;
-          const pending = parseFloat(d.stats.pendingLoanBudget) || 0;
-          loanEl.innerHTML = `<span style="font-size:0.95rem;">${total.toLocaleString('th-TH')} บาท</span><br><small style="font-size:0.7rem;color:#0d9488;font-weight:500;">เคลียร์แล้ว ${cleared.toLocaleString('th-TH')} บาท</small><br><small style="font-size:0.7rem;color:#f59e0b;font-weight:500;">ค้างเคลียร์ ${pending.toLocaleString('th-TH')} บาท</small>`;
+      if (dashboardTitle) {
+        if (currentUser && currentUser.role === 'admin') {
+          dashboardTitle.textContent = `แดชบอร์ดข้อมูลภาพรวม ${yrDisplay}`;
+        } else {
+          dashboardTitle.textContent = `แดชบอร์ดข้อมูลของฉัน ${yrDisplay}`;
         }
       }
+
+      // Render the active tab content
+      const activeTab = document.querySelector('.dashboard-tabs button.active')?.id.replace('dash-tab-', '') || 'leave';
+      renderSpecificDashboardTab(activeTab, d);
       
-      // Render Charts
-      renderCharts(d.charts);
-      
-      // Render Recent Leaves Table
+      // Render Recent Leaves Table (always keep updated if element exists)
       const tb = document.getElementById('recent-leaves-table');
       if (tb) {
         tb.innerHTML = '';
-        if (!d.recentLeaves.length) {
+        if (!d.recentLeaves || !d.recentLeaves.length) {
           tb.innerHTML = `<tr><td colspan="6" class="text-center" style="color:var(--neutral-400); padding:24px;">ไม่มีข้อมูลคำขอลาล่าสุด</td></tr>`;
         } else {
           d.recentLeaves.forEach(l => {
@@ -2124,8 +2083,130 @@ function renderBadge(status, isUserStatus = false) {
   return `<span class="badge ${className}">${label}</span>`;
 }
 
-// Render Doughnut & Bar Charts
-function renderCharts(d) {
+// Switch Dashboard Tab controller
+window.switchDashboardTab = function(tabName) {
+  const tabs = ['leave', 'travel', 'activity', 'attendance'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`dash-tab-${t}`);
+    const block = document.getElementById(`dash-content-${t}`);
+    if (btn) {
+      if (t === tabName) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    }
+    if (block) {
+      if (t === tabName) {
+        block.classList.remove('hidden');
+      } else {
+        block.classList.add('hidden');
+      }
+    }
+  });
+
+  if (currentDashboardData) {
+    renderSpecificDashboardTab(tabName, currentDashboardData);
+  }
+};
+
+// Render Specific Sub-Dashboard Content
+function renderSpecificDashboardTab(tabName, d) {
+  if (!d) return;
+
+  const select = document.getElementById('dashboard-fiscal-year-select');
+  const fiscalYear = select ? select.value : '';
+  const yrDisplay = fiscalYear ? `ปีงบประมาณ ${fiscalYear}` : 'ปีงบประมาณปัจจุบัน';
+
+  if (tabName === 'leave') {
+    const totalLabel = document.getElementById('stat-total-label');
+    const totalStaffEl = document.getElementById('stat-total-staff');
+    const approvedEl = document.getElementById('stat-approved');
+    const pendingEl = document.getElementById('stat-pending');
+    const rejectedEl = document.getElementById('stat-rejected');
+
+    if (currentUser && currentUser.role === 'admin') {
+      if (totalLabel) totalLabel.textContent = 'บุคลากรทั้งหมด';
+      if (totalStaffEl) totalStaffEl.textContent = d.stats.totalStaff;
+      if (approvedEl) approvedEl.textContent = d.stats.approved;
+      if (pendingEl) pendingEl.textContent = d.stats.pending;
+      if (rejectedEl) rejectedEl.textContent = d.stats.rejected;
+    } else {
+      if (totalLabel) totalLabel.textContent = `วันลาสะสม${yrDisplay}`;
+      if (totalStaffEl) totalStaffEl.textContent = formatDays(d.stats.totalStaff);
+      if (approvedEl) approvedEl.textContent = formatDays(d.stats.approved);
+      if (pendingEl) pendingEl.textContent = formatDays(d.stats.pending);
+      if (rejectedEl) rejectedEl.textContent = formatDays(d.stats.rejected);
+    }
+
+    renderLeaveCharts(d.charts);
+
+  } else if (tabName === 'travel') {
+    const travelLabel = document.getElementById('stat-travel-label');
+    const travelsEl = document.getElementById('stat-travels');
+    const loanEl = document.getElementById('stat-loan-total');
+    const travelApprovedEl = document.getElementById('stat-travel-approved');
+    const travelPendingEl = document.getElementById('stat-travel-pending');
+
+    const tStats = d.travelStats || { approved: 0, pending: 0, rejected: 0 };
+
+    if (currentUser && currentUser.role === 'admin') {
+      if (travelLabel) travelLabel.textContent = 'ไปราชการทั้งหมด (ครั้ง)';
+      if (travelsEl) travelsEl.textContent = d.stats.totalTravels;
+      if (travelApprovedEl) travelApprovedEl.textContent = tStats.approved + ' ครั้ง';
+      if (travelPendingEl) travelPendingEl.textContent = tStats.pending + ' ครั้ง';
+    } else {
+      if (travelLabel) travelLabel.textContent = 'เดินทางไปราชการ (วัน)';
+      if (travelsEl) travelsEl.textContent = formatDays(d.stats.totalTravels);
+      if (travelApprovedEl) travelApprovedEl.textContent = formatDays(tStats.approved);
+      if (travelPendingEl) travelPendingEl.textContent = formatDays(tStats.pending);
+    }
+
+    if (loanEl) {
+      const total = parseFloat(d.stats.totalLoanBudget) || 0;
+      const cleared = parseFloat(d.stats.clearedLoanBudget) || 0;
+      const pending = parseFloat(d.stats.pendingLoanBudget) || 0;
+      loanEl.innerHTML = `<span style="font-size:0.95rem;">${total.toLocaleString('th-TH')} บาท</span><br><small style="font-size:0.7rem;color:#0d9488;font-weight:500;">เคลียร์แล้ว ${cleared.toLocaleString('th-TH')} บาท</small><br><small style="font-size:0.7rem;color:#f59e0b;font-weight:500;">ค้างเคลียร์ ${pending.toLocaleString('th-TH')} บาท</small>`;
+    }
+
+    renderTravelCharts(d.charts);
+
+  } else if (tabName === 'activity') {
+    const actStats = d.activityStats || { total: 0, registered: 0, thisMonth: 0 };
+    
+    const actTotalEl = document.getElementById('stat-act-total');
+    const actRegLabel = document.getElementById('stat-act-registered-label');
+    const actRegEl = document.getElementById('stat-act-registered');
+    const actThisMonthEl = document.getElementById('stat-act-this-month');
+
+    if (actTotalEl) actTotalEl.textContent = actStats.total + ' กิจกรรม';
+    if (actRegLabel) {
+      actRegLabel.textContent = (currentUser && currentUser.role === 'admin') ? 'จำนวนผู้ร่วมกิจกรรมสะสม' : 'จำนวนกิจกรรมที่เข้าร่วม';
+    }
+    if (actRegEl) actRegEl.textContent = actStats.registered + ' คน-ครั้ง';
+    if (actThisMonthEl) actThisMonthEl.textContent = actStats.thisMonth + ' กิจกรรม';
+
+    renderActivityCharts(d.charts);
+
+  } else if (tabName === 'attendance') {
+    const attStats = d.attendanceStats || { present: 0, late: 0, absent: 0, unknown: 0 };
+
+    const attPresentEl = document.getElementById('stat-att-present');
+    const attLateEl = document.getElementById('stat-att-late');
+    const attAbsentEl = document.getElementById('stat-att-absent');
+    const attUnknownEl = document.getElementById('stat-att-unknown');
+
+    if (attPresentEl) attPresentEl.textContent = attStats.present + ' ครั้ง';
+    if (attLateEl) attLateEl.textContent = attStats.late + ' ครั้ง';
+    if (attAbsentEl) attAbsentEl.textContent = attStats.absent + ' ครั้ง';
+    if (attUnknownEl) attUnknownEl.textContent = attStats.unknown + ' ครั้ง';
+
+    renderAttendanceCharts(d.charts);
+  }
+}
+
+// 1. Render Leave Charts
+function renderLeaveCharts(c) {
   const typeCanvas = document.getElementById('leaveTypeChart');
   if (typeCanvas) {
     const ctx1 = typeCanvas.getContext('2d');
@@ -2134,9 +2215,9 @@ function renderCharts(d) {
     leaveTypeChartInstance = new Chart(ctx1, {
       type: 'doughnut',
       data: {
-        labels: d.leaveTypeData.labels,
+        labels: c.leaveTypeData.labels,
         datasets: [{
-          data: d.leaveTypeData.data,
+          data: c.leaveTypeData.data,
           backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#3b82f6', '#14b8a6', '#f43f5e'],
           borderWidth: 0
         }]
@@ -2148,25 +2229,7 @@ function renderCharts(d) {
         plugins: {
           legend: {
             position: 'right',
-            labels: {
-              usePointStyle: true,
-              boxWidth: 8,
-              font: { family: 'Kanit' }
-            }
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                let label = context.label || '';
-                if (label) {
-                  label += ': ';
-                }
-                if (context.parsed !== null) {
-                  label += context.parsed.toFixed(1).replace('.0', '') + ' วัน';
-                }
-                return label;
-              }
-            }
+            labels: { usePointStyle: true, boxWidth: 8, font: { family: 'Kanit' } }
           }
         }
       }
@@ -2181,10 +2244,10 @@ function renderCharts(d) {
     monthlyLeaveChartInstance = new Chart(ctx2, {
       type: 'bar',
       data: {
-        labels: d.monthlyLeaveData.labels,
+        labels: c.monthlyLeaveData.labels,
         datasets: [{
           label: 'จำนวนการลา (วัน)',
-          data: d.monthlyLeaveData.data,
+          data: c.monthlyLeaveData.data,
           backgroundColor: '#6366f1',
           borderRadius: 8,
           maxBarThickness: 32
@@ -2194,31 +2257,209 @@ function renderCharts(d) {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
-          y: {
-            beginAtZero: true,
-            grid: { borderDash: [4, 4] },
-            ticks: { font: { family: 'Kanit' } }
-          },
-          x: {
-            grid: { display: false },
-            ticks: { font: { family: 'Kanit' } }
+          y: { beginAtZero: true, grid: { borderDash: [4, 4] }, ticks: { font: { family: 'Kanit' } } },
+          x: { grid: { display: false }, ticks: { font: { family: 'Kanit' } } }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+}
+
+// 2. Render Travel Charts
+function renderTravelCharts(c) {
+  const canvas = document.getElementById('travelVehicleChart');
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+    if (travelVehicleChartInstance) travelVehicleChartInstance.destroy();
+    
+    const labels = c.travelVehicleData ? c.travelVehicleData.labels : ['รถราชการ/วิทยาลัย', 'รถส่วนตัว', 'รถโดยสาร/อื่นๆ'];
+    const data = c.travelVehicleData ? c.travelVehicleData.data : [0, 0, 0];
+    
+    travelVehicleChartInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          backgroundColor: ['#8b5cf6', '#3b82f6', '#10b981'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        cutout: '72%',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: { usePointStyle: true, boxWidth: 8, font: { family: 'Kanit' } }
           }
+        }
+      }
+    });
+  }
+
+  const monthlyCanvas = document.getElementById('monthlyTravelChart');
+  if (monthlyCanvas) {
+    const ctx = monthlyCanvas.getContext('2d');
+    if (monthlyTravelChartInstance) monthlyTravelChartInstance.destroy();
+    
+    const labels = c.monthlyTravelData ? c.monthlyTravelData.labels : ['ต.ค.', 'พ.ย.', 'ธ.ค.', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.'];
+    const data = c.monthlyTravelData ? c.monthlyTravelData.data : Array(12).fill(0);
+
+    monthlyTravelChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'จำนวนการไปราชการ',
+          data: data,
+          backgroundColor: '#8b5cf6',
+          borderRadius: 8,
+          maxBarThickness: 32
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { beginAtZero: true, grid: { borderDash: [4, 4] }, ticks: { font: { family: 'Kanit' } } },
+          x: { grid: { display: false }, ticks: { font: { family: 'Kanit' } } }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+}
+
+// 3. Render Activity Charts
+function renderActivityCharts(c) {
+  const canvas = document.getElementById('monthlyActivityChart');
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+    if (monthlyActivityChartInstance) monthlyActivityChartInstance.destroy();
+    
+    const labels = c.monthlyActivityData ? c.monthlyActivityData.labels : ['ต.ค.', 'พ.ย.', 'ธ.ค.', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.'];
+    const actData = c.monthlyActivityData ? c.monthlyActivityData.activities : Array(12).fill(0);
+    const regData = c.monthlyActivityData ? c.monthlyActivityData.registrations : Array(12).fill(0);
+
+    monthlyActivityChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'กิจกรรมทั้งหมด',
+            data: actData,
+            borderColor: '#f43f5e',
+            backgroundColor: 'rgba(244, 63, 94, 0.05)',
+            fill: true,
+            tension: 0.4
+          },
+          {
+            label: 'การลงทะเบียนเข้าร่วม',
+            data: regData,
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.05)',
+            fill: true,
+            tension: 0.4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { beginAtZero: true, grid: { borderDash: [4, 4] }, ticks: { font: { family: 'Kanit' } } },
+          x: { grid: { display: false }, ticks: { font: { family: 'Kanit' } } }
         },
         plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                let label = context.dataset.label || '';
-                if (label) {
-                  label = 'จำนวนวันลา: ';
-                }
-                if (context.parsed.y !== null) {
-                  label += context.parsed.y.toFixed(1).replace('.0', '') + ' วัน';
-                }
-                return label;
-              }
-            }
+          legend: {
+            position: 'top',
+            labels: { font: { family: 'Kanit' } }
+          }
+        }
+      }
+    });
+  }
+}
+
+// 4. Render Attendance Charts
+function renderAttendanceCharts(c) {
+  const canvas = document.getElementById('attendanceRatioChart');
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+    if (attendanceRatioChartInstance) attendanceRatioChartInstance.destroy();
+    
+    const labels = c.attendanceRatioData ? c.attendanceRatioData.labels : ['มาปฏิบัติงาน', 'มาสาย', 'ขาด', 'ไม่ทราบสาเหตุ'];
+    const data = c.attendanceRatioData ? c.attendanceRatioData.data : [0, 0, 0, 0];
+
+    attendanceRatioChartInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#6b7280'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        cutout: '72%',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: { usePointStyle: true, boxWidth: 8, font: { family: 'Kanit' } }
+          }
+        }
+      }
+    });
+  }
+
+  const monthlyCanvas = document.getElementById('monthlyAttendanceChart');
+  if (monthlyCanvas) {
+    const ctx = monthlyCanvas.getContext('2d');
+    if (monthlyAttendanceChartInstance) monthlyAttendanceChartInstance.destroy();
+    
+    const labels = c.monthlyAttendanceData ? c.monthlyAttendanceData.labels : ['ต.ค.', 'พ.ย.', 'ธ.ค.', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.'];
+    const lateData = c.monthlyAttendanceData ? c.monthlyAttendanceData.late : Array(12).fill(0);
+    const absentData = c.monthlyAttendanceData ? c.monthlyAttendanceData.absent : Array(12).fill(0);
+
+    monthlyAttendanceChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'มาสาย',
+            data: lateData,
+            backgroundColor: '#f59e0b',
+            borderRadius: 8,
+            maxBarThickness: 16
+          },
+          {
+            label: 'ขาด',
+            data: absentData,
+            backgroundColor: '#ef4444',
+            borderRadius: 8,
+            maxBarThickness: 16
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { beginAtZero: true, grid: { borderDash: [4, 4] }, ticks: { font: { family: 'Kanit' } } },
+          x: { grid: { display: false }, ticks: { font: { family: 'Kanit' } } }
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { font: { family: 'Kanit' } }
           }
         }
       }
