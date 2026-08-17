@@ -1755,6 +1755,23 @@ app.delete('/api/travel/:travelId', async (req, res) => {
   }
 });
 
+// Temporary endpoint to fix Kotchamed record
+app.get('/api/temp-fix-record', async (req, res) => {
+  const targetTravelId = '55beb8ed-286e-440c-b25a-aed687971eca';
+  try {
+    const [rows] = await db.query("SELECT details FROM travel_data WHERE travelId = ?", [targetTravelId]);
+    if (rows.length === 0) {
+      return res.status(404).send("Record not found");
+    }
+    const currentDetails = JSON.parse(rows[0].details);
+    currentDetails.expenseType = 'claim';
+    await db.query("UPDATE travel_data SET details = ? WHERE travelId = ?", [JSON.stringify(currentDetails), targetTravelId]);
+    res.send("Successfully updated record on the server!");
+  } catch (err) {
+    res.status(500).send("Error: " + err.message);
+  }
+});
+
 app.post('/api/travel/approve', async (req, res) => {
   const { travelId, status } = req.body; // status: 'อนุมัติ' or 'ไม่อนุมัติ'
   if (!travelId || !status) {
