@@ -4216,20 +4216,56 @@ window.openClearanceModal = (reportId, travelId, budget) => {
   const tbody = document.getElementById('clearance-travelers-table-body');
   tbody.innerHTML = '';
   
-  // 1. Add main reporter
   const reporterName = report ? report.fullName : currentUser.fullName;
-  addTravelerClearanceRow(reporterName, 'ผู้รายงาน');
+  
+  let mainAllow = 0, mainRent = 0, mainVehicle = 0, mainOther = 0;
+  let accAllow = 0, accRent = 0;
+  
+  let reqDetails = null;
+  if (report && report.travelRequestDetails) {
+    try { reqDetails = JSON.parse(report.travelRequestDetails); } catch(e) {}
+  }
+
+  if (reqDetails && (reqDetails.expenseType === 'claim' || reqDetails.expenseType === 'project-claim')) {
+    const pCount = 1 + (reqDetails.travelers ? reqDetails.travelers.length : 0);
+    
+    // Calculate govCarCost
+    let govCarCost = 0;
+    if (reqDetails.vehicleData && reqDetails.vehicleData.legs) {
+      reqDetails.vehicleData.legs.forEach(leg => {
+        if (leg.type === 'gov_car') {
+          govCarCost += parseFloat(leg.cost) || 0;
+        }
+      });
+    }
+    
+    const displayAllowance = reqDetails.allowance ? parseFloat(reqDetails.allowance.total || 0) : 0;
+    const displayRent = reqDetails.rent ? parseFloat(reqDetails.rent.total || 0) : 0;
+    const displayVehicle = reqDetails.vehicleData ? Math.max(0, parseFloat(reqDetails.vehicleData.routeTotal || 0) - govCarCost) : 0;
+    const displayOther = (parseFloat(reqDetails.otherCost) || 0) + govCarCost;
+    
+    accAllow = displayAllowance / pCount;
+    accRent = displayRent / pCount;
+    
+    mainAllow = accAllow;
+    mainRent = accRent;
+    mainVehicle = displayVehicle;
+    mainOther = displayOther;
+  }
+  
+  // 1. Add main reporter
+  addTravelerClearanceRow(reporterName, 'ผู้รายงาน', mainAllow, mainRent, mainVehicle, mainOther);
   
   // 2. Add accompanying travelers
   travelers.forEach(t => {
-    addTravelerClearanceRow(t.name, t.position);
+    addTravelerClearanceRow(t.name, t.position || 'ครู', accAllow, accRent, 0, 0);
   });
   
   recalculateClearanceTotals();
   document.getElementById('clearance-modal').classList.remove('hidden');
 };
 
-function addTravelerClearanceRow(name, position) {
+function addTravelerClearanceRow(name, position, allowance = 0, rent = 0, vehicle = 0, other = 0) {
   const tbody = document.getElementById('clearance-travelers-table-body');
   const tr = document.createElement('tr');
   tr.innerHTML = `
@@ -4239,10 +4275,10 @@ function addTravelerClearanceRow(name, position) {
       <input type="hidden" class="cl-trav-name" value="${name}">
       <input type="hidden" class="cl-trav-pos" value="${position}">
     </td>
-    <td><input type="number" class="form-input cl-trav-allowance" value="0" style="padding:4px; font-size:12px; width:80px;" onchange="recalculateClearanceTotals()"></td>
-    <td><input type="number" class="form-input cl-trav-rent" value="0" style="padding:4px; font-size:12px; width:80px;" onchange="recalculateClearanceTotals()"></td>
-    <td><input type="number" class="form-input cl-trav-vehicle" value="0" style="padding:4px; font-size:12px; width:80px;" onchange="recalculateClearanceTotals()"></td>
-    <td><input type="number" class="form-input cl-trav-other" value="0" style="padding:4px; font-size:12px; width:80px;" onchange="recalculateClearanceTotals()"></td>
+    <td><input type="number" class="form-input cl-trav-allowance" value="${allowance}" style="padding:4px; font-size:12px; width:80px;" onchange="recalculateClearanceTotals()"></td>
+    <td><input type="number" class="form-input cl-trav-rent" value="${rent}" style="padding:4px; font-size:12px; width:80px;" onchange="recalculateClearanceTotals()"></td>
+    <td><input type="number" class="form-input cl-trav-vehicle" value="${vehicle}" style="padding:4px; font-size:12px; width:80px;" onchange="recalculateClearanceTotals()"></td>
+    <td><input type="number" class="form-input cl-trav-other" value="${other}" style="padding:4px; font-size:12px; width:80px;" onchange="recalculateClearanceTotals()"></td>
     <td style="text-align:right; font-weight:700; color:var(--neutral-800); padding-right:8px;"><span class="cl-trav-row-total">0.00</span></td>
   `;
   tbody.appendChild(tr);
@@ -4428,7 +4464,7 @@ window.approveClearance = async (clearanceId, status) => {
 };
 
 window.printClearance = (reportId) => {
-  window.open(`print_clearance_template.html?reportId=${reportId}`, '_blank');
+  window.open(`print_clearance_template.html?v=28.0&reportId=${reportId}`, '_blank');
 };
 
 async function loadTravelReportsHistory() {
@@ -4555,11 +4591,11 @@ async function loadTravelReportsHistory() {
 }
 
 window.printTravelReport = (reportId) => {
-  window.open(`print_report_template.html?reportId=${reportId}`, '_blank');
+  window.open(`print_report_template.html?v=28.0&reportId=${reportId}`, '_blank');
 };
 
 window.printTravelRequest = (travelId) => {
-  window.open(`print_travel_template.html?v=27.0&travelId=${travelId}`, '_blank');
+  window.open(`print_travel_template.html?v=28.0&travelId=${travelId}`, '_blank');
 };
 
 

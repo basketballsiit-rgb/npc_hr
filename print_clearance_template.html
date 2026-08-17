@@ -698,6 +698,26 @@
       return bahtText;
     }
 
+    function extractThaiProvince(dest) {
+      if (!dest) return '';
+      const match = dest.match(/จ\.(.*?)(?:\s|$)|จังหวัด(.*?)(?:\s|$)/);
+      if (match) {
+        return (match[1] || match[2]).trim();
+      }
+      const provinces = [
+        "เชียงราย", "เชียงใหม่", "น่าน", "พะเยา", "แพร่", "แม่ฮ่องสอน", "ลำปาง", "ลำพูน", "อุตรดิตถ์",
+        "กาฬสินธุ์", "ขอนแก่น", "ชัยภูมิ", "นครพนม", "นครราชสีมา", "บึงกาฬ", "บุรีรัมย์", "มหาสารคาม", "มุกดาหาร", "ยโสธร", "ร้อยเอ็ด", "เลย", "ศรีสะเกษ", "สกลนคร", "สุรินทร์", "หนองคาย", "หนองบัวลำภู", "อำนาจเจริญ", "อุดรธานี", "อุบลราชธานี",
+        "กรุงเทพมหานคร", "กรุงเทพฯ", "กำแพงเพชร", "ชัยนาท", "นครนายก", "นครปฐม", "นครสวรรค์", "นนทบุรี", "ปทุมธานี", "พระนครศรีอยุธยา", "พิจิตร", "พิษณุโลก", "เพชรบูรณ์", "ลพบุรี", "สมุทรปราการ", "สมุทรสงคราม", "สมุทรสาคร", "สระบุรี", "สิงห์บุรี", "สุโขทัย", "สุพรรณบุรี", "อ่างทอง", "อุทัยธานี",
+        "จันทบุรี", "ฉะเชิงเทรา", "ชลบุรี", "ตราด", "ปราจีนบุรี", "ระยอง", "สระแก้ว",
+        "กาญจนบุรี", "ตาก", "ประจวบคีรีขันธ์", "เพชรบุรี", "ราชบุรี",
+        "กระบี่", "ชุมพร", "ตรัง", "นครศรีธรรมราช", "นราธิวาส", "พังงา", "พัทลุง", "ภูเก็ต", "ยะลา", "ระนอง", "สงขลา", "สตูล", "สุราษฎร์ธานี", "ปัตตานี"
+      ];
+      for (let p of provinces) {
+        if (dest.includes(p)) return p;
+      }
+      return dest;
+    }
+
     window.addEventListener('DOMContentLoaded', async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const reportId = urlParams.get('reportId');
@@ -757,23 +777,48 @@
         by111Tbody.innerHTML = '';
         
         let sumAllowance = 0, sumRent = 0, sumVehicle = 0, sumOther = 0, sumGrand = 0;
+        
+        let isGovCar = false;
+        if (reqDetails) {
+          const vType = reqDetails.vehicleType || '';
+          if (vType === 'gov') isGovCar = true;
+          if (!isGovCar && reqDetails.vehicleData && reqDetails.vehicleData.legs) {
+            reqDetails.vehicleData.legs.forEach(leg => {
+              if (leg.type === 'gov_car') isGovCar = true;
+            });
+          }
+        }
+
         clDetails.travelers.forEach((t, index) => {
-          sumAllowance += parseFloat(t.allowance) || 0;
-          sumRent += parseFloat(t.rent) || 0;
-          sumVehicle += parseFloat(t.vehicle) || 0;
-          sumOther += parseFloat(t.other) || 0;
-          sumGrand += parseFloat(t.total) || 0;
+          let tAllowance = parseFloat(t.allowance) || 0;
+          let tRent = parseFloat(t.rent) || 0;
+          let tVehicle = parseFloat(t.vehicle) || 0;
+          let tOther = parseFloat(t.other) || 0;
+          
+          // Legacy check: redirect gov_car fuel cost from vehicle to other if not done yet
+          if (isGovCar && tVehicle > 0) {
+            tOther += tVehicle;
+            tVehicle = 0;
+          }
+          
+          const tTotal = tAllowance + tRent + tVehicle + tOther;
+
+          sumAllowance += tAllowance;
+          sumRent += tRent;
+          sumVehicle += tVehicle;
+          sumOther += tOther;
+          sumGrand += tTotal;
           
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td>${index + 1}</td>
             <td style="text-align: left; font-weight: bold;">${t.name}</td>
             <td>${t.position || '-'}</td>
-            <td>${parseFloat(t.allowance) > 0 ? parseFloat(t.allowance).toLocaleString() : '-'}</td>
-            <td>${parseFloat(t.rent) > 0 ? parseFloat(t.rent).toLocaleString() : '-'}</td>
-            <td>${parseFloat(t.vehicle) > 0 ? parseFloat(t.vehicle).toLocaleString() : '-'}</td>
-            <td>${parseFloat(t.other) > 0 ? parseFloat(t.other).toLocaleString() : '-'}</td>
-            <td style="font-weight: bold; text-align: right;">${parseFloat(t.total).toLocaleString()}</td>
+            <td>${tAllowance > 0 ? tAllowance.toLocaleString() : '-'}</td>
+            <td>${tRent > 0 ? tRent.toLocaleString() : '-'}</td>
+            <td>${tVehicle > 0 ? tVehicle.toLocaleString() : '-'}</td>
+            <td>${tOther > 0 ? tOther.toLocaleString() : '-'}</td>
+            <td style="font-weight: bold; text-align: right;">${tTotal.toLocaleString()}</td>
             <td></td>
             <td></td>
             <td></td>
@@ -841,8 +886,8 @@
           document.getElementById('lodging-sig-name').textContent = cl.fullName;
           document.getElementById('lodging-user-pos').textContent = 'ครู';
 
-          document.getElementById('lodging-province').textContent = report.destination;
-          document.getElementById('lodging-stay-province').textContent = clDetails.lodging.province || report.destination;
+          document.getElementById('lodging-province').textContent = extractThaiProvince(report.destination);
+          document.getElementById('lodging-stay-province').textContent = extractThaiProvince(clDetails.lodging.province || report.destination);
           document.getElementById('lodging-start-date').textContent = formatDateThai(report.startDate);
           document.getElementById('lodging-end-date').textContent = formatDateThai(report.endDate);
           document.getElementById('lodging-nights').textContent = clDetails.lodging.nights;

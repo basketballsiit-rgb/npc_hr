@@ -380,7 +380,18 @@
         document.getElementById('report-organizer').textContent = report.organizer || '................................';
         document.getElementById('report-start-date').textContent = formatDateThai(report.startDate);
         document.getElementById('report-end-date').textContent = formatDateThai(report.endDate);
-        document.getElementById('report-budget').textContent = parseFloat(report.budget).toLocaleString('en-US', { minimumFractionDigits: 2 });
+        let displayBudget = parseFloat(report.budget) || 0;
+        if (displayBudget === 0 && report.travelRequestDetails) {
+          try {
+            const reqDetails = JSON.parse(report.travelRequestDetails);
+            const estAllowance = parseFloat(reqDetails.allowance?.total || 0);
+            const estRent = parseFloat(reqDetails.rent?.total || 0);
+            const estVehicle = parseFloat(reqDetails.vehicleData?.routeTotal || 0);
+            const estOther = parseFloat(reqDetails.otherCost || 0);
+            displayBudget = estAllowance + estRent + estVehicle + estOther;
+          } catch(e) {}
+        }
+        document.getElementById('report-budget').textContent = displayBudget > 0 ? displayBudget.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '................';
         
         document.getElementById('signature-reporter-name').textContent = report.fullName;
         
