@@ -3044,7 +3044,7 @@ window.toggleExpenseFields = () => {
   const nextBtn = document.getElementById('travel-nav-tab1-next');
   const submitBtn = document.getElementById('travel-nav-tab1-submit');
   
-  if (type === 'claim' || type === 'project-claim') {
+  if (type === 'claim') {
     if (estTab) estTab.removeAttribute('disabled');
     if (loanTab) loanTab.removeAttribute('disabled');
     if (nextBtn) nextBtn.style.display = 'inline-block';
@@ -4285,7 +4285,7 @@ window.printTravelReport = (reportId) => {
 };
 
 window.printTravelRequest = (travelId) => {
-  window.open(`print_travel_template.html?v=20.0&travelId=${travelId}`, '_blank');
+  window.open(`print_travel_template.html?v=22.0&travelId=${travelId}`, '_blank');
 };
 
 
