@@ -4308,7 +4308,7 @@ window.printTravelReport = (reportId) => {
 };
 
 window.printTravelRequest = (travelId) => {
-  window.open(`print_travel_template.html?v=23.0&travelId=${travelId}`, '_blank');
+  window.open(`print_travel_template.html?v=24.0&travelId=${travelId}`, '_blank');
 };
 
 
