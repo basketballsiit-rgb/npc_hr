@@ -181,6 +181,8 @@ async function enterModule(pageId, adminOnly) {
   // Call the appropriate page initializer function
   if (pageId === 'dashboard-page') {
     loadDashboardData();
+  } else if (pageId === 'history-page') {
+    loadHistory();
   } else if (pageId === 'attendance-page') {
     initAttendancePage();
   } else if (pageId === 'travel-page') {
@@ -749,7 +751,7 @@ function updateUIAfterLogin() {
     } else {
       btn.innerHTML = `<span>📅</span> <span class="shortcut-text">ระบบการยื่นลา</span>`;
       btn.onclick = () => {
-        enterModule('dashboard-page', false);
+        enterModule('history-page', false);
       };
     }
     headerShortcuts.appendChild(btn);
@@ -809,7 +811,8 @@ function buildNavigation() {
 
   if (currentUser) {
     // Add Portal Links
-    menuItems.push({ text: 'ระบบการยื่นลา', icon: '📅', page: 'dashboard-page', action: loadDashboardData });
+    menuItems.push({ text: 'แดชบอร์ดภาพรวม', icon: '📊', page: 'dashboard-page', action: loadDashboardData });
+    menuItems.push({ text: 'ระบบการยื่นลา', icon: '📅', page: 'history-page', action: () => { showPage('history-page'); loadHistory(); } });
     menuItems.push({ text: 'ระบบขอไปราชการ', icon: '✈️', page: 'travel-page', action: initTravelPage });
     menuItems.push({ text: 'ระบบรายงานราชการ', icon: '📝', page: 'travel-report-page', action: initTravelReportPage });
     menuItems.push({ text: 'ระบบบันทึกอบรม', icon: '🎓', page: 'training-page', action: initTrainingPage });
@@ -828,8 +831,8 @@ function buildNavigation() {
   // Populate Sidebar (Desktop/Mobile conditional)
   let sidebarItems = [...menuItems];
   if (window.innerWidth <= 768) {
-    // Mobile sidebar should be simplified (only show Portal Home and Leave System)
-    sidebarItems = menuItems.filter(item => ['portal-page', 'dashboard-page'].includes(item.page));
+    // Mobile sidebar should be simplified (only show Portal Home, Dashboard and Leave System)
+    sidebarItems = menuItems.filter(item => ['portal-page', 'dashboard-page', 'history-page'].includes(item.page));
   }
 
   sidebarItems.forEach(item => {
@@ -4549,7 +4552,7 @@ window.printTravelReport = (reportId) => {
 };
 
 window.printTravelRequest = (travelId) => {
-  window.open(`print_travel_template.html?v=25.0&travelId=${travelId}`, '_blank');
+  window.open(`print_travel_template.html?v=26.0&travelId=${travelId}`, '_blank');
 };
 
 

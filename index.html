@@ -94,8 +94,34 @@
         <!-- 6-Card Grid -->
         <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
           
-          <!-- Card 1: Leave System -->
-          <div class="portal-card-container theme-green" onclick="enterModule('dashboard-page', false)">
+          <!-- Card 1: Dashboard Overview -->
+          <div class="portal-card-container theme-teal" onclick="enterModule('dashboard-page', false)">
+            <div class="portal-card-header-bg"></div>
+            <div class="portal-card-inner">
+              <div class="portal-card-inner-header">
+                <span class="portal-card-number">01</span>
+                <span class="portal-card-divider">|</span>
+                <div class="portal-card-icon">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                  </svg>
+                </div>
+              </div>
+              <div class="portal-card-body">
+                <div>
+                  <h4 class="portal-card-title">แดชบอร์ดภาพรวม</h4>
+                  <p class="portal-card-description">วิเคราะห์ข้อมูลการลา การเดินทางไปราชการ การเข้าร่วมกิจกรรม และสถิติการขาดลามาสายของบุคลากร</p>
+                </div>
+                <div class="portal-card-footer">
+                  เข้าใช้งานระบบ <span class="arrow">➔</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Leave System -->
+          <div class="portal-card-container theme-green" onclick="enterModule('history-page', false)">
             <div class="portal-card-header-bg"></div>
             <div class="portal-card-inner">
               <div class="portal-card-inner-header">
@@ -119,12 +145,12 @@
             </div>
           </div>
 
-          <!-- Card 2: Attendance System -->
+          <!-- Card 3: Attendance System -->
           <div class="portal-card-container theme-orange" onclick="enterModule('attendance-page', true)">
             <div class="portal-card-header-bg"></div>
             <div class="portal-card-inner">
               <div class="portal-card-inner-header">
-                <span class="portal-card-number">02</span>
+                <span class="portal-card-number">07</span>
                 <span class="portal-card-divider">|</span>
                 <div class="portal-card-icon">
                   <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -150,7 +176,7 @@
             <div class="portal-card-header-bg"></div>
             <div class="portal-card-inner">
               <div class="portal-card-inner-header">
-                <span class="portal-card-number">03</span>
+                <span class="portal-card-number">07</span>
                 <span class="portal-card-divider">|</span>
                 <div class="portal-card-icon">
                   <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -175,7 +201,7 @@
             <div class="portal-card-header-bg"></div>
             <div class="portal-card-inner">
               <div class="portal-card-inner-header">
-                <span class="portal-card-number">04</span>
+                <span class="portal-card-number">07</span>
                 <span class="portal-card-divider">|</span>
                 <div class="portal-card-icon">
                   <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -200,7 +226,7 @@
             <div class="portal-card-header-bg"></div>
             <div class="portal-card-inner">
               <div class="portal-card-inner-header">
-                <span class="portal-card-number">05</span>
+                <span class="portal-card-number">07</span>
                 <span class="portal-card-divider">|</span>
                 <div class="portal-card-icon">
                   <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -220,12 +246,12 @@
             </div>
           </div>
 
-          <!-- Card 6: Activity Participation -->
+          <!-- Card 7: Activity Participation -->
           <div class="portal-card-container theme-rose" onclick="enterModule('activity-page', false)">
             <div class="portal-card-header-bg"></div>
             <div class="portal-card-inner">
               <div class="portal-card-inner-header">
-                <span class="portal-card-number">06</span>
+                <span class="portal-card-number">07</span>
                 <span class="portal-card-divider">|</span>
                 <div class="portal-card-icon">
                   <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -250,12 +276,7 @@
 
       <!-- 1. Dashboard Page -->
       <div id="dashboard-page" class="page hidden">
-        <!-- Leave System Sub Navigation -->
-        <div class="leave-sub-nav">
-          <button type="button" onclick="showPage('dashboard-page'); loadDashboardData();" class="btn-sub-nav active" data-sub-page="dashboard-page">📊 แดชบอร์ดการลา</button>
-          <button type="button" onclick="showPage('leave-form-page'); prepareLeaveForm();" class="btn-sub-nav" data-sub-page="leave-form-page">✍️ ยื่นใบลาใหม่</button>
-          <button type="button" onclick="showPage('history-page'); loadHistory();" class="btn-sub-nav" data-sub-page="history-page">📋 ประวัติการลา</button>
-        </div>
+
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
           <h1 id="dashboard-main-title" style="font-size:1.8rem; font-weight:700; color:var(--neutral-800); margin:0;">แดชบอร์ดข้อมูลภาพรวมปีงบประมาณ</h1>
           <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
@@ -558,8 +579,7 @@
       <div id="leave-form-page" class="page hidden" style="max-width: 900px; margin: 0 auto;">
         <!-- Leave System Sub Navigation -->
         <div class="leave-sub-nav">
-          <button type="button" onclick="showPage('dashboard-page'); loadDashboardData();" class="btn-sub-nav" data-sub-page="dashboard-page">📊 แดชบอร์ดการลา</button>
-          <button type="button" onclick="showPage('leave-form-page'); prepareLeaveForm();" class="btn-sub-nav" data-sub-page="leave-form-page">✍️ ยื่นใบลาใหม่</button>
+          <button type="button" onclick="showPage('leave-form-page'); prepareLeaveForm();" class="btn-sub-nav active" data-sub-page="leave-form-page">✍️ ยื่นใบลาใหม่</button>
           <button type="button" onclick="showPage('history-page'); loadHistory();" class="btn-sub-nav" data-sub-page="history-page">📋 ประวัติการลา</button>
         </div>
         <h1 style="font-size:1.8rem; font-weight:700; color:var(--neutral-800); text-align:center; margin-bottom:32px;">แบบฟอร์มขออนุญาตลา</h1>
@@ -797,9 +817,8 @@
       <div id="history-page" class="page hidden">
         <!-- Leave System Sub Navigation -->
         <div class="leave-sub-nav">
-          <button type="button" onclick="showPage('dashboard-page'); loadDashboardData();" class="btn-sub-nav" data-sub-page="dashboard-page">📊 แดชบอร์ดการลา</button>
           <button type="button" onclick="showPage('leave-form-page'); prepareLeaveForm();" class="btn-sub-nav" data-sub-page="leave-form-page">✍️ ยื่นใบลาใหม่</button>
-          <button type="button" onclick="showPage('history-page'); loadHistory();" class="btn-sub-nav" data-sub-page="history-page">📋 ประวัติการลา</button>
+          <button type="button" onclick="showPage('history-page'); loadHistory();" class="btn-sub-nav active" data-sub-page="history-page">📋 ประวัติการลา</button>
         </div>
         <h1 style="font-size:1.8rem; font-weight:700; color:var(--neutral-800); margin-bottom:24px;">ประวัติบันทึกการลา</h1>
         
@@ -2054,6 +2073,6 @@
   </div>
 
   <!-- Load Custom JS logic -->
-  <script src="app.js?v=25.0"></script>
+  <script src="app.js?v=26.0"></script>
 </body>
 </html>
