@@ -116,6 +116,34 @@
 
     /* Print settings */
     @media print {
+      #page-memo {
+        padding: 4mm 15mm 4mm 20mm !important;
+      }
+      #page-memo,
+      #page-memo div,
+      #page-memo span,
+      #page-memo p,
+      #page-memo table,
+      #page-memo td,
+      #page-memo th {
+        font-size: 15.1pt !important;
+        line-height: 1.15 !important;
+      }
+      #page-memo .memo-title-centered {
+        font-size: 18pt !important;
+      }
+      #page-memo #memo-approvals-section,
+      #page-memo #memo-approvals-section div,
+      #page-memo #memo-approvals-section td,
+      #page-memo #memo-approvals-section span {
+        font-size: 13.5pt !important;
+      }
+      #page-memo hr {
+        margin: 2px 0 !important;
+      }
+      #page-memo table {
+        margin-top: 2px !important;
+      }
       @page {
         size: A4;
         margin: 0;
@@ -297,7 +325,7 @@
             <div style="display: flex; gap: 24px; align-items: center; padding-left: 28px; margin-top: 4px;">
               <div style="white-space: nowrap; flex-shrink: 0;"><span class="print-checkbox" id="chk-allowance"></span> ค่าเบี้ยเลี้ยง</div>
               <div style="white-space: nowrap; flex-shrink: 0;"><span class="print-checkbox" id="chk-rent"></span> ค่าที่พัก</div>
-              <div style="white-space: nowrap; flex-shrink: 0;"><span class="print-checkbox" id="chk-vehicle"></span> ค่าพาหนะ</div>
+              <div style="white-space: nowrap; flex-shrink: 0;"><span class="print-checkbox" id="chk-vehicle"></span> <span id="memo-vehicle-label">ค่าพาหนะ</span></div>
               <div style="display: inline-flex; align-items: center; width: 230px; overflow: hidden; white-space: nowrap; flex-shrink: 0;">
                 <span class="print-checkbox" id="chk-other"></span> อื่น...........................................................................................
               </div>
@@ -354,7 +382,7 @@
       </table>
 
       <!-- Deputy Director & Director Signatures Section -->
-      <div style="margin-top: 6px; font-size: 14.5pt; line-height: 1.2;">
+      <div id="memo-approvals-section" style="margin-top: 4px; font-size: 14.5pt; line-height: 1.2;">
         <!-- รองผู้อำนวยการฝ่าย... -->
         <div style="margin-bottom: 6px; page-break-inside: avoid;">
           <div>ความเห็นของรองผู้อำนวยการฝ่าย <span id="memo-deputy-dept" class="underline-dotted" style="min-width: 150px;">.........................................</span></div>
@@ -905,6 +933,10 @@
         setCheckbox('chk-use-car', vType === 'gov' || vType === 'personal');
         setCheckbox('chk-car-gov', vType === 'gov');
         setCheckbox('chk-car-personal', vType === 'personal');
+        
+        // Dynamically set label of chk-vehicle
+        const isGovCar = (vType === 'gov');
+        document.getElementById('memo-vehicle-label').textContent = isGovCar ? 'ค่าน้ำมันเชื้อเพลิง' : 'ค่าพาหนะ';
         
         setFieldVal('memo-plate-gov', vType === 'gov' ? details.vehiclePlate : '');
         setFieldVal('memo-plate-personal', vType === 'personal' ? details.vehiclePlate : '');
