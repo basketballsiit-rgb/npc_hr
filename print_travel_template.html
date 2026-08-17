@@ -997,8 +997,8 @@
         let displayRent = details.rent ? details.rent.total : 0;
         let displayVehicle = details.vehicleData ? details.vehicleData.routeTotal : 0;
         let displayOther = parseFloat(details.otherCost) || 0;
-        const estTotalBudget = parseFloat(displayAllowance) + parseFloat(displayRent) + parseFloat(displayVehicle) + displayOther;
-        let displayBudget = parseFloat(t.budget) > 0 ? parseFloat(t.budget) : estTotalBudget;
+        const estTotalPage2 = parseFloat(displayAllowance) + parseFloat(displayRent) + parseFloat(displayVehicle) + displayOther;
+        let displayBudget = parseFloat(t.budget) > 0 ? parseFloat(t.budget) : estTotalPage2;
 
         const allowanceDays = details.allowance ? details.allowance.days : 0;
         const allowanceRateVal = details.allowance ? details.allowance.rate : 0;
