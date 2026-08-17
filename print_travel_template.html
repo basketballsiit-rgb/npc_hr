@@ -1121,7 +1121,15 @@
           if (details.routes && details.routes.length > 0) {
             routesText = details.routes.map(r => `จาก ${r.from || '...'} ถึง ${r.to || '...'}`).join(' ');
           }
-          const vehicleLabel = `ค่าพาหนะในการเดินทาง ${routesText ? `(${routesText})` : ''}`;
+          
+          let isCar = false;
+          if (details.routes && details.routes.length > 0) {
+            isCar = details.routes.some(r => r.vehicle === 'gov_car' || r.vehicle === 'personal_car');
+          } else if (details.vehicleData && details.vehicleData.legs && details.vehicleData.legs.length > 0) {
+            isCar = details.vehicleData.legs.some(l => l.type === 'gov_car' || l.type === 'personal_car');
+          }
+          const vehicleBaseLabel = isCar ? 'ค่าน้ำมันเชื้อเพลิง' : 'ค่าพาหนะในการเดินทาง';
+          const vehicleLabel = `${vehicleBaseLabel} ${routesText ? `(${routesText})` : ''}`;
 
           // Other Cost Label
           const otherRemarkText = details.otherDetail || details.otherRemark || 'ระบุ';
