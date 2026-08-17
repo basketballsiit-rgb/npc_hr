@@ -858,7 +858,13 @@
         const hasTravelers = travelersNames.length > 0;
         document.getElementById('memo-travelers-wrapper').style.display = hasTravelers ? 'inline' : 'none';
         if (hasTravelers) {
-          setFieldVal('memo-accompanied-list', travelersNames.join(', '));
+          let displayNames = '';
+          if (travelersNames.length > 4) {
+            displayNames = travelersNames.slice(0, 4).join(', ') + ' ฯลฯ';
+          } else {
+            displayNames = travelersNames.join(', ');
+          }
+          setFieldVal('memo-accompanied-list', displayNames);
         }
         
         // Document details
@@ -973,11 +979,16 @@
 
         // Render 5 Travelers rows
         const travelers = details.travelers || [];
-        const allTravelers = travelers.length > 0 ? travelers : [{ name: t.fullName, position: reqPos }];
+        const allTravelers = [{ name: t.fullName, position: reqPos }, ...travelers];
         for (let i = 1; i <= 5; i++) {
           const tr = allTravelers[i - 1];
-          const nameVal = tr ? tr.name : '';
+          let nameVal = tr ? tr.name : '';
           const posVal = tr ? (tr.position || 'ครู') : '';
+          
+          if (i === 5 && allTravelers.length > 5) {
+            nameVal = nameVal ? nameVal + ' ฯลฯ' : '';
+          }
+          
           setFieldVal(`est-traveler-${i}`, nameVal, '...........................................................................................................');
           setFieldVal(`est-pos-${i}`, posVal, '..........................................................................');
         }

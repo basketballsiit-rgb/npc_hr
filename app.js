@@ -2706,8 +2706,8 @@ window.addTravelerRow = (name = '', position = '') => {
   div.style.marginTop = '8px';
   
   div.innerHTML = `
-    <input type="text" class="form-input travel-accompanied-name" placeholder="ชื่อ-นามสกุล..." value="${name}" required style="flex-grow: 1;">
-    <input type="text" class="form-input travel-accompanied-pos" placeholder="ตำแหน่ง..." value="${position}" required style="width: 200px;">
+    <input type="text" class="form-input traveler-name" placeholder="ชื่อ-นามสกุล..." value="${name}" required style="flex-grow: 1;">
+    <input type="text" class="form-input traveler-position" placeholder="ตำแหน่ง..." value="${position}" required style="width: 200px;">
     <button type="button" class="btn btn-outline btn-sm" onclick="removeTravelerRow(this)" style="padding: 10px; border-color:var(--danger); color:var(--danger);">❌</button>
   `;
   container.appendChild(div);
@@ -4285,7 +4285,7 @@ window.printTravelReport = (reportId) => {
 };
 
 window.printTravelRequest = (travelId) => {
-  window.open(`print_travel_template.html?v=22.0&travelId=${travelId}`, '_blank');
+  window.open(`print_travel_template.html?v=23.0&travelId=${travelId}`, '_blank');
 };
 
 
