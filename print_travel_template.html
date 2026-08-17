@@ -1011,12 +1011,58 @@
         const estTotalPage2 = parseFloat(displayAllowance) + parseFloat(displayRent) + parseFloat(displayVehicle) + displayOther;
         let displayBudget = parseFloat(t.budget) > 0 ? parseFloat(t.budget) : estTotalPage2;
 
+        const peopleCount = 1 + (details.travelers ? details.travelers.length : 0);
+        
+        // Allowance calculation text
+        let allowanceText = '';
         const allowanceDays = details.allowance ? details.allowance.days : 0;
         const allowanceRateVal = details.allowance ? details.allowance.rate : 0;
-        const allowanceRate = allowanceRateVal || (allowanceDays ? Math.round(displayAllowance / allowanceDays) : 0);
+        if (details.allowanceDaysList && details.allowanceDaysList.length > 0) {
+          const rateGroups = {};
+          details.allowanceDaysList.forEach(item => {
+            const r = item.rate;
+            rateGroups[r] = (rateGroups[r] || 0) + 1;
+          });
+          const groupTexts = Object.keys(rateGroups).map(rate => {
+            const days = rateGroups[rate];
+            return `(${peopleCount} คน x ${rate} บาท x ${days} วัน)`;
+          });
+          allowanceText = groupTexts.join(' + ');
+        } else {
+          let fallbackRate = allowanceRateVal || (allowanceDays ? Math.round(displayAllowance / (allowanceDays * peopleCount)) : 0);
+          let inferredPeople = peopleCount;
+          let inferredDays = allowanceDays || 1;
+          
+          // Smart inference for older records with empty travelers array
+          if (displayAllowance > 0) {
+            const possibleRates = [240, 160, 80];
+            for (let r of possibleRates) {
+              if (displayAllowance % r === 0) {
+                const peopleDaysProduct = displayAllowance / r;
+                const sDate = new Date(t.startDate);
+                const eDate = new Date(t.endDate);
+                const durationDays = Math.ceil(Math.abs(eDate - sDate) / (1000 * 60 * 60 * 24)) + 1;
+                
+                if (peopleDaysProduct <= durationDays) {
+                  inferredPeople = 1;
+                  inferredDays = peopleDaysProduct;
+                } else {
+                  inferredDays = durationDays;
+                  inferredPeople = Math.round(peopleDaysProduct / durationDays);
+                }
+                fallbackRate = r;
+                break;
+              }
+            }
+          }
+          allowanceText = `(${inferredPeople} คน x ${fallbackRate} บาท x ${inferredDays} วัน)`;
+        }
+
+        // Rent calculation text
         const rentDays = details.rent ? details.rent.days : 0;
         const rentRateVal = details.rent ? details.rent.rate : 0;
-        const rentRate = rentRateVal || (rentDays ? Math.round(displayRent / rentDays) : 0);
+        const rentRate = rentRateVal || (rentDays ? Math.round(displayRent / (rentDays * peopleCount)) : 0);
+        const rentText = `(${peopleCount} คน x ${rentRate} บาท x ${rentDays} วัน)`;
 
         const isNoClaim = !details.expenseType || details.expenseType === 'no-claim' || details.expenseType === 'no-claim-origin';
 
@@ -1036,8 +1082,8 @@
           document.getElementById('est-remark-rent').textContent = remarkText;
           document.getElementById('est-remark-other').textContent = remarkText;
         } else {
-          document.getElementById('est-allowance-calc').textContent = `อัตราเบี้ยเลี้ยง ${allowanceRate} บาท/วัน x ${allowanceDays} วัน`;
-          document.getElementById('est-rent-calc').textContent = `อัตราค่าเช่าที่พัก ${rentRate} บาท/วัน x ${rentDays} วัน`;
+          document.getElementById('est-allowance-calc').textContent = `อัตราเบี้ยเลี้ยง ${allowanceText}`;
+          document.getElementById('est-rent-calc').textContent = `อัตราค่าเช่าที่พัก ${rentText}`;
 
           document.getElementById('est-amount-vehicle').textContent = parseFloat(displayVehicle).toLocaleString('en-US', { minimumFractionDigits: 2 });
           document.getElementById('est-amount-allowance').textContent = parseFloat(displayAllowance).toLocaleString('en-US', { minimumFractionDigits: 2 });
