@@ -3362,20 +3362,31 @@ async function loadTravelHistory() {
     
     travels.forEach(t => {
       let actionHtml = '';
-      if (currentUser.role === 'admin' && t.status === 'รอการอนุมัติ') {
-        actionHtml = `
-          <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
-            <div style="display:flex; gap:4px;">
-              <button class="btn btn-primary btn-sm" onclick="approveTravel('${t.travelId}', 'อนุมัติ')" style="padding:4px 8px; font-size:11px;">อนุมัติ</button>
+      const printBtn = `<button class="btn btn-outline btn-xs" onclick="printTravelRequest('${t.travelId}')" style="padding:3px 6px; font-size:10px; display:inline-flex; align-items:center; gap:2px;">🖨️ พิมพ์ใบขออนุมัติ</button>`;
+      
+      if (currentUser.role === 'admin') {
+        let approveBlock = '';
+        if (t.status === 'รอการอนุมัติ') {
+          approveBlock = `
+            <div style="display:flex; gap:4px; margin-bottom:4px;">
+              <button class="btn btn-primary btn-sm" onclick="approveTravel('${t.travelId}', 'อนุมัติ')" style="padding:4px 8px; font-size:11px; background:#10b981; border-color:#10b981;">อนุมัติ</button>
               <button class="btn btn-danger btn-sm" onclick="approveTravel('${t.travelId}', 'ไม่อนุมัติ')" style="padding:4px 8px; font-size:11px; background:#ef4444; border-color:#ef4444; color:white;">ปฏิเสธ</button>
             </div>
-            <button class="btn btn-outline btn-xs" onclick="printTravelRequest('${t.travelId}')" style="padding:3px 6px; font-size:10px;">🖨️ พิมพ์ใบขออนุมัติ</button>
+          `;
+        }
+        
+        actionHtml = `
+          <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
+            ${approveBlock}
+            <div style="display:flex; gap:4px; flex-wrap:wrap; justify-content:center;">
+              ${printBtn}
+              <button class="btn btn-outline btn-xs" onclick="editTravelRecord('${t.travelId}')" style="padding:3px 6px; font-size:10px; color:#4f46e5; border-color:#818cf8; display:inline-flex; align-items:center; gap:2px;">✏️ แก้ไข</button>
+              <button class="btn btn-outline btn-xs" onclick="deleteTravelRecord('${t.travelId}')" style="padding:3px 6px; font-size:10px; color:#ef4444; border-color:#fca5a5; display:inline-flex; align-items:center; gap:2px;">🗑️ ลบ</button>
+            </div>
           </div>
         `;
       } else {
-        actionHtml = `
-          <button class="btn btn-outline btn-xs" onclick="printTravelRequest('${t.travelId}')" style="padding:3px 6px; font-size:10px;">🖨️ พิมพ์ใบขออนุมัติ</button>
-        `;
+        actionHtml = printBtn;
       }
       
       const budgetText = parseFloat(t.budget) > 0 ? ` (งบ ${parseFloat(t.budget).toLocaleString()} บ.)` : '';
@@ -3436,6 +3447,135 @@ async function approveTravel(travelId, status) {
     }
   }
 }
+
+window.deleteTravelRecord = (travelId) => {
+  Swal.fire({
+    title: 'ต้องการลบประวัติการขอไปราชการ?',
+    text: "ประวัติการเดินทางนี้ รวมถึงรายงานผลการเดินทางและรายละเอียดการเคลียร์เงินยืมที่เกี่ยวข้องจะถูกลบออกอย่างถาวร",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444',
+    confirmButtonText: 'ยืนยันลบข้อมูล',
+    cancelButtonText: 'ยกเลิก'
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      showLoading('กำลังลบข้อมูล...');
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/travel/${travelId}`, {
+          method: 'DELETE'
+        });
+        const r = await res.json();
+        if (r.success) {
+          Swal.fire('สำเร็จ', 'ลบคำขอไปราชการเรียบร้อยแล้ว', 'success');
+          loadTravelHistory();
+        } else {
+          showError(r.message);
+        }
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+  });
+};
+
+window.editTravelRecord = async (travelId) => {
+  showLoading('กำลังดึงข้อมูลคำขอเดินทาง...');
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/travel?travelId=${travelId}`);
+    const travels = await res.json();
+    if (travels.length === 0) {
+      Swal.close();
+      showError('ไม่พบข้อมูลคำขอเดินทาง');
+      return;
+    }
+    const t = travels[0];
+    Swal.close();
+
+    const { value: formValues } = await Swal.fire({
+      title: '✏️ แก้ไขข้อมูลคำขอไปราชการ',
+      html: `
+        <div style="text-align: left; font-family: 'Sarabun', sans-serif; font-size: 14px;">
+          <label style="font-weight: 600; display: block; margin-bottom: 4px;">เรื่อง:</label>
+          <input id="swal-edit-subject" class="swal2-input" style="width: 90%; margin: 0 0 12px 0;" value="${t.subject || ''}">
+          
+          <label style="font-weight: 600; display: block; margin-bottom: 4px;">สถานที่ปลายทาง:</label>
+          <input id="swal-edit-destination" class="swal2-input" style="width: 90%; margin: 0 0 12px 0;" value="${t.destination || ''}">
+          
+          <div style="display: flex; gap: 8px;">
+            <div style="flex: 1;">
+              <label style="font-weight: 600; display: block; margin-bottom: 4px;">วันที่เริ่มต้น:</label>
+              <input id="swal-edit-start" type="date" class="swal2-input" style="width: 90%; margin: 0 0 12px 0;" value="${t.startDate ? t.startDate.substring(0,10) : ''}">
+            </div>
+            <div style="flex: 1;">
+              <label style="font-weight: 600; display: block; margin-bottom: 4px;">วันที่สิ้นสุด:</label>
+              <input id="swal-edit-end" type="date" class="swal2-input" style="width: 90%; margin: 0 0 12px 0;" value="${t.endDate ? t.endDate.substring(0,10) : ''}">
+            </div>
+          </div>
+          
+          <div style="display: flex; gap: 8px;">
+            <div style="flex: 1;">
+              <label style="font-weight: 600; display: block; margin-bottom: 4px;">จำนวนวัน:</label>
+              <input id="swal-edit-days" type="number" step="0.5" class="swal2-input" style="width: 90%; margin: 0 0 12px 0;" value="${t.totalDays || 0}">
+            </div>
+            <div style="flex: 1;">
+              <label style="font-weight: 600; display: block; margin-bottom: 4px;">งบประมาณ (บาท):</label>
+              <input id="swal-edit-budget" type="number" class="swal2-input" style="width: 90%; margin: 0 0 12px 0;" value="${t.budget || 0}">
+            </div>
+          </div>
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: '💾 บันทึกการแก้ไข',
+      cancelButtonText: 'ยกเลิก',
+      preConfirm: () => {
+        return {
+          subject: document.getElementById('swal-edit-subject').value.trim(),
+          destination: document.getElementById('swal-edit-destination').value.trim(),
+          startDate: document.getElementById('swal-edit-start').value,
+          endDate: document.getElementById('swal-edit-end').value,
+          totalDays: parseFloat(document.getElementById('swal-edit-days').value) || 0,
+          budget: parseFloat(document.getElementById('swal-edit-budget').value) || 0
+        };
+      }
+    });
+
+    if (formValues) {
+      if (!formValues.subject || !formValues.destination) {
+        showError('กรุณากรอกข้อมูลเรื่องและสถานที่ปลายทางให้ครบถ้วน');
+        return;
+      }
+      showLoading('กำลังบันทึกการแก้ไข...');
+      
+      const details = JSON.parse(t.details || '{}');
+      
+      const updateRes = await fetch(`${API_BASE_URL}/api/travel/${travelId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: formValues.subject,
+          destination: formValues.destination,
+          startDate: formValues.startDate,
+          endDate: formValues.endDate,
+          totalDays: formValues.totalDays,
+          budget: formValues.budget,
+          vehicleType: t.vehicleType,
+          details: JSON.stringify(details)
+        })
+      });
+      
+      const r = await updateRes.json();
+      if (r.success) {
+        Swal.fire('สำเร็จ', 'แก้ไขข้อมูลคำขอไปราชการเรียบร้อยแล้ว', 'success');
+        loadTravelHistory();
+      } else {
+        showError(r.message);
+      }
+    }
+  } catch (err) {
+    showError(err.message);
+  }
+};
 
 async function handleTravelSubmit(e) {
   e.preventDefault();

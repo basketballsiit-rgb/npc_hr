@@ -1717,6 +1717,44 @@ app.get('/api/travel', async (req, res) => {
   }
 });
 
+// Update Travel Request (Admin/Owner)
+app.put('/api/travel/:travelId', async (req, res) => {
+  const { travelId } = req.params;
+  const { subject, destination, startDate, endDate, totalDays, budget, vehicleType, details } = req.body;
+  try {
+    const [result] = await db.query(
+      `UPDATE travel_data 
+       SET subject = ?, destination = ?, startDate = ?, endDate = ?, totalDays = ?, budget = ?, vehicleType = ?, details = ?
+       WHERE travelId = ?`,
+      [subject, destination, startDate, endDate, totalDays, budget, vehicleType, details, travelId]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'ไม่พบข้อมูลคำขอเดินทางที่ต้องการแก้ไข' });
+    }
+    res.json({ success: true, message: 'แก้ไขข้อมูลคำขอเดินทางเรียบร้อยแล้ว' });
+  } catch (err) {
+    console.error('Error updating travel request:', err);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล: ' + err.message });
+  }
+});
+
+// Delete Travel Request (Admin Only)
+app.delete('/api/travel/:travelId', async (req, res) => {
+  const { travelId } = req.params;
+  try {
+    await db.query('DELETE FROM travel_clearances WHERE travelId = ?', [travelId]);
+    await db.query('DELETE FROM travel_reports WHERE travelId = ?', [travelId]);
+    const [result] = await db.query('DELETE FROM travel_data WHERE travelId = ?', [travelId]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'ไม่พบข้อมูลคำขอเดินทางไปราชการที่ต้องการลบ' });
+    }
+    res.json({ success: true, message: 'ลบข้อมูลคำขอเดินทางไปราชการเรียบร้อยแล้ว' });
+  } catch (err) {
+    console.error('Error deleting travel request:', err);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการลบข้อมูล: ' + err.message });
+  }
+});
+
 app.post('/api/travel/approve', async (req, res) => {
   const { travelId, status } = req.body; // status: 'อนุมัติ' or 'ไม่อนุมัติ'
   if (!travelId || !status) {
