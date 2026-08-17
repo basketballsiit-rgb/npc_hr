@@ -327,7 +327,7 @@
               <div style="white-space: nowrap; flex-shrink: 0;"><span class="print-checkbox" id="chk-rent"></span> ค่าที่พัก</div>
               <div style="white-space: nowrap; flex-shrink: 0;"><span class="print-checkbox" id="chk-vehicle"></span> <span id="memo-vehicle-label">ค่าพาหนะ</span></div>
               <div style="display: inline-flex; align-items: center; width: 230px; overflow: hidden; white-space: nowrap; flex-shrink: 0;">
-                <span class="print-checkbox" id="chk-other"></span> อื่น...........................................................................................
+                <span class="print-checkbox" id="chk-other"></span> อื่น <span id="memo-other-detail" class="underline-dotted" style="min-width: 150px;">............................................................</span>
               </div>
             </div>
 
@@ -665,7 +665,7 @@
             <td style="border: 1px solid #000; text-align: center; padding: 4px; vertical-align: top;">4</td>
             <td style="border: 1px solid #000; padding: 4px; text-align: left; vertical-align: top;">
               <div>ค่าใช้จ่ายอื่นๆ</div>
-              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
+              <div id="est-other-calc" style="font-size: 15pt; margin-top: 2px;"></div>
               <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
               <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
             </td>
@@ -918,11 +918,33 @@
         setCheckbox('chk-no-claim-origin', details.expenseType === 'no-claim-origin');
         setCheckbox('chk-claim', details.expenseType === 'claim' || details.expenseType === 'project-claim');
         
+        // Calculate gov_car cost to map to Item 4: อื่นๆ
+        let govCarCost = 0;
+        if (details.vehicleData && details.vehicleData.legs) {
+          details.vehicleData.legs.forEach(leg => {
+            if (leg.type === 'gov_car') {
+              govCarCost += parseFloat(leg.cost) || 0;
+            }
+          });
+        }
+
+        const nonGovVehicleCost = Math.max(0, (details.vehicleData ? parseFloat(details.vehicleData.routeTotal || 0) : 0) - govCarCost);
+        const totalOtherCost = (parseFloat(details.otherCost) || 0) + govCarCost;
+
         const hasExpenses = details.expenseType === 'claim';
         setCheckbox('chk-allowance', hasExpenses && details.allowance && details.allowance.total > 0);
         setCheckbox('chk-rent', hasExpenses && details.rent && details.rent.total > 0);
-        setCheckbox('chk-vehicle', hasExpenses && details.vehicleData && details.vehicleData.routeTotal > 0);
-        setCheckbox('chk-other', hasExpenses && details.otherCost > 0);
+        setCheckbox('chk-vehicle', hasExpenses && nonGovVehicleCost > 0);
+        setCheckbox('chk-other', hasExpenses && totalOtherCost > 0);
+
+        // Populate Page 1 other detail text
+        let memoOtherText = '';
+        if (govCarCost > 0) {
+          memoOtherText = 'ค่าน้ำมันเชื้อเพลิง' + (details.otherDetail ? `, ${details.otherDetail}` : '');
+        } else if (details.otherCost > 0) {
+          memoOtherText = details.otherDetail || '';
+        }
+        setFieldVal('memo-other-detail', memoOtherText, '............................................................');
         
         const estTotalBudget = parseFloat(details.allowance?.total || 0) + parseFloat(details.rent?.total || 0) + parseFloat(details.vehicleData?.routeTotal || 0) + parseFloat(details.otherCost || 0);
         const resolvedBudget = parseFloat(t.budget) > 0 ? parseFloat(t.budget) : estTotalBudget;
@@ -1033,8 +1055,8 @@
         // Setup amounts and formulas
         let displayAllowance = details.allowance ? details.allowance.total : 0;
         let displayRent = details.rent ? details.rent.total : 0;
-        let displayVehicle = details.vehicleData ? details.vehicleData.routeTotal : 0;
-        let displayOther = parseFloat(details.otherCost) || 0;
+        let displayVehicle = details.vehicleData ? Math.max(0, parseFloat(details.vehicleData.routeTotal || 0) - govCarCost) : 0;
+        let displayOther = (parseFloat(details.otherCost) || 0) + govCarCost;
         const estTotalPage2 = parseFloat(displayAllowance) + parseFloat(displayRent) + parseFloat(displayVehicle) + displayOther;
         let displayBudget = parseFloat(t.budget) > 0 ? parseFloat(t.budget) : estTotalPage2;
 
@@ -1115,13 +1137,29 @@
           document.getElementById('est-amount-vehicle').textContent = parseFloat(displayVehicle).toLocaleString('en-US', { minimumFractionDigits: 2 });
           document.getElementById('est-amount-allowance').textContent = parseFloat(displayAllowance).toLocaleString('en-US', { minimumFractionDigits: 2 });
           document.getElementById('est-amount-rent').textContent = parseFloat(displayRent).toLocaleString('en-US', { minimumFractionDigits: 2 });
-          document.getElementById('est-amount-other').textContent = '0.00';
+          document.getElementById('est-amount-other').textContent = parseFloat(displayOther).toLocaleString('en-US', { minimumFractionDigits: 2 });
           document.getElementById('est-amount-total').textContent = parseFloat(displayBudget).toLocaleString('en-US', { minimumFractionDigits: 2 });
           
           document.getElementById('est-remark-vehicle').textContent = '-';
           document.getElementById('est-remark-allowance').textContent = '-';
           document.getElementById('est-remark-rent').textContent = '-';
-          document.getElementById('est-remark-other').textContent = '-';
+          
+          let otherText = '';
+          if (govCarCost > 0) {
+            otherText = 'ค่าน้ำมันเชื้อเพลิง' + (details.otherDetail ? `, ${details.otherDetail}` : '');
+          } else {
+            otherText = details.otherDetail || '-';
+          }
+          document.getElementById('est-remark-other').textContent = otherText || '-';
+
+          // Set other calculation text on Page 2
+          let otherCalcText = '';
+          if (govCarCost > 0) {
+            otherCalcText = `ค่าน้ำมันเชื้อเพลิงรถราชการ (&nbsp;${parseFloat(govCarCost).toLocaleString()}&nbsp;บาท)` + (details.otherDetail ? ` + ${details.otherDetail}` : '');
+          } else {
+            otherCalcText = details.otherDetail || '';
+          }
+          document.getElementById('est-other-calc').innerHTML = otherCalcText;
         }
 
         // Requester name in proposer signature
@@ -1147,8 +1185,12 @@
           // Added on-the-fly fallback to recover old records saved with 0 or null due to previous bugs
           let displayLoanAllowance = details.loan && parseFloat(details.loan.allowance) > 0 ? parseFloat(details.loan.allowance) : (details.allowance ? (parseFloat(details.allowance.total) || 0) : 0);
           let displayLoanRent = details.loan && parseFloat(details.loan.rent) > 0 ? parseFloat(details.loan.rent) : (details.rent ? (parseFloat(details.rent.total) || 0) : 0);
+          
           let displayLoanVehicle = details.loan && parseFloat(details.loan.fuel) > 0 ? parseFloat(details.loan.fuel) : (details.vehicleData ? (parseFloat(details.vehicleData.routeTotal) || 0) : 0);
-          let displayOtherCost = details.otherCost ? (parseFloat(details.otherCost) || 0) : 0;
+          displayLoanVehicle = Math.max(0, displayLoanVehicle - govCarCost);
+          
+          let displayOtherCost = (details.otherCost ? (parseFloat(details.otherCost) || 0) : 0) + govCarCost;
+          
           let displayLoanAmount = details.loan && parseFloat(details.loan.loanAmount) > 0 ? parseFloat(details.loan.loanAmount) : (parseFloat(displayLoanAllowance) + parseFloat(displayLoanRent) + parseFloat(displayLoanVehicle) + parseFloat(displayOtherCost));
 
           if (isProjectClaim) {
@@ -1229,7 +1271,10 @@
           const vehicleLabel = `${vehicleBaseLabel} ${routesText ? `(${routesText})` : ''}`;
 
           // Other Cost Label
-          const otherRemarkText = details.otherDetail || details.otherRemark || 'ระบุ';
+          let otherRemarkText = details.otherDetail || details.otherRemark || 'ระบุ';
+          if (govCarCost > 0) {
+            otherRemarkText = 'ค่าน้ำมันเชื้อเพลิง' + (details.otherDetail ? `, ${details.otherDetail}` : '');
+          }
           const otherLabel = `ค่าใช้จ่ายอื่น ๆ (${otherRemarkText})`;
 
           let tableHtml = '';
