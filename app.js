@@ -3028,10 +3028,22 @@ window.toggleVehicleFields = () => {
   const type = document.querySelector('input[name="travel-vehicle-type"]:checked').value;
   const extra = document.getElementById('travel-vehicle-extra-fields');
   if (extra) {
-    if (type === 'gov' || type === 'personal') {
+    if (type === 'personal') {
       extra.style.display = 'grid';
+      const plateGroup = document.getElementById('travel-vehicle-plate')?.closest('.form-group');
+      const driverGroup = document.getElementById('travel-vehicle-driver')?.closest('.form-group');
+      const supervisorGroup = document.getElementById('travel-vehicle-supervisor')?.closest('.form-group');
+      if (plateGroup) plateGroup.style.display = 'block';
+      if (driverGroup) driverGroup.style.display = 'none';
+      if (supervisorGroup) supervisorGroup.style.display = 'none';
     } else {
       extra.style.display = 'none';
+      const plateInput = document.getElementById('travel-vehicle-plate');
+      const driverInput = document.getElementById('travel-vehicle-driver');
+      const supervisorInput = document.getElementById('travel-vehicle-supervisor');
+      if (plateInput) plateInput.value = '';
+      if (driverInput) driverInput.value = '';
+      if (supervisorInput) supervisorInput.value = '';
     }
   }
 };
