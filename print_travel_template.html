@@ -1119,12 +1119,12 @@
                   const eDate = new Date(t.endDate);
                   const durationDays = Math.ceil(Math.abs(eDate - sDate) / (1000 * 60 * 60 * 24)) + 1;
                   
-                  if (peopleDaysProduct % durationDays === 0) {
-                    inferredDays = durationDays;
-                    inferredPeople = peopleDaysProduct / durationDays;
+                  if (peopleDaysProduct <= durationDays) {
+                    inferredPeople = 1;
+                    inferredDays = peopleDaysProduct;
                   } else {
-                    inferredDays = 1;
-                    inferredPeople = peopleDaysProduct;
+                    inferredDays = durationDays;
+                    inferredPeople = Math.round(peopleDaysProduct / durationDays);
                   }
                   fallbackRate = r;
                   break;
