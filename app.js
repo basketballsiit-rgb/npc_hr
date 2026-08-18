@@ -82,6 +82,7 @@ let monthlyLeaveChartInstance = null;
 let travelVehicleChartInstance = null;
 let monthlyTravelChartInstance = null;
 let monthlyActivityChartInstance = null;
+let aprGroupChartInstance = null;
 let attendanceRatioChartInstance = null;
 let monthlyAttendanceChartInstance = null;
 let currentDashboardData = null;
@@ -2190,6 +2191,7 @@ function renderSpecificDashboardTab(tabName, d) {
     if (actThisMonthEl) actThisMonthEl.textContent = actStats.thisMonth + ' กิจกรรม';
 
     renderActivityCharts(d.charts);
+    fetchAndRenderAprDashboard();
 
   } else if (tabName === 'attendance') {
     const attStats = d.attendanceStats || { present: 0, late: 0, absent: 0, unknown: 0 };
@@ -2392,6 +2394,115 @@ function renderActivityCharts(c) {
         }
       }
     });
+  }
+}
+
+// 3b. Fetch and Render APR Dashboard
+async function fetchAndRenderAprDashboard() {
+  const loadingEl = document.getElementById('apr-loading');
+  const staffEl = document.getElementById('apr-total-staff');
+  const activitiesEl = document.getElementById('apr-total-activities');
+  const attendanceEl = document.getElementById('apr-overall-attendance');
+  const chartCanvas = document.getElementById('aprGroupChart');
+
+  if (loadingEl) loadingEl.style.display = 'flex';
+
+  try {
+    const res = await fetch('https://service.npc.ac.th/APR/api/get_dashboard.php', { cache: 'no-cache' });
+    if (!res.ok) throw new Error('APR API returned ' + res.status);
+    const json = await res.json();
+    if (json.status !== 'success' || !json.data) throw new Error('APR API error');
+
+    const data = json.data;
+
+    if (staffEl) staffEl.textContent = data.totalStaff;
+    if (activitiesEl) activitiesEl.textContent = data.totalActivities;
+    if (attendanceEl) attendanceEl.textContent = data.overallAttendance + '%';
+    if (loadingEl) loadingEl.style.display = 'none';
+
+    if (chartCanvas && data.chartData && data.chartData.length > 0) {
+      const ctx = chartCanvas.getContext('2d');
+      if (aprGroupChartInstance) aprGroupChartInstance.destroy();
+
+      const labels = data.chartData.map(g => g.name);
+      const attended = data.chartData.map(g => parseInt(g['เข้าร่วม']) || 0);
+      const absent   = data.chartData.map(g => parseInt(g['ขาด']) || 0);
+      const totalMembers = data.chartData.map(g => parseInt(g['จำนวนคนทั้งกลุ่ม']) || 0);
+
+      aprGroupChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'เข้าร่วม (คน-ครั้ง)',
+              data: attended,
+              backgroundColor: 'rgba(16,185,129,0.85)',
+              borderRadius: 6,
+              maxBarThickness: 40
+            },
+            {
+              label: 'ขาด (คน-ครั้ง)',
+              data: absent,
+              backgroundColor: 'rgba(244,63,94,0.75)',
+              borderRadius: 6,
+              maxBarThickness: 40
+            },
+            {
+              label: 'จำนวนบุคลากรในกลุ่ม (คน)',
+              data: totalMembers,
+              backgroundColor: 'rgba(99,102,241,0.6)',
+              borderRadius: 6,
+              maxBarThickness: 40,
+              type: 'line',
+              borderColor: '#6366f1',
+              pointBackgroundColor: '#6366f1',
+              fill: false,
+              tension: 0.3,
+              yAxisID: 'y2'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { borderDash: [4,4] },
+              ticks: { font: { family: 'Kanit' }, stepSize: 1 },
+              title: { display: true, text: 'คน-ครั้ง', font: { family: 'Kanit', size: 11 } }
+            },
+            y2: {
+              position: 'right',
+              beginAtZero: true,
+              grid: { display: false },
+              ticks: { font: { family: 'Kanit' }, stepSize: 1 },
+              title: { display: true, text: 'จำนวนคน', font: { family: 'Kanit', size: 11 } }
+            },
+            x: { grid: { display: false }, ticks: { font: { family: 'Kanit' } } }
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { font: { family: 'Kanit' }, usePointStyle: true, boxWidth: 10 }
+            },
+            tooltip: {
+              callbacks: {
+                afterBody(context) {
+                  const idx = context[0].dataIndex;
+                  const acts = data.chartData[idx]['จำนวนกิจกรรม'] || 0;
+                  return ['กิจกรรมที่ยึงเข้าร่วม: ' + acts + ' ครั้ง'];
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  } catch (err) {
+    console.warn('APR Dashboard fetch error:', err);
+    if (loadingEl) loadingEl.innerHTML = '⚠️ ไม่สามารถเชื่อมต่อระบบ APR ได้ในขณะนี้';
   }
 }
 
@@ -4464,7 +4575,7 @@ window.approveClearance = async (clearanceId, status) => {
 };
 
 window.printClearance = (reportId) => {
-  window.open(`print_clearance_template.html?v=28.0&reportId=${reportId}`, '_blank');
+  window.open(`print_clearance_template.html?v=29.0&reportId=${reportId}`, '_blank');
 };
 
 async function loadTravelReportsHistory() {
@@ -4591,11 +4702,11 @@ async function loadTravelReportsHistory() {
 }
 
 window.printTravelReport = (reportId) => {
-  window.open(`print_report_template.html?v=28.0&reportId=${reportId}`, '_blank');
+  window.open(`print_report_template.html?v=29.0&reportId=${reportId}`, '_blank');
 };
 
 window.printTravelRequest = (travelId) => {
-  window.open(`print_travel_template.html?v=28.0&travelId=${travelId}`, '_blank');
+  window.open(`print_travel_template.html?v=29.0&travelId=${travelId}`, '_blank');
 };
 
 
