@@ -133,34 +133,35 @@
       margin-top: 5px;
     }
 
-    /* Photos grid */
-    .photos-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6mm 6mm;
-      margin-top: 4mm;
+    /* 2-Photos per page layout */
+    .photo-page-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 5mm;
       width: 100%;
+      align-items: center;
     }
 
-    .photo-item {
-      text-align: center;
+    .photo-card-large {
+      width: 100%;
       border: 1px solid #cbd5e1;
-      padding: 6px;
       border-radius: 6px;
+      padding: 6px;
       background: #ffffff;
+      text-align: center;
       box-sizing: border-box;
     }
 
-    .photo-item img {
+    .photo-card-large img {
       width: 100%;
-      height: 85mm;
-      max-height: 85mm;
+      height: 94mm;
+      max-height: 94mm;
       object-fit: cover;
       border-radius: 4px;
       display: block;
     }
 
-    .photo-caption {
+    .photo-card-large .photo-caption {
       margin-top: 4px;
       font-weight: bold;
       font-size: 15pt;
@@ -363,14 +364,9 @@
       </div>
     </div>
 
-    <!-- Page 2: Photos page (only shown if there are photos) -->
-    <div class="a4-page page-break hidden" id="photos-page">
-      <div class="text-center bold" style="font-size: 18pt; margin-top: 3mm; margin-bottom: 2px;">ภาพประกอบการอบรม ประชุม สัมมนา</div>
-      <div class="text-center" style="font-size: 15pt; color: #475569; margin-bottom: 5mm;">วิทยาลัยสารพัดช่างน่าน</div>
-      
-      <div id="print-photos-grid" class="photos-grid">
-        <!-- Rendered photos injected here -->
-      </div>
+    <!-- Page 2+: Photos pages (dynamically generated in chunks of 2) -->
+    <div id="photos-container">
+      <!-- Injected by JavaScript -->
     </div>
 
   </div>
@@ -537,21 +533,44 @@
             document.getElementById('bullet-10-2').textContent = details.suggestion10_2 || '';
             document.getElementById('bullet-10-3').textContent = details.suggestion10_3 || '';
             
-            // Render Photos page if photos exist
+            // Render Photos: 2 photos per A4 page chunk
             if (details.photos && details.photos.length > 0) {
-              document.getElementById('photos-page').classList.remove('hidden');
-              const photosGrid = document.getElementById('print-photos-grid');
-              photosGrid.innerHTML = '';
+              const photosContainer = document.getElementById('photos-container');
+              photosContainer.innerHTML = '';
               
-              details.photos.forEach((photoBase64, index) => {
-                const item = document.createElement('div');
-                item.className = 'photo-item';
-                item.innerHTML = `
-                  <img src="${photoBase64}">
-                  <div class="photo-caption">ภาพประกอบที่ ${index + 1}</div>
+              const chunkSize = 2;
+              for (let i = 0; i < details.photos.length; i += chunkSize) {
+                const chunk = details.photos.slice(i, i + chunkSize);
+                
+                const pageDiv = document.createElement('div');
+                pageDiv.className = 'a4-page page-break';
+                
+                let photosHtml = '';
+                chunk.forEach((photoBase64, chunkIndex) => {
+                  const actualPhotoNumber = i + chunkIndex + 1;
+                  photosHtml += `
+                    <div class="photo-card-large">
+                      <img src="${photoBase64}">
+                      <div class="photo-caption">ภาพประกอบที่ ${actualPhotoNumber}</div>
+                    </div>
+                  `;
+                });
+                
+                pageDiv.innerHTML = `
+                  <div class="text-center bold" style="font-size: 18pt; margin-top: 2mm; margin-bottom: 2px;">ภาพประกอบการอบรม ประชุม สัมมนา</div>
+                  <div class="text-center bold" style="font-size: 15.5pt; color: #0f172a; margin-bottom: 2px;">โครงการ/เรื่อง: ${report.subject}</div>
+                  <div class="text-center" style="font-size: 14.5pt; color: #334155; margin-bottom: 2px;">
+                    สถานที่: <span class="bold">${report.destination}</span> | วันที่: <span class="bold">${formatDateThai(report.startDate)}</span> ถึง <span class="bold">${formatDateThai(report.endDate)}</span>
+                  </div>
+                  <div class="text-center" style="font-size: 14pt; color: #64748b; margin-bottom: 4mm;">วิทยาลัยสารพัดช่างน่าน</div>
+                  
+                  <div class="photo-page-grid">
+                    ${photosHtml}
+                  </div>
                 `;
-                photosGrid.appendChild(item);
-              });
+                
+                photosContainer.appendChild(pageDiv);
+              }
             }
           } catch (e) {
             console.error('Error parsing details JSON:', e);
