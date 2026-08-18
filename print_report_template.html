@@ -196,10 +196,15 @@
     }
 
     .no-print-bar {
-      background: #f1f5f9;
-      padding: 12px;
+      background: #e0f2fe;
+      padding: 10px 16px;
       text-align: center;
-      border-bottom: 1px solid #cbd5e1;
+      border-bottom: 1px solid #bae6fd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
     }
 
     .btn-print {
@@ -230,6 +235,15 @@
 
   <div class="no-print-bar no-print">
     <button class="btn-print" onclick="window.print()">🖨️ สั่งพิมพ์รายงาน / บันทึกเป็น PDF</button>
+    <div style="font-family: 'Sarabun', sans-serif; font-size: 14px; color: #0369a1; display: flex; align-items: center; gap: 8px;">
+      <label for="deputy-select" style="font-weight: bold;">เลือกผู้เสนอผ่าน (รองผู้อำนวยการฝ่าย):</label>
+      <select id="deputy-select" onchange="window.updateDeputySignature(this.value)" style="padding: 4px 8px; font-size: 14px; font-family: 'Sarabun', sans-serif; border: 1px solid #0284c7; border-radius: 4px; background: white; outline: none; cursor: pointer;">
+        <option value="academic">รองฝ่ายวิชาการ (นายนิพนธ์ ร่องพืช)</option>
+        <option value="strategy">รองฝ่ายยุทธศาสตร์และแผนงาน (นายนิพนธ์ ร่องพืช)</option>
+        <option value="resources">รองฝ่ายบริหารทรัพยากร (นายจักรพงศ์ พรหมสกุลปัญญา)</option>
+        <option value="student">รองฝ่ายพัฒนากิจการนักเรียน นักศึกษา (นายวิทยา ปันโน)</option>
+      </select>
+    </div>
   </div>
 
   <div id="loading-spinner" class="loader">
@@ -319,15 +333,15 @@
 
       <!-- Deputy Director & Director comments box -->
       <div class="opinion-box" style="margin-top: 4px;">
-        <div class="bold" style="font-size: 14.5pt;">ความคิดเห็นของรองผู้อำนวยการ (ฝ่ายกำกับดูแล)</div>
+        <div class="bold" style="font-size: 14.5pt;">ความคิดเห็นของรองผู้อำนวยการฝ่าย<span id="report-deputy-dept">วิชาการ</span></div>
         <div style="margin-top: 3px; border-bottom: 1px dotted #000; height: 16px;"></div>
         <table style="width: 100%; border: none; margin-top: 3px; font-size: 14pt; line-height: 1.15;">
           <tr>
             <td style="width: 45%;"></td>
             <td style="text-align: center; width: 55%;">
               <div>ลงชื่อ .......................................................</div>
-              <div style="margin-top: 2px;">(......................................................)</div>
-              <div style="margin-top: 2px;">ตำแหน่ง รองผู้อำนวยการวิทยาลัยสารพัดช่างน่าน</div>
+              <div style="margin-top: 2px;">( <span id="report-deputy-name" class="bold">......................................................</span> )</div>
+              <div style="margin-top: 2px;">รองผู้อำนวยการฝ่าย<span id="report-deputy-dept-sig">.........................................</span></div>
             </td>
           </tr>
         </table>
@@ -381,6 +395,39 @@
       }
     }
 
+    const DEPUTIES = {
+      academic: {
+        dept: 'วิชาการ',
+        name: 'นายนิพนธ์ ร่องพืช',
+        sig: 'วิชาการ'
+      },
+      strategy: {
+        dept: 'ยุทธศาสตร์และแผนงาน',
+        name: 'นายนิพนธ์ ร่องพืช',
+        sig: 'ยุทธศาสตร์และแผนงาน'
+      },
+      resources: {
+        dept: 'บริหารทรัพยากร',
+        name: 'นายจักรพงศ์ พรหมสกุลปัญญา',
+        sig: 'บริหารทรัพยากร'
+      },
+      student: {
+        dept: 'พัฒนากิจการนักเรียน นักศึกษา',
+        name: 'นายวิทยา ปันโน',
+        sig: 'พัฒนากิจการนักเรียน นักศึกษา'
+      }
+    };
+
+    window.updateDeputySignature = function(key) {
+      const dep = DEPUTIES[key] || DEPUTIES.academic;
+      const deptEl = document.getElementById('report-deputy-dept');
+      const nameEl = document.getElementById('report-deputy-name');
+      const sigEl = document.getElementById('report-deputy-dept-sig');
+      if (deptEl) deptEl.textContent = dep.dept;
+      if (nameEl) nameEl.textContent = dep.name;
+      if (sigEl) sigEl.textContent = dep.sig;
+    };
+
     window.addEventListener('DOMContentLoaded', async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const reportId = urlParams.get('reportId');
@@ -416,9 +463,13 @@
         
         let displayBudget = parseFloat(report.budget) || 0;
         let isNoClaim = false;
+        let defaultDeputyKey = 'academic';
+
         if (report.travelRequestDetails) {
           try {
             const reqDetails = JSON.parse(report.travelRequestDetails);
+            
+            // Check claim type
             if (reqDetails.expenseType === 'no-claim' || reqDetails.expenseType === 'no-claim-origin' || reqDetails.expenseType === 'none') {
               isNoClaim = true;
               displayBudget = 0;
@@ -429,11 +480,40 @@
               const estOther = parseFloat(reqDetails.otherCost || 0);
               displayBudget = estAllowance + estRent + estVehicle + estOther;
             }
+
+            // Determine Deputy Director from travel request
+            if (reqDetails.deputyKey && DEPUTIES[reqDetails.deputyKey]) {
+              defaultDeputyKey = reqDetails.deputyKey;
+            } else if (reqDetails.department) {
+              const dept = reqDetails.department;
+              if (dept.includes('ทรัพยากร') || dept.includes('บุคคล') || dept.includes('การเงิน') || dept.includes('พัสดุ')) {
+                defaultDeputyKey = 'resources';
+              } else if (dept.includes('พัฒนากิจการ') || dept.includes('กิจกรรม') || dept.includes('แนะแนว') || dept.includes('ปกครอง')) {
+                defaultDeputyKey = 'student';
+              } else if (dept.includes('ยุทธศาสตร์') || dept.includes('แผนงาน') || dept.includes('วิจัย')) {
+                defaultDeputyKey = 'strategy';
+              } else if (dept.includes('วิชาการ') || dept.includes('หลักสูตร') || dept.includes('แผนก')) {
+                defaultDeputyKey = 'academic';
+              }
+            }
           } catch(e) {}
         }
-        document.getElementById('report-budget').textContent = (isNoClaim || displayBudget === 0) ? '0.00' : displayBudget.toLocaleString('en-US', { minimumFractionDigits: 2 });
         
+        document.getElementById('report-budget').textContent = (isNoClaim || displayBudget === 0) ? '0.00' : displayBudget.toLocaleString('en-US', { minimumFractionDigits: 2 });
         document.getElementById('signature-reporter-name').textContent = report.fullName;
+        
+        // Auto-select deputy
+        if (defaultDeputyKey === 'academic' && report.requesterStaffType) {
+          if (report.requesterStaffType.includes('เจ้าหน้าที่') || report.requesterStaffType.includes('ลูกจ้าง') || report.requesterStaffType.includes('จ้างเหมา')) {
+            defaultDeputyKey = 'resources';
+          }
+        }
+
+        const deputySelectEl = document.getElementById('deputy-select');
+        if (deputySelectEl) {
+          deputySelectEl.value = defaultDeputyKey;
+        }
+        window.updateDeputySignature(defaultDeputyKey);
         
         // Try parsing user's position from user profile or default to 'ครู'
         let userPos = 'ครู';
