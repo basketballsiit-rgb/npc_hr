@@ -2405,21 +2405,64 @@ async function fetchAndRenderAprDashboard() {
   const attendanceEl = document.getElementById('apr-overall-attendance');
   const chartCanvas = document.getElementById('aprGroupChart');
 
+  // Top stat card elements
+  const actTotalEl = document.getElementById('stat-act-total');
+  const actRegEl = document.getElementById('stat-act-registered');
+  const actRegLabel = document.getElementById('stat-act-registered-label');
+  const actThisMonthEl = document.getElementById('stat-act-this-month');
+
   if (loadingEl) loadingEl.style.display = 'flex';
 
   try {
-    const res = await fetch('https://service.npc.ac.th/APR/api/get_dashboard.php', { cache: 'no-cache' });
-    if (!res.ok) throw new Error('APR API returned ' + res.status);
-    const json = await res.json();
+    // Fetch dashboard + activities list in parallel
+    const [dashRes, activitiesRes] = await Promise.all([
+      fetch('https://service.npc.ac.th/APR/api/get_dashboard.php', { cache: 'no-cache' }),
+      fetch('https://service.npc.ac.th/APR/api/get_activities.php', { cache: 'no-cache' })
+    ]);
+
+    if (!dashRes.ok) throw new Error('APR dashboard API returned ' + dashRes.status);
+    const json = await dashRes.json();
     if (json.status !== 'success' || !json.data) throw new Error('APR API error');
 
     const data = json.data;
 
+    // ----- APR KPI panel (hero cards inside the APR panel) -----
     if (staffEl) staffEl.textContent = data.totalStaff;
     if (activitiesEl) activitiesEl.textContent = data.totalActivities;
     if (attendanceEl) attendanceEl.textContent = data.overallAttendance + '%';
     if (loadingEl) loadingEl.style.display = 'none';
 
+    // ----- Top stat cards (the 3 cards above the APR panel) -----
+    // 1. กิจกรรมทั้งหมดในระบบ — from totalActivities
+    if (actTotalEl) actTotalEl.textContent = data.totalActivities + ' กิจกรรม';
+
+    // 2. จำนวนผู้ร่วมกิจกรรมสะสม — sum เข้าร่วม from chartData
+    const totalParticipants = (data.chartData || []).reduce((sum, g) => sum + (parseInt(g['เข้าร่วม']) || 0), 0);
+    if (actRegLabel) actRegLabel.textContent = 'จำนวนผู้ร่วมกิจกรรมสะสม';
+    if (actRegEl) actRegEl.textContent = totalParticipants + ' คน-ครั้ง';
+
+    // 3. กิจกรรมจัดขึ้นในเดือนนี้ — count from activities list
+    try {
+      if (activitiesRes.ok) {
+        const actJson = await activitiesRes.json();
+        const activitiesList = actJson.data || actJson.activities || actJson || [];
+        if (Array.isArray(activitiesList)) {
+          const now = new Date();
+          const thisMonth = now.getMonth();
+          const thisYear = now.getFullYear();
+          const thisMonthCount = activitiesList.filter(a => {
+            const d = new Date(a.date || a.activity_date || a.created_at || '');
+            return !isNaN(d) && d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+          }).length;
+          if (actThisMonthEl) actThisMonthEl.textContent = thisMonthCount + ' กิจกรรม';
+        }
+      }
+    } catch (_) {
+      // fallback: show total activities if monthly parse fails
+      if (actThisMonthEl) actThisMonthEl.textContent = data.totalActivities + ' กิจกรรม';
+    }
+
+    // ----- Group Bar + Line Chart -----
     if (chartCanvas && data.chartData && data.chartData.length > 0) {
       const ctx = chartCanvas.getContext('2d');
       if (aprGroupChartInstance) aprGroupChartInstance.destroy();
@@ -4575,7 +4618,7 @@ window.approveClearance = async (clearanceId, status) => {
 };
 
 window.printClearance = (reportId) => {
-  window.open(`print_clearance_template.html?v=29.0&reportId=${reportId}`, '_blank');
+  window.open(`print_clearance_template.html?v=30.0&reportId=${reportId}`, '_blank');
 };
 
 async function loadTravelReportsHistory() {
@@ -4702,11 +4745,11 @@ async function loadTravelReportsHistory() {
 }
 
 window.printTravelReport = (reportId) => {
-  window.open(`print_report_template.html?v=29.0&reportId=${reportId}`, '_blank');
+  window.open(`print_report_template.html?v=30.0&reportId=${reportId}`, '_blank');
 };
 
 window.printTravelRequest = (travelId) => {
-  window.open(`print_travel_template.html?v=29.0&travelId=${travelId}`, '_blank');
+  window.open(`print_travel_template.html?v=30.0&travelId=${travelId}`, '_blank');
 };
 
 
