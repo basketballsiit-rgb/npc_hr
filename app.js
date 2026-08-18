@@ -4642,7 +4642,7 @@ window.approveClearance = async (clearanceId, status) => {
 };
 
 window.printClearance = (reportId) => {
-  window.open(`print_clearance_template.html?v=32.0&reportId=${reportId}`, '_blank');
+  window.open(`print_clearance_template.html?v=33.0&reportId=${reportId}`, '_blank');
 };
 
 async function loadTravelReportsHistory() {
@@ -4769,11 +4769,11 @@ async function loadTravelReportsHistory() {
 }
 
 window.printTravelReport = (reportId) => {
-  window.open(`print_report_template.html?v=32.0&reportId=${reportId}`, '_blank');
+  window.open(`print_report_template.html?v=33.0&reportId=${reportId}`, '_blank');
 };
 
 window.printTravelRequest = (travelId) => {
-  window.open(`print_travel_template.html?v=32.0&travelId=${travelId}`, '_blank');
+  window.open(`print_travel_template.html?v=33.0&travelId=${travelId}`, '_blank');
 };
 
 
