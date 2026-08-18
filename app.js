@@ -4244,42 +4244,42 @@ window.handleReportTravelSelect = (travelId) => {
   document.getElementById('report-budget').value = travel.budget;
 };
 
-window.previewReportPhotos = (input) => {
-  const previewContainer = document.getElementById('report-photo-previews');
-  if (!previewContainer) return;
-  previewContainer.innerHTML = '';
-  reportUploadedPhotos = [];
-  
-  const files = Array.from(input.files).slice(0, 4); // max 4 photos
-  
-  files.forEach((file, index) => {
+function compressImageFile(file, maxWidth = 1200, maxHeight = 1200, quality = 0.75) {
+  return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      const base64 = e.target.result;
-      reportUploadedPhotos.push(base64);
-      
-      const div = document.createElement('div');
-      div.className = 'photo-preview-item';
-      div.style.position = 'relative';
-      div.style.width = '140px';
-      div.style.height = '140px';
-      div.style.border = '1px solid #cbd5e1';
-      div.style.borderRadius = '6px';
-      div.style.overflow = 'hidden';
-      div.style.boxShadow = 'var(--shadow-sm)';
-      
-      div.innerHTML = `
-        <img src="${base64}" style="width:100%; height:100%; object-fit:cover;">
-        <button type="button" onclick="removeReportPhoto(${index})" style="position:absolute; top:4px; right:4px; background:rgba(239,68,68,0.9); color:white; border:none; border-radius:50%; width:22px; height:22px; font-size:10px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-sm);">✕</button>
-      `;
-      previewContainer.appendChild(div);
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedBase64);
+      };
+      img.onerror = () => resolve(e.target.result);
+      img.src = e.target.result;
     };
+    reader.onerror = () => resolve(null);
     reader.readAsDataURL(file);
   });
-};
+}
 
-window.removeReportPhoto = (index) => {
-  reportUploadedPhotos.splice(index, 1);
+window.renderReportPhotosPreview = () => {
   const previewContainer = document.getElementById('report-photo-previews');
   if (!previewContainer) return;
   previewContainer.innerHTML = '';
@@ -4301,6 +4301,30 @@ window.removeReportPhoto = (index) => {
     `;
     previewContainer.appendChild(div);
   });
+};
+
+window.previewReportPhotos = async (input) => {
+  const previewContainer = document.getElementById('report-photo-previews');
+  if (!previewContainer) return;
+  previewContainer.innerHTML = '<div style="color:var(--neutral-500); font-size:12px; padding:12px; display:flex; align-items:center; gap:6px;">⏳ กำลังประมวลผลและบีบอัดรูปภาพ...</div>';
+  reportUploadedPhotos = [];
+  
+  const files = Array.from(input.files).slice(0, 4); // max 4 photos
+  
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const compressedBase64 = await compressImageFile(file, 1200, 1200, 0.75);
+    if (compressedBase64) {
+      reportUploadedPhotos.push(compressedBase64);
+    }
+  }
+  
+  renderReportPhotosPreview();
+};
+
+window.removeReportPhoto = (index) => {
+  reportUploadedPhotos.splice(index, 1);
+  renderReportPhotosPreview();
 };
 
 let reportsHistoryList = [];
@@ -4618,7 +4642,7 @@ window.approveClearance = async (clearanceId, status) => {
 };
 
 window.printClearance = (reportId) => {
-  window.open(`print_clearance_template.html?v=30.0&reportId=${reportId}`, '_blank');
+  window.open(`print_clearance_template.html?v=31.0&reportId=${reportId}`, '_blank');
 };
 
 async function loadTravelReportsHistory() {
@@ -4745,11 +4769,11 @@ async function loadTravelReportsHistory() {
 }
 
 window.printTravelReport = (reportId) => {
-  window.open(`print_report_template.html?v=30.0&reportId=${reportId}`, '_blank');
+  window.open(`print_report_template.html?v=31.0&reportId=${reportId}`, '_blank');
 };
 
 window.printTravelRequest = (travelId) => {
-  window.open(`print_travel_template.html?v=30.0&travelId=${travelId}`, '_blank');
+  window.open(`print_travel_template.html?v=31.0&travelId=${travelId}`, '_blank');
 };
 
 

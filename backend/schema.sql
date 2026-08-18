@@ -95,11 +95,11 @@ CREATE TABLE IF NOT EXISTS travel_reports (
     travelId VARCHAR(50) NOT NULL,
     userId VARCHAR(50) NOT NULL,
     fullName VARCHAR(100) NOT NULL,
-    reportDetail TEXT NOT NULL,
-    benefits TEXT NOT NULL,
+    reportDetail LONGTEXT NOT NULL,
+    benefits LONGTEXT NOT NULL,
     organizer VARCHAR(255) NULL,
     budget DECIMAL(10, 2) DEFAULT 0.00,
-    details TEXT NULL,
+    details LONGTEXT NULL,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

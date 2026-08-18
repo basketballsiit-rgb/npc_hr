@@ -2388,11 +2388,25 @@ app.get('/api/activities/participants/:activityId', async (req, res) => {
         travelId VARCHAR(50) NOT NULL,
         userId VARCHAR(50) NOT NULL,
         fullName VARCHAR(100) NOT NULL,
-        reportDetail TEXT NOT NULL,
-        benefits TEXT NOT NULL,
+        reportDetail LONGTEXT NOT NULL,
+        benefits LONGTEXT NOT NULL,
+        organizer VARCHAR(255) NULL,
+        budget DECIMAL(10, 2) DEFAULT 0.00,
+        details LONGTEXT NULL,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    // Ensure columns support large JSON / base64 images (LONGTEXT)
+    try {
+      await db.query(`ALTER TABLE travel_reports MODIFY COLUMN details LONGTEXT NULL`);
+      await db.query(`ALTER TABLE travel_reports MODIFY COLUMN reportDetail LONGTEXT NULL`);
+      await db.query(`ALTER TABLE travel_reports MODIFY COLUMN benefits LONGTEXT NULL`);
+      await db.query(`ALTER TABLE travel_data MODIFY COLUMN details LONGTEXT NULL`);
+      await db.query(`ALTER TABLE travel_clearances MODIFY COLUMN details LONGTEXT NULL`);
+    } catch (alterErr) {
+      console.log('Notice on modifying columns to LONGTEXT:', alterErr.message);
+    }
 
     // 4. training_data
     await db.query(`
