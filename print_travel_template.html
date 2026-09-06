@@ -1351,6 +1351,11 @@
         document.getElementById('loading-spinner').classList.add('hidden');
         document.getElementById('print-content').classList.remove('hidden');
 
+        // Auto sync loan contract to SmartFlow on print/load
+        if (details.hasLoan || parseFloat(t.budget) > 0) {
+          fetch(`${API_BASE_URL}/api/travel/${travelId}/smartflow-sync`, { method: 'POST' }).catch(() => {});
+        }
+
         // Auto print if parameter auto=true is present
         if (urlParams.get('auto') === 'true') {
           setTimeout(() => {

@@ -1991,6 +1991,11 @@ app.post('/api/travel', async (req, res) => {
       await sendLineFlexMessage(adminGroupId, flexMessage, "มีคำขอไปราชการใหม่");
     }
 
+    // Auto sync loan contract to SmartFlow immediately upon saving/writing (no need to wait for approval)
+    syncTravelLoanToSmartFlow(travelId).catch(err => {
+      console.error('Auto sync loan to SmartFlow on create error:', err);
+    });
+
     res.json({ success: true, message: 'ยื่นคำขอไปราชการสำเร็จ' });
   } catch (err) {
     console.error('Error submitting travel:', err.message);
@@ -2039,6 +2044,12 @@ app.put('/api/travel/:travelId', async (req, res) => {
     if (result.affectedRows === 0) {
       return res.status(404).json({ success: false, message: 'ไม่พบข้อมูลคำขอเดินทางที่ต้องการแก้ไข' });
     }
+
+    // Auto sync updated loan contract to SmartFlow immediately
+    syncTravelLoanToSmartFlow(travelId).catch(err => {
+      console.error('Auto sync loan to SmartFlow on update error:', err);
+    });
+
     res.json({ success: true, message: 'แก้ไขข้อมูลคำขอเดินทางเรียบร้อยแล้ว' });
   } catch (err) {
     console.error('Error updating travel request:', err);
