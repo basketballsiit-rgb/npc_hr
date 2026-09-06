@@ -2083,7 +2083,7 @@ const SMARTFLOW_API_TOKEN = process.env.SMARTFLOW_API_TOKEN || 'npc_smartflow_se
 async function syncTravelLoanToSmartFlow(travelId) {
   try {
     const [travelRows] = await db.query(
-      `SELECT td.*, u.position, u.department, u.staffType 
+      `SELECT td.*, u.position, u.staffType 
        FROM travel_data td 
        LEFT JOIN users u ON td.userId = u.userId 
        WHERE td.travelId = ?`,
@@ -2114,7 +2114,7 @@ async function syncTravelLoanToSmartFlow(travelId) {
         userId: travel.userId,
         fullName: travel.fullName,
         position: travel.position || 'ครู',
-        department: travel.department || details.department || 'วิทยาลัยสารพัดช่างน่าน',
+        department: details.department || 'วิทยาลัยสารพัดช่างน่าน',
         staffType: travel.staffType || 'ครู'
       },
       travelDetails: {
