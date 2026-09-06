@@ -2269,6 +2269,9 @@ app.post('/api/travel/:travelId/smartflow-sync', async (req, res) => {
 });
 
 // Check SmartFlow Connectivity Status
+// Public-facing URL for display purposes (actual communication uses SMARTFLOW_API_URL = localhost:8001)
+const SMARTFLOW_PUBLIC_URL = 'https://service.npc.ac.th/npc_smartflow/api/v1';
+
 app.get('/api/smartflow/status', async (req, res) => {
   try {
     const pingUrl = `${SMARTFLOW_API_URL}/travel-loans/ping`;
@@ -2276,9 +2279,9 @@ app.get('/api/smartflow/status', async (req, res) => {
       headers: { 'Authorization': `Bearer ${SMARTFLOW_API_TOKEN}` }
     });
     const data = await pingRes.json().catch(() => ({}));
-    res.json({ online: pingRes.ok, smartflowUrl: SMARTFLOW_API_URL, response: data });
+    res.json({ online: pingRes.ok, smartflowUrl: SMARTFLOW_PUBLIC_URL, internalUrl: SMARTFLOW_API_URL, response: data });
   } catch (err) {
-    res.json({ online: false, smartflowUrl: SMARTFLOW_API_URL, error: err.message });
+    res.json({ online: false, smartflowUrl: SMARTFLOW_PUBLIC_URL, internalUrl: SMARTFLOW_API_URL, error: err.message });
   }
 });
 
