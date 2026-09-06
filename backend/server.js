@@ -2077,7 +2077,7 @@ app.delete('/api/travel/:travelId', async (req, res) => {
 // ==========================================
 // --- SmartFlow API Integration Service ---
 // ==========================================
-const SMARTFLOW_API_URL = process.env.SMARTFLOW_API_URL || 'https://service.npc.ac.th/smartflow/api/v1';
+const SMARTFLOW_API_URL = process.env.SMARTFLOW_API_URL || 'http://localhost:8001/api/v1';
 const SMARTFLOW_API_TOKEN = process.env.SMARTFLOW_API_TOKEN || 'npc_smartflow_secret_token_2026';
 
 async function syncTravelLoanToSmartFlow(travelId) {
