@@ -2063,6 +2063,158 @@ app.delete('/api/travel/:travelId', async (req, res) => {
   }
 });
 
+// ==========================================
+// --- SmartFlow API Integration Service ---
+// ==========================================
+const SMARTFLOW_API_URL = process.env.SMARTFLOW_API_URL || 'https://service.npc.ac.th/smartflow/api/v1';
+const SMARTFLOW_API_TOKEN = process.env.SMARTFLOW_API_TOKEN || 'npc_smartflow_secret_token_2026';
+
+async function syncTravelLoanToSmartFlow(travelId) {
+  try {
+    const [travelRows] = await db.query(
+      `SELECT td.*, u.position, u.department, u.staffType 
+       FROM travel_data td 
+       LEFT JOIN users u ON td.userId = u.userId 
+       WHERE td.travelId = ?`,
+      [travelId]
+    );
+    if (!travelRows || travelRows.length === 0) return { success: false, message: 'Travel record not found' };
+    const travel = travelRows[0];
+
+    let details = {};
+    if (travel.details) {
+      try { details = typeof travel.details === 'string' ? JSON.parse(travel.details) : travel.details; } catch(e) {}
+    }
+
+    // Check if this travel has an active loan request
+    const hasLoan = details.hasLoan || parseFloat(travel.budget) > 0;
+    if (!hasLoan) {
+      return { success: false, message: 'No loan attached to this travel request' };
+    }
+
+    const payload = {
+      systemSource: 'npc_hr',
+      travelId: travel.travelId,
+      contractNo: details.loan?.contractNo || `สย-${travel.travelId.substring(0, 8).toUpperCase()}`,
+      docDate: details.docDate || travel.startDate,
+      dueDate: details.loan?.dueDate || null,
+      returnDays: parseInt(details.loan?.returnDays || 30),
+      borrower: {
+        userId: travel.userId,
+        fullName: travel.fullName,
+        position: travel.position || 'ครู',
+        department: travel.department || details.department || 'วิทยาลัยสารพัดช่างน่าน',
+        staffType: travel.staffType || 'ครู'
+      },
+      travelDetails: {
+        subject: travel.subject,
+        destination: travel.destination,
+        startDate: travel.startDate,
+        endDate: travel.endDate,
+        totalDays: parseFloat(travel.totalDays) || 0,
+        projectId: details.projectId || null,
+        expenseType: details.expenseType || 'claim'
+      },
+      loanBreakdown: {
+        allowance: {
+          amount: parseFloat(details.loan?.allowance || details.allowance?.total || 0),
+          detail: details.allowance ? `${details.allowance.days || 1} วัน @ ${details.allowance.rate || 240} บ.` : ''
+        },
+        rent: {
+          amount: parseFloat(details.loan?.rent || details.rent?.total || 0),
+          detail: details.rent ? `${details.rent.days || 1} วัน @ ${details.rent.rate || 800} บ.` : ''
+        },
+        vehicle: {
+          amount: parseFloat(details.loan?.fuel || details.vehicleData?.routeTotal || 0),
+          detail: details.routes ? details.routes.map(r => `${r.from}->${r.to}`).join(', ') : ''
+        },
+        otherCost: {
+          amount: parseFloat(details.otherCost || 0),
+          detail: details.otherDetail || ''
+        },
+        totalLoanAmount: parseFloat(details.loan?.loanAmount || travel.budget || 0),
+        thaiBahtText: details.loan?.thaiBathText || ''
+      },
+      approvalInfo: {
+        approvedAt: new Date().toISOString(),
+        directorName: 'นายกเชษฐ์ กิ่งชนะ',
+        deputyName: details.deputyName || 'นายจักรพงศ์ พรหมสกุลปัญญา',
+        financeHeadName: 'นางสาวดวงดาว ไชยเขียว'
+      }
+    };
+
+    const targetUrl = `${SMARTFLOW_API_URL}/travel-loans`;
+    console.log(`[SmartFlow Sync] Sending travel loan for ${travelId} to ${targetUrl}...`);
+
+    const res = await fetch(targetUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SMARTFLOW_API_TOKEN}`,
+        'X-API-Key': SMARTFLOW_API_TOKEN
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const resJson = await res.json().catch(() => ({}));
+    if (res.ok && resJson.success) {
+      console.log(`[SmartFlow Sync] Success for ${travelId}:`, resJson.message);
+      return { success: true, data: resJson };
+    } else {
+      console.warn(`[SmartFlow Sync] Response from ${targetUrl}:`, res.status, resJson);
+      return { success: false, status: res.status, error: resJson };
+    }
+  } catch (err) {
+    console.error(`[SmartFlow Sync] Connection error:`, err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+async function syncTravelClearanceToSmartFlow(clearanceId) {
+  try {
+    const [clRows] = await db.query('SELECT * FROM travel_clearances WHERE clearanceId = ?', [clearanceId]);
+    if (!clRows || clRows.length === 0) return { success: false, message: 'Clearance not found' };
+    const cl = clRows[0];
+
+    const spent = parseFloat(cl.totalSpent) || 0;
+    const borrowed = parseFloat(cl.totalBorrowed) || 0;
+    const refund = Math.max(0, borrowed - spent);
+
+    const payload = {
+      travelId: cl.travelId,
+      clearanceId: cl.clearanceId,
+      actualExpense: spent,
+      refundAmount: refund,
+      clearedAt: new Date().toISOString()
+    };
+
+    const targetUrl = `${SMARTFLOW_API_URL}/travel-loans/clearance`;
+    console.log(`[SmartFlow Sync] Sending clearance for ${clearanceId} to ${targetUrl}...`);
+
+    const res = await fetch(targetUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SMARTFLOW_API_TOKEN}`,
+        'X-API-Key': SMARTFLOW_API_TOKEN
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const resJson = await res.json().catch(() => ({}));
+    if (res.ok && resJson.success) {
+      console.log(`[SmartFlow Sync] Clearance success for ${clearanceId}:`, resJson.message);
+      return { success: true, data: resJson };
+    } else {
+      console.warn(`[SmartFlow Sync] Clearance response from ${targetUrl}:`, res.status, resJson);
+      return { success: false, status: res.status, error: resJson };
+    }
+  } catch (err) {
+    console.error(`[SmartFlow Sync] Clearance connection error:`, err.message);
+    return { success: false, error: err.message };
+  }
+}
+
 app.post('/api/travel/approve', async (req, res) => {
   const { travelId, status } = req.body; // status: 'อนุมัติ' or 'ไม่อนุมัติ'
   if (!travelId || !status) {
@@ -2070,6 +2222,13 @@ app.post('/api/travel/approve', async (req, res) => {
   }
   try {
     await db.query('UPDATE travel_data SET status = ? WHERE travelId = ?', [status, travelId]);
+
+    // Auto sync loan contract to SmartFlow when approved
+    if (status === 'อนุมัติ') {
+      syncTravelLoanToSmartFlow(travelId).catch(err => {
+        console.error('Auto sync to SmartFlow error:', err);
+      });
+    }
 
     // Notify user via LINE bot
     const [travelRows] = await db.query('SELECT userId, subject, destination FROM travel_data WHERE travelId = ?', [travelId]);
@@ -2088,6 +2247,27 @@ app.post('/api/travel/approve', async (req, res) => {
   } catch (err) {
     console.error('Error approving travel:', err.message);
     res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาด: ' + err.message });
+  }
+});
+
+// Manual trigger for SmartFlow Travel Loan Sync
+app.post('/api/travel/:travelId/smartflow-sync', async (req, res) => {
+  const { travelId } = req.params;
+  const result = await syncTravelLoanToSmartFlow(travelId);
+  res.json(result);
+});
+
+// Check SmartFlow Connectivity Status
+app.get('/api/smartflow/status', async (req, res) => {
+  try {
+    const pingUrl = `${SMARTFLOW_API_URL}/travel-loans/ping`;
+    const pingRes = await fetch(pingUrl, {
+      headers: { 'Authorization': `Bearer ${SMARTFLOW_API_TOKEN}` }
+    });
+    const data = await pingRes.json().catch(() => ({}));
+    res.json({ online: pingRes.ok, smartflowUrl: SMARTFLOW_API_URL, response: data });
+  } catch (err) {
+    res.json({ online: false, smartflowUrl: SMARTFLOW_API_URL, error: err.message });
   }
 });
 
@@ -2169,6 +2349,11 @@ app.post('/api/travel-clearance', async (req, res) => {
       [clearanceId, reportId, travelId, userId, fullName, totalSpent || 0.00, totalBorrowed || 0.00, details]
     );
 
+    // Auto-sync clearance to SmartFlow
+    syncTravelClearanceToSmartFlow(clearanceId).catch(err => {
+      console.error('Auto sync clearance to SmartFlow error:', err);
+    });
+
     res.json({ success: true, message: 'ส่งเอกสารเคลียร์เงินยืมและอนุมัติเรียบร้อย' });
   } catch (err) {
     console.error('Error submitting travel clearance:', err.message);
@@ -2204,11 +2389,25 @@ app.post('/api/travel-clearance/approve', async (req, res) => {
   try {
     await db.query('UPDATE travel_clearances SET status = ? WHERE clearanceId = ?', [status, clearanceId]);
 
+    // Auto sync clearance to SmartFlow when approved
+    if (status === 'อนุมัติแล้ว') {
+      syncTravelClearanceToSmartFlow(clearanceId).catch(err => {
+        console.error('Auto sync clearance to SmartFlow error:', err);
+      });
+    }
+
     res.json({ success: true, message: `ดำเนินการ '${status}' เรียบร้อย` });
   } catch (err) {
     console.error('Error approving travel clearance:', err.message);
     res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาด: ' + err.message });
   }
+});
+
+// Manual trigger for SmartFlow Clearance Sync
+app.post('/api/travel-clearance/:clearanceId/smartflow-sync', async (req, res) => {
+  const { clearanceId } = req.params;
+  const result = await syncTravelClearanceToSmartFlow(clearanceId);
+  res.json(result);
 });
 
 app.post('/api/training', async (req, res) => {
