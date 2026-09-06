@@ -1912,13 +1912,101 @@
         </main>
 
         <!-- Footer -->
-        <footer class="footer">
+        <footer class="footer" style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+          <div class="smartflow-footer-status" onclick="checkSmartFlowStatus(true)" title="คลิกเพื่อตรวจสอบการเชื่อมต่อ SmartFlow">
+            <span class="sf-pulse-dot" id="sf-footer-dot"></span>
+            <span style="font-weight: 600; color: #4338ca;"><i class="fa-solid fa-link"></i> SmartFlow Link:</span>
+            <span id="sf-footer-text" style="color: #64748b;">กำลังตรวจสอบสถานะ...</span>
+            <button type="button" class="btn btn-xs btn-outline" style="margin-left: 8px; font-size: 11px; padding: 2px 6px; border-radius: 12px; pointer-events: none;">
+              <i class="fa-solid fa-arrows-rotate" id="sf-footer-icon"></i> ตรวจสอบ
+            </button>
+          </div>
           <p class="footer-text">© 2026 ระบบบริหารงานบุคลากร วิทยาลัยสารพัดช่างน่าน</p>
           <p class="footer-author">พัฒนาเป็นเว็บแอปพลิเคชันโดย นายนิพนธ์ ร่องพืช</p>
         </footer>
       </div> <!-- Close main-container -->
     </div> <!-- Close app-body -->
 
+    <!-- Floating SmartFlow Live Status Badge (Bottom-Right) -->
+    <div id="smartflow-floating-badge" class="smartflow-floating-badge" onclick="checkSmartFlowStatus(true)" title="สถานะการเชื่อมต่อกับระบบ npc_smartflow (คลิกเพื่อดูรายละเอียด / ทดสอบการเชื่อมต่อ)">
+      <span class="sf-pulse-dot checking" id="sf-float-dot"></span>
+      <span class="sf-float-label"><i class="fa-solid fa-network-wired"></i> SmartFlow:</span>
+      <span class="sf-float-status" id="sf-float-text">ตรวจสถานะ...</span>
+    </div>
+
+    <style>
+      .smartflow-footer-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .smartflow-footer-status:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      }
+      .smartflow-floating-badge {
+        position: fixed;
+        bottom: 14px;
+        right: 18px;
+        z-index: 1050;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(8px);
+        border: 1px solid #cbd5e1;
+        border-radius: 30px;
+        padding: 6px 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 500;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+        cursor: pointer;
+        transition: all 0.25s ease;
+        user-select: none;
+      }
+      .smartflow-floating-badge:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(99, 102, 241, 0.2);
+        border-color: #6366f1;
+      }
+      .sf-pulse-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        background: #f59e0b;
+        flex-shrink: 0;
+      }
+      .sf-pulse-dot.online {
+        background: #10b981;
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+        animation: sfPulse 2s infinite;
+      }
+      .sf-pulse-dot.offline {
+        background: #ef4444;
+      }
+      .sf-pulse-dot.checking {
+        background: #f59e0b;
+        animation: sfBlink 1s infinite alternate;
+      }
+      @keyframes sfPulse {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+      }
+      @keyframes sfBlink {
+        from { opacity: 0.4; }
+        to { opacity: 1; }
+      }
+    </style>
   </div> <!-- Close app-container -->
 
   <!-- Click handler inputs trigger -->
@@ -2112,6 +2200,6 @@
   </div>
 
   <!-- Load Custom JS logic -->
-  <script src="app.js?v=36.0"></script>
+  <script src="app.js?v=37.0"></script>
 </body>
 </html>

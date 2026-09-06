@@ -346,6 +346,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       updateUIAfterLogout();
     }
     
+    // Start SmartFlow Live Status Polling
+    setTimeout(() => checkSmartFlowStatus(false), 800);
+    setInterval(() => checkSmartFlowStatus(false), 60000);
+    
     const urlParams = new URLSearchParams(window.location.search);
     const targetPage = urlParams.get('page');
     if (targetPage) {
@@ -3807,6 +3811,10 @@ async function loadTravelHistory() {
       }
       
       const budgetText = parseFloat(t.budget) > 0 ? ` (งบ ${parseFloat(t.budget).toLocaleString()} บ.)` : '';
+      const hasLoanFlag = (parseFloat(t.budget) > 0) || (t.details && (typeof t.details === 'string' ? t.details.includes('"hasLoan":true') : t.details.hasLoan));
+      const sfBadge = hasLoanFlag 
+        ? `<div style="margin-top:4px;"><span class="badge" style="font-size:10px; padding:2px 6px; background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; cursor:pointer;" onclick="manualSyncTravelLoan('${t.travelId}')" title="คลิกเพื่อส่งสัญญายืมเงินไปยัง SmartFlow อีกครั้ง">⚡ SmartFlow Link</span></div>` 
+        : '';
       
       tbody.innerHTML += `
         <tr>
@@ -3814,6 +3822,7 @@ async function loadTravelHistory() {
             <div style="font-weight:600; color:var(--neutral-800);">${t.subject}</div>
             <div style="font-size:11px; color:var(--neutral-500);">📍 ${t.destination}${budgetText}</div>
             ${currentUser.role === 'admin' ? `<div style="font-size:11px; color:#0369a1; font-weight:500;">ผู้ขอ: ${t.fullName}</div>` : ''}
+            ${sfBadge}
           </td>
           <td>
             <div style="font-weight:500;">${formatDate(t.startDate)}</div>
@@ -3832,6 +3841,99 @@ async function loadTravelHistory() {
     console.error('Error loading travel history:', err);
   }
 }
+
+// ==========================================
+// --- SmartFlow Live Status & Sync System ---
+// ==========================================
+let _smartflowLastStatus = null;
+
+window.checkSmartFlowStatus = async (interactive = false) => {
+  const footerDot = document.getElementById('sf-footer-dot');
+  const footerText = document.getElementById('sf-footer-text');
+  const footerIcon = document.getElementById('sf-footer-icon');
+  const floatDot = document.getElementById('sf-float-dot');
+  const floatText = document.getElementById('sf-float-text');
+
+  if (footerIcon) footerIcon.classList.add('fa-spin');
+  if (footerDot) footerDot.className = 'sf-pulse-dot checking';
+  if (floatDot) floatDot.className = 'sf-pulse-dot checking';
+  if (footerText) footerText.textContent = 'กำลังเชื่อมต่อ...';
+  if (floatText) floatText.textContent = 'เชื่อมต่อ...';
+
+  const startTime = Date.now();
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/smartflow/status`);
+    const data = await res.json();
+    const duration = Date.now() - startTime;
+    _smartflowLastStatus = { ...data, latency: duration, checkedAt: new Date().toLocaleTimeString('th-TH') };
+
+    if (data.online) {
+      if (footerDot) footerDot.className = 'sf-pulse-dot online';
+      if (floatDot) floatDot.className = 'sf-pulse-dot online';
+      if (footerText) footerText.innerHTML = `<span style="color:#16a34a; font-weight:600;">🟢 ออนไลน์</span> (${duration}ms)`;
+      if (floatText) floatText.innerHTML = `<span style="color:#16a34a; font-weight:600;">พร้อมใช้งาน</span>`;
+    } else {
+      if (footerDot) footerDot.className = 'sf-pulse-dot offline';
+      if (floatDot) floatDot.className = 'sf-pulse-dot offline';
+      if (footerText) footerText.innerHTML = `<span style="color:#dc2626; font-weight:600;">🔴 ออฟไลน์</span>`;
+      if (floatText) floatText.innerHTML = `<span style="color:#dc2626; font-weight:600;">ออฟไลน์</span>`;
+    }
+
+    if (interactive) {
+      const isOnline = data.online;
+      Swal.fire({
+        title: isOnline ? '🟢 SmartFlow เชื่อมต่อสำเร็จ' : '🔴 SmartFlow ออฟไลน์',
+        html: `
+          <div style="text-align:left; font-size:13px; line-height:1.6; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0;">
+            <div><b>สถานะระบบ:</b> ${isOnline ? '<span style="color:#16a34a; font-weight:bold;">ออนไลน์ (พร้อมรับส่งสัญญายืมเงิน)</span>' : '<span style="color:#dc2626; font-weight:bold;">ไม่สามารถติดต่อได้</span>'}</div>
+            <div><b>Endpoint:</b> <code style="font-size:11px; word-break:break-all;">${data.smartflowUrl || '-'}</code></div>
+            <div><b>ความเร็วตอบสนอง:</b> ${duration} ms</div>
+            <div><b>ตรวจสอบล่าสุด:</b> ${_smartflowLastStatus.checkedAt}</div>
+            ${data.error ? `<div style="color:#dc2626; margin-top:6px;"><b>Error:</b> ${data.error}</div>` : ''}
+          </div>
+        `,
+        icon: isOnline ? 'success' : 'warning',
+        showCancelButton: true,
+        confirmButtonText: '🔄 ทดสอบใหม่อีกครั้ง',
+        cancelButtonText: 'ปิด',
+        confirmButtonColor: '#4f46e5'
+      }).then((r) => {
+        if (r.isConfirmed) checkSmartFlowStatus(true);
+      });
+    }
+  } catch (err) {
+    if (footerDot) footerDot.className = 'sf-pulse-dot offline';
+    if (floatDot) floatDot.className = 'sf-pulse-dot offline';
+    if (footerText) footerText.innerHTML = `<span style="color:#dc2626; font-weight:600;">🔴 ไม่สามารถเชื่อมต่อ</span>`;
+    if (floatText) floatText.innerHTML = `<span style="color:#dc2626; font-weight:600;">ออฟไลน์</span>`;
+    if (interactive) {
+      Swal.fire('ข้อผิดพลาด', `ไม่สามารถติดต่อหลังบ้านเพื่อเช็ค SmartFlow: ${err.message}`, 'error');
+    }
+  } finally {
+    if (footerIcon) footerIcon.classList.remove('fa-spin');
+  }
+};
+
+window.manualSyncTravelLoan = async (travelId) => {
+  Swal.fire({
+    title: 'กำลังส่งข้อมูลสัญญายืมเงิน...',
+    text: 'กรุณารอสักครู่ ระบบกำลังส่งข้อมูล JSON ไปยัง SmartFlow',
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
+  });
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/travel/${travelId}/smartflow-sync`, { method: 'POST' });
+    const json = await res.json();
+    if (json.success) {
+      Swal.fire('สำเร็จ', 'ส่งข้อมูลสัญญายืมเงินไปยังระบบ SmartFlow เรียบร้อยแล้ว!', 'success');
+    } else {
+      Swal.fire('แจ้งเตือน', json.message || json.error || 'ไม่สามารถส่งข้อมูลได้', 'warning');
+    }
+  } catch (err) {
+    Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
+  }
+};
 
 async function approveTravel(travelId, status) {
   const confirmText = status === 'อนุมัติ' ? 'อนุมัติคำขอไปราชการนี้?' : 'ปฏิเสธคำขอไปราชการนี้?';
@@ -4642,7 +4744,7 @@ window.approveClearance = async (clearanceId, status) => {
 };
 
 window.printClearance = (reportId) => {
-  window.open(`print_clearance_template.html?v=36.0&reportId=${reportId}`, '_blank');
+  window.open(`print_clearance_template.html?v=37.0&reportId=${reportId}`, '_blank');
 };
 
 async function loadTravelReportsHistory() {
@@ -4769,11 +4871,11 @@ async function loadTravelReportsHistory() {
 }
 
 window.printTravelReport = (reportId) => {
-  window.open(`print_report_template.html?v=36.0&reportId=${reportId}`, '_blank');
+  window.open(`print_report_template.html?v=37.0&reportId=${reportId}`, '_blank');
 };
 
 window.printTravelRequest = (travelId) => {
-  window.open(`print_travel_template.html?v=36.0&travelId=${travelId}`, '_blank');
+  window.open(`print_travel_template.html?v=37.0&travelId=${travelId}`, '_blank');
 };
 
 
