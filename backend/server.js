@@ -275,6 +275,13 @@ app.post('/api/auth/login', async (req, res) => {
       }
     }
 
+    // Auto sync user lineUserId to SmartFlow upon login if present
+    if (user.lineUserId && user.fullName) {
+      syncUserLineIdToSmartFlow(user.fullName, user.lineUserId).catch(err => {
+        console.error('[SmartFlow] Auto sync user lineId on login error:', err.message);
+      });
+    }
+
     res.json({
       success: true,
       user: {
@@ -2083,7 +2090,7 @@ const SMARTFLOW_API_TOKEN = process.env.SMARTFLOW_API_TOKEN || 'npc_smartflow_se
 async function syncTravelLoanToSmartFlow(travelId) {
   try {
     const [travelRows] = await db.query(
-      `SELECT td.*, u.position, u.staffType 
+      `SELECT td.*, u.position, u.staffType, u.lineUserId 
        FROM travel_data td 
        LEFT JOIN users u ON td.userId = u.userId 
        WHERE td.travelId = ?`,
@@ -2115,7 +2122,8 @@ async function syncTravelLoanToSmartFlow(travelId) {
         fullName: travel.fullName,
         position: travel.position || 'ครู',
         department: details.department || 'วิทยาลัยสารพัดช่างน่าน',
-        staffType: travel.staffType || 'ครู'
+        staffType: travel.staffType || 'ครู',
+        lineUserId: travel.lineUserId || null
       },
       travelDetails: {
         subject: travel.subject,
@@ -2283,6 +2291,77 @@ app.get('/api/smartflow/status', async (req, res) => {
   } catch (err) {
     res.json({ online: false, smartflowUrl: SMARTFLOW_PUBLIC_URL, internalUrl: SMARTFLOW_API_URL, error: err.message });
   }
+});
+
+// Sync single user Line User ID to SmartFlow
+async function syncUserLineIdToSmartFlow(fullName, lineUserId) {
+  if (!fullName || !lineUserId) return { success: false, message: 'Missing fullName or lineUserId' };
+  try {
+    const targetUrl = `${SMARTFLOW_API_URL}/users/sync-line-user`;
+    console.log(`[SmartFlow LineSync] Syncing Line ID for ${fullName} to ${targetUrl}...`);
+
+    const res = await fetch(targetUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SMARTFLOW_API_TOKEN}`,
+        'X-API-Key': SMARTFLOW_API_TOKEN
+      },
+      body: JSON.stringify({ fullName, lineUserId })
+    });
+
+    const resJson = await res.json().catch(() => ({}));
+    if (res.ok && resJson.success) {
+      console.log(`[SmartFlow LineSync] Linked ${fullName} -> ${lineUserId}:`, resJson.message);
+      return { success: true, data: resJson };
+    } else {
+      console.warn(`[SmartFlow LineSync] Response for ${fullName}:`, res.status, resJson);
+      return { success: false, status: res.status, error: resJson };
+    }
+  } catch (err) {
+    console.error(`[SmartFlow LineSync] Error:`, err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+// Bulk sync all users with Line User ID to SmartFlow
+async function syncAllUsersLineIdToSmartFlow() {
+  try {
+    const [users] = await db.query('SELECT fullName, lineUserId FROM users WHERE lineUserId IS NOT NULL AND lineUserId != ""');
+    if (!users || users.length === 0) return { success: true, message: 'ไม่พบผู้ใช้ที่ผูก Line User ID เพื่อซิงค์', count: 0 };
+
+    const targetUrl = `${SMARTFLOW_API_URL}/users/bulk-sync-line-users`;
+    console.log(`[SmartFlow LineSync] Bulk syncing ${users.length} users to ${targetUrl}...`);
+
+    const res = await fetch(targetUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SMARTFLOW_API_TOKEN}`,
+        'X-API-Key': SMARTFLOW_API_TOKEN
+      },
+      body: JSON.stringify({ users })
+    });
+
+    const resJson = await res.json().catch(() => ({}));
+    return { success: res.ok && resJson.success, count: users.length, data: resJson };
+  } catch (err) {
+    console.error(`[SmartFlow LineSync] Bulk error:`, err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+// Endpoint: Manual trigger single user Line ID sync
+app.post('/api/smartflow/sync-user-line', async (req, res) => {
+  const { fullName, lineUserId } = req.body;
+  const result = await syncUserLineIdToSmartFlow(fullName, lineUserId);
+  res.json(result);
+});
+
+// Endpoint: Bulk sync all users with Line ID to SmartFlow
+app.post('/api/smartflow/sync-all-line-users', async (req, res) => {
+  const result = await syncAllUsersLineIdToSmartFlow();
+  res.json(result);
 });
 
 // --- 2. Travel Report APIs ---

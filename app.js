@@ -3885,11 +3885,19 @@ window.checkSmartFlowStatus = async (interactive = false) => {
         title: isOnline ? '🟢 SmartFlow เชื่อมต่อสำเร็จ' : '🔴 SmartFlow ออฟไลน์',
         html: `
           <div style="text-align:left; font-size:13px; line-height:1.6; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0;">
-            <div><b>สถานะระบบ:</b> ${isOnline ? '<span style="color:#16a34a; font-weight:bold;">ออนไลน์ (พร้อมรับส่งสัญญายืมเงิน)</span>' : '<span style="color:#dc2626; font-weight:bold;">ไม่สามารถติดต่อได้</span>'}</div>
+            <div><b>สถานะระบบ:</b> ${isOnline ? '<span style="color:#16a34a; font-weight:bold;">ออนไลน์ (พร้อมรับส่งสัญญายืมเงิน & LINE Sync)</span>' : '<span style="color:#dc2626; font-weight:bold;">ไม่สามารถติดต่อได้</span>'}</div>
             <div><b>Endpoint:</b> <code style="font-size:11px; word-break:break-all;">${data.smartflowUrl || '-'}</code></div>
             <div><b>ความเร็วตอบสนอง:</b> ${duration} ms</div>
             <div><b>ตรวจสอบล่าสุด:</b> ${_smartflowLastStatus.checkedAt}</div>
             ${data.error ? `<div style="color:#dc2626; margin-top:6px;"><b>Error:</b> ${data.error}</div>` : ''}
+            ${isOnline ? `
+              <hr style="margin:10px 0; border:0; border-top:1px solid #e2e8f0;">
+              <div style="text-align:center;">
+                <button type="button" class="btn btn-sm" onclick="syncAllLineUsersToSmartFlow()" style="font-size:11px; padding:6px 14px; border-radius:20px; background:#06c755; color:white; border:none; cursor:pointer; font-weight:600;">
+                  <i class="fa-brands fa-line"></i> ซิงค์ Line ID บุคลากรทั้งหมดไปยัง SmartFlow
+                </button>
+              </div>
+            ` : ''}
           </div>
         `,
         icon: isOnline ? 'success' : 'warning',
@@ -3911,6 +3919,32 @@ window.checkSmartFlowStatus = async (interactive = false) => {
     }
   } finally {
     if (footerIcon) footerIcon.classList.remove('fa-spin');
+  }
+};
+
+window.syncAllLineUsersToSmartFlow = async () => {
+  Swal.fire({
+    title: 'กำลังซิงค์ Line User ID ทั้งหมด...',
+    text: 'กรุณารอสักครู่ ระบบกำลังเทียบชื่อและส่งข้อมูลไปยัง SmartFlow',
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
+  });
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/smartflow/sync-all-line-users`, { method: 'POST' });
+    const json = await res.json();
+    if (json.success) {
+      const data = json.data || {};
+      Swal.fire(
+        'ซิงค์สำเร็จ!',
+        `ระบบได้เทียบชื่อและส่ง Line User ID ไปยัง SmartFlow สำเร็จจำนวน ${data.matchedCount || 0} คน (ไม่พบใน SmartFlow ${data.unmatchedCount || 0} คน)`,
+        'success'
+      );
+    } else {
+      Swal.fire('แจ้งเตือน', json.message || 'ไม่สามารถซิงค์ข้อมูลได้', 'warning');
+    }
+  } catch (err) {
+    Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
   }
 };
 
@@ -4744,7 +4778,7 @@ window.approveClearance = async (clearanceId, status) => {
 };
 
 window.printClearance = (reportId) => {
-  window.open(`print_clearance_template.html?v=37.0&reportId=${reportId}`, '_blank');
+  window.open(`print_clearance_template.html?v=38.0&reportId=${reportId}`, '_blank');
 };
 
 async function loadTravelReportsHistory() {
@@ -4871,11 +4905,11 @@ async function loadTravelReportsHistory() {
 }
 
 window.printTravelReport = (reportId) => {
-  window.open(`print_report_template.html?v=37.0&reportId=${reportId}`, '_blank');
+  window.open(`print_report_template.html?v=38.0&reportId=${reportId}`, '_blank');
 };
 
 window.printTravelRequest = (travelId) => {
-  window.open(`print_travel_template.html?v=37.0&travelId=${travelId}`, '_blank');
+  window.open(`print_travel_template.html?v=38.0&travelId=${travelId}`, '_blank');
 };
 
 
