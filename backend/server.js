@@ -2358,8 +2358,68 @@ app.post('/api/smartflow/sync-user-line', async (req, res) => {
   res.json(result);
 });
 
-// Endpoint: Bulk sync all users with Line ID to SmartFlow
-app.post('/api/smartflow/sync-all-line-users', async (req, res) => {
+// Endpoint: Lookup single user Line ID by name or username from npc_eleve
+app.get('/api/users/lookup-line', async (req, res) => {
+  const nameQuery = req.query.name || req.query.fullName || '';
+  const usernameQuery = req.query.username || '';
+
+  if (!nameQuery && !usernameQuery) {
+    return res.status(400).json({ success: false, message: 'กรุณาระบุ name หรือ username เพื่อค้นหา' });
+  }
+
+  try {
+    const normalize = (n) => {
+      if (!n) return '';
+      return String(n)
+        .replace(/[\u200B-\u200D\uFEFF]/g, '')
+        .replace(/\s+/g, '')
+        .replace(/^(ว่าที่ร้อยตรีหญิง|ว่าที่ร้อยตรี|ว่าที่ร\.ต\.หญิง|ว่าที่ร\.ต\.|ศาสตราจารย์ดร\.|ศ\.ดร\.|รองศาสตราจารย์ดร\.|รศ\.ดร\.|ผู้ช่วยศาสตราจารย์ดร\.|ผศ\.ดร\.|ศาสตราจารย์|ศ\.|รองศาสตราจารย์|รศ\.|ผู้ช่วยศาสตราจารย์|ผศ\.|นางสาว|น\.ส\.|นาง|นาย|ดร\.|อาจารย์|อ\.)/u, '');
+    };
+
+    const targetNorm = normalize(nameQuery);
+
+    const [rows] = await db.query(
+      'SELECT userId, fullName, username, position, lineUserId, staffType FROM users WHERE lineUserId IS NOT NULL AND lineUserId != ""'
+    );
+
+    let matched = null;
+
+    if (usernameQuery) {
+      matched = rows.find(u => u.username && u.username.toLowerCase() === usernameQuery.toLowerCase());
+    }
+
+    if (!matched && targetNorm) {
+      matched = rows.find(u => normalize(u.fullName) === targetNorm);
+    }
+
+    if (matched) {
+      return res.json({
+        success: true,
+        user: {
+          userId: matched.userId,
+          fullName: matched.fullName,
+          username: matched.username,
+          position: matched.position,
+          lineUserId: matched.lineUserId,
+          staffType: matched.staffType
+        }
+      });
+    }
+
+    return res.status(404).json({
+      success: false,
+      message: 'ไม่พบผู้ใช้หรือยังไม่ได้ผูก Line User ID ในระบบ npc_eleve',
+      searchedName: nameQuery,
+      searchedUsername: usernameQuery
+    });
+  } catch (err) {
+    console.error('Error in /api/users/lookup-line:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Endpoint: Bulk sync all users with Line ID to SmartFlow (supports both POST and GET)
+app.all('/api/smartflow/sync-all-line-users', async (req, res) => {
   const result = await syncAllUsersLineIdToSmartFlow();
   res.json(result);
 });
