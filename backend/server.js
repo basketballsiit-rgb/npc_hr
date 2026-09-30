@@ -614,6 +614,117 @@ app.post('/api/leaves/history', async (req, res) => {
   }
 });
 
+// Parse Google Visualization Date format: Date(year, month, day) or string
+function parseGoogleSheetDate(val) {
+  if (!val) return null;
+  if (typeof val === 'string' && val.startsWith('Date(')) {
+    const parts = val.replace('Date(', '').replace(')', '').split(',');
+    let year = parseInt(parts[0]);
+    if (year > 2400) year -= 543; // Convert BE year to AD
+    const month = parseInt(parts[1]) + 1; // 0-indexed to 1-indexed
+    const day = parseInt(parts[2]);
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+  const d = new Date(val);
+  if (!isNaN(d.getTime())) {
+    return d.toISOString().split('T')[0];
+  }
+  return null;
+}
+
+// Sync missing leave data from Google Sheets into MySQL
+async function syncLeaveDataFromSheets() {
+  const SPREADSHEET_ID = '1umPxyEeETaaZH35OqRSpJYv215ku1RhI7hZc82_O8sA';
+  const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=LeaveData&headers=1`;
+  console.log('[SheetsSync] Fetching LeaveData from Google Sheet...');
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Google Sheets fetch failed: ${response.statusText}`);
+  const text = await response.text();
+  const jsonStart = text.indexOf('google.visualization.Query.setResponse(');
+  if (jsonStart === -1) throw new Error('Invalid Google Sheets response');
+  const jsonStr = text.substring(jsonStart + 'google.visualization.Query.setResponse('.length, text.length - 2);
+  const data = JSON.parse(jsonStr);
+  const rows = data.table.rows.map(r => r.c.map(c => c ? (c.v !== undefined ? c.v : null) : null));
+
+  let insertedCount = 0;
+  let updatedCount = 0;
+  const insertedItems = [];
+
+  for (const row of rows) {
+    const leaveId = row[0] ? String(row[0]) : null;
+    const userId = row[1] ? String(row[1]) : null;
+    if (!leaveId || !userId) continue;
+
+    const fullName = row[2] ? String(row[2]) : '';
+    const position = row[3] ? String(row[3]) : '';
+    const schoolName = row[4] ? String(row[4]) : 'วิทยาลัยสารพัดช่างน่าน';
+    const requestDate = parseGoogleSheetDate(row[5]);
+    const leaveType = row[6] ? String(row[6]) : '';
+    const reason = row[7] ? String(row[7]) : '';
+    const startDate = parseGoogleSheetDate(row[8]);
+    const endDate = parseGoogleSheetDate(row[9]);
+    const totalDays = row[10] !== null ? parseFloat(row[10]) : 0;
+    const lastLeaveType = row[11] ? String(row[11]) : null;
+    const lastLeaveStartDate = parseGoogleSheetDate(row[12]);
+    const lastLeaveEndDate = parseGoogleSheetDate(row[13]);
+    const lastLeaveTotalDays = row[14] !== null ? parseFloat(row[14]) : 0;
+    const contactAddress = row[15] ? String(row[15]) : '';
+    const contactPhone = row[16] ? String(row[16]) : '';
+    const signatureUrl = row[17] ? String(row[17]) : '';
+    const status = row[18] ? String(row[18]) : 'รอการอนุมัติ';
+    const approverComment = row[19] ? String(row[19]) : null;
+    const approverSignatureUrl = row[20] ? String(row[20]) : null;
+    const approverName = row[21] ? String(row[21]) : null;
+    const approverPosition = row[22] ? String(row[22]) : null;
+    const approvalDate = row[23] ? String(row[23]) : null;
+    const pdfUrl = row[24] ? String(row[24]) : null;
+    const teacherName = row[25] ? String(row[25]) : '';
+    const subject = row[26] ? String(row[26]) : '';
+
+    const [exists] = await db.query('SELECT leaveId, status FROM leave_data WHERE leaveId = ?', [leaveId]);
+    if (exists.length === 0) {
+      await db.query(
+        `INSERT INTO leave_data (
+          leaveId, userId, fullName, position, schoolName, requestDate, leaveType, reason,
+          startDate, endDate, totalDays, lastLeaveType, lastLeaveStartDate, lastLeaveEndDate,
+          lastLeaveTotalDays, contactAddress, contactPhone, signatureUrl, status,
+          approverComment, approverSignatureUrl, approverName, approverPosition, approvalDate, pdfUrl,
+          teacherName, subject
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          leaveId, userId, fullName, position, schoolName, requestDate, leaveType, reason,
+          startDate, endDate, totalDays, lastLeaveType, lastLeaveStartDate, lastLeaveEndDate,
+          lastLeaveTotalDays, contactAddress, contactPhone, signatureUrl, status,
+          approverComment, approverSignatureUrl, approverName, approverPosition, approvalDate, pdfUrl,
+          teacherName, subject
+        ]
+      );
+      insertedCount++;
+      insertedItems.push({ leaveId, fullName, startDate, leaveType, status });
+    } else if (exists[0].status !== status && (status === 'อนุมัติ' || status === 'ไม่อนุมัติ')) {
+      await db.query(
+        `UPDATE leave_data SET status = ?, approverName = ?, approverPosition = ?, approvalDate = ?, pdfUrl = ? WHERE leaveId = ?`,
+        [status, approverName, approverPosition, approvalDate, pdfUrl, leaveId]
+      );
+      updatedCount++;
+    }
+  }
+
+  console.log(`[SheetsSync] Completed. Inserted: ${insertedCount}, Updated: ${updatedCount}`);
+  return { success: true, insertedLeaves: insertedCount, updatedLeaves: updatedCount, totalRows: rows.length, insertedItems };
+}
+
+// Endpoint: Manual trigger sync leave data from Google Sheets
+app.all('/api/admin/sync-sheets', async (req, res) => {
+  try {
+    const result = await syncLeaveDataFromSheets();
+    res.json(result);
+  } catch (err) {
+    console.error('[SheetsSync] Error:', err.message);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการซิงค์: ' + err.message });
+  }
+});
+
 // Get Last Approved Leave for a User
 app.get('/api/leaves/last-approved/:userId', async (req, res) => {
   const { userId } = req.params;
@@ -2830,6 +2941,13 @@ app.get('/api/activities/participants/:activityId', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   repairZeroDaysLeaves();
+  syncLeaveDataFromSheets().then(res => {
+    if (res.insertedLeaves > 0) {
+      console.log(`[SheetsSync Auto] Imported ${res.insertedLeaves} missing leave records from Google Sheets.`);
+    }
+  }).catch(err => {
+    console.warn('[SheetsSync Auto] Warning:', err.message);
+  });
 });
 
 async function repairZeroDaysLeaves() {

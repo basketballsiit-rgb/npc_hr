@@ -1240,6 +1240,30 @@ function loadHistory() {
     }
     
     document.getElementById('filter-btn').onclick = loadHistoryData;
+    
+    const syncSheetsBtn = document.getElementById('sync-sheets-btn');
+    if (syncSheetsBtn) {
+      syncSheetsBtn.onclick = async () => {
+        showLoading('กำลังตรวจสอบและซิงค์ข้อมูลจาก Google Sheets...');
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/admin/sync-sheets`, { method: 'POST' });
+          const json = await res.json();
+          Swal.close();
+          if (json.success) {
+            Swal.fire({
+              title: 'ซิงค์ข้อมูลสำเร็จ!',
+              text: `นำเข้าข้อมูลประวัติการลาใหม่ ${json.insertedLeaves || 0} รายการ (อัปเดตสถานะ ${json.updatedLeaves || 0} รายการ)`,
+              icon: 'success'
+            }).then(() => loadHistoryData());
+          } else {
+            Swal.fire('ข้อผิดพลาด', json.message || 'ไม่สามารถซิงค์ได้', 'error');
+          }
+        } catch (e) {
+          Swal.close();
+          Swal.fire('ข้อผิดพลาด', e.message, 'error');
+        }
+      };
+    }
   } else {
     document.getElementById('history-title').textContent = 'ประวัติการลาของข้าพเจ้า';
     userColHeader.classList.add('hidden');
@@ -4778,7 +4802,7 @@ window.approveClearance = async (clearanceId, status) => {
 };
 
 window.printClearance = (reportId) => {
-  window.open(`print_clearance_template.html?v=38.0&reportId=${reportId}`, '_blank');
+  window.open(`print_clearance_template.html?v=39.0&reportId=${reportId}`, '_blank');
 };
 
 async function loadTravelReportsHistory() {
@@ -4905,11 +4929,11 @@ async function loadTravelReportsHistory() {
 }
 
 window.printTravelReport = (reportId) => {
-  window.open(`print_report_template.html?v=38.0&reportId=${reportId}`, '_blank');
+  window.open(`print_report_template.html?v=39.0&reportId=${reportId}`, '_blank');
 };
 
 window.printTravelRequest = (travelId) => {
-  window.open(`print_travel_template.html?v=38.0&travelId=${travelId}`, '_blank');
+  window.open(`print_travel_template.html?v=39.0&travelId=${travelId}`, '_blank');
 };
 
 
