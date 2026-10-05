@@ -3255,8 +3255,8 @@ window.addTravelerRow = (name = '', position = '') => {
   div.style.marginTop = '8px';
   
   div.innerHTML = `
-    <input type="text" list="travel-staff-datalist" class="form-input traveler-name" placeholder="ชื่อ-นามสกุล (พิมพ์เอง หรือเลือกจากรายชื่อ)..." value="${escapeHtml(name)}" oninput="onTravelerNameInput(this)" autocomplete="off" required style="flex-grow: 1;">
-    <input type="text" class="form-input traveler-position" placeholder="ตำแหน่ง..." value="${escapeHtml(position)}" required style="width: 220px;">
+    <input type="text" list="travel-staff-datalist" class="form-input traveler-name" placeholder="ชื่อ-นามสกุล (พิมพ์เอง หรือเลือกจากรายชื่อ)..." value="${escapeHtml(name)}" oninput="onTravelerNameInput(this)" autocomplete="off" style="flex-grow: 1;">
+    <input type="text" class="form-input traveler-position" placeholder="ตำแหน่ง..." value="${escapeHtml(position)}" style="width: 220px;">
     <button type="button" class="btn btn-outline btn-sm" onclick="removeTravelerRow(this)" style="padding: 10px; border-color:var(--danger); color:var(--danger); border-radius:6px; min-width:40px;" title="ลบผู้ร่วมเดินทาง">❌</button>
   `;
   container.appendChild(div);
@@ -4410,13 +4410,48 @@ window.editTravelRecord = async (travelId) => {
   }
 };
 
+window.submitTravelForm = (e) => {
+  if (e && e.preventDefault) e.preventDefault();
+  handleTravelSubmit(e);
+};
+
 async function handleTravelSubmit(e) {
-  e.preventDefault();
-  const subject = document.getElementById('travel-subject').value;
-  const destination = document.getElementById('travel-destination').value;
-  const startDate = document.getElementById('travel-start-date').value;
-  const endDate = document.getElementById('travel-end-date').value;
-  const totalDays = parseFloat(document.getElementById('travel-total-days').value);
+  if (e && e.preventDefault) e.preventDefault();
+
+  if (!currentUser) {
+    Swal.fire('ข้อผิดพลาด', 'กรุณาเข้าสู่ระบบก่อนยื่นคำขอ', 'error');
+    return;
+  }
+
+  const subject = document.getElementById('travel-subject')?.value?.trim();
+  const destination = document.getElementById('travel-destination')?.value?.trim();
+  const startDate = document.getElementById('travel-start-date')?.value;
+  const endDate = document.getElementById('travel-end-date')?.value;
+  const totalDays = parseFloat(document.getElementById('travel-total-days')?.value) || 0;
+
+  if (!subject) {
+    switchTravelTab('travel-tab-memo');
+    document.getElementById('travel-subject')?.focus();
+    Swal.fire('กรุณากรอกข้อมูล', 'กรุณาระบุเรื่อง / วัตถุประสงค์การเดินทางไปราชการ (ในแถบที่ 1)', 'warning');
+    return;
+  }
+  if (!destination) {
+    switchTravelTab('travel-tab-memo');
+    document.getElementById('travel-destination')?.focus();
+    Swal.fire('กรุณากรอกข้อมูล', 'กรุณาระบุสถานที่ไปราชการ (ในแถบที่ 1)', 'warning');
+    return;
+  }
+  if (!startDate || !endDate) {
+    switchTravelTab('travel-tab-memo');
+    Swal.fire('กรุณากรอกข้อมูล', 'กรุณาระบุวันที่เริ่มต้นและวันที่สิ้นสุดการเดินทาง (ในแถบที่ 1)', 'warning');
+    return;
+  }
+  if (totalDays <= 0) {
+    switchTravelTab('travel-tab-memo');
+    Swal.fire('ข้อผิดพลาด', 'วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด', 'error');
+    return;
+  }
+
   const vehicleRadio = document.querySelector('input[name="travel-vehicle-type"]:checked');
   const vehicleType = vehicleRadio ? vehicleRadio.value : 'public';
   
@@ -4435,11 +4470,6 @@ async function handleTravelSubmit(e) {
     const fuel = parseFloat(document.getElementById('travel-legs-grand')?.value) || 0;
     const other = parseFloat(document.getElementById('travel-other-cost')?.value) || 0;
     budget = allow + rent + fuel + other;
-  }
-  
-  if (totalDays <= 0) {
-    Swal.fire('ข้อผิดพลาด', 'วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด', 'error');
-    return;
   }
   
   const travelers = [];
@@ -5060,7 +5090,7 @@ window.approveClearance = async (clearanceId, status) => {
 };
 
 window.printClearance = (reportId) => {
-  window.open(`print_clearance_template.html?v=42.0&reportId=${reportId}`, '_blank');
+  window.open(`print_clearance_template.html?v=43.0&reportId=${reportId}`, '_blank');
 };
 
 async function loadTravelReportsHistory() {
@@ -5187,11 +5217,11 @@ async function loadTravelReportsHistory() {
 }
 
 window.printTravelReport = (reportId) => {
-  window.open(`print_report_template.html?v=42.0&reportId=${reportId}`, '_blank');
+  window.open(`print_report_template.html?v=43.0&reportId=${reportId}`, '_blank');
 };
 
 window.printTravelRequest = (travelId) => {
-  window.open(`print_travel_template.html?v=42.0&travelId=${travelId}`, '_blank');
+  window.open(`print_travel_template.html?v=43.0&travelId=${travelId}`, '_blank');
 };
 
 
