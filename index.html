@@ -1268,9 +1268,10 @@
                         <option value="">➕ เลือกบุคลากรในระบบเพื่อเพิ่ม...</option>
                       </select>
                       <button type="button" class="btn btn-outline btn-xs" onclick="openStaffSelectionModal()" style="display:inline-flex; align-items:center; gap:4px; font-size:0.85rem; padding:6px 10px; border-radius:6px; font-weight:500;">📋 เลือกหลายคนพร้อมกัน</button>
-                      <button type="button" class="btn btn-outline btn-xs" onclick="addTravelerRow()" style="display:inline-flex; align-items:center; gap:4px; font-size:0.85rem; padding:6px 10px; border-radius:6px; font-weight:500;">✏️ เพิ่มแถวกรอกเอง</button>
+                      <button type="button" class="btn btn-outline btn-xs" onclick="addTravelerRow()" style="display:inline-flex; align-items:center; gap:4px; font-size:0.85rem; padding:6px 10px; border-radius:6px; font-weight:500;">✏️ เพิ่มแถว (พิมพ์เอง)</button>
                     </div>
                   </div>
+                  <datalist id="travel-staff-datalist"></datalist>
                   <div id="travel-accompanied-list" style="display:flex; flex-direction:column; gap:8px;">
                     <!-- traveler rows injected here -->
                   </div>
@@ -2213,6 +2214,6 @@
   </div>
 
   <!-- Load Custom JS logic -->
-  <script src="app.js?v=41.0"></script>
+  <script src="app.js?v=42.0"></script>
 </body>
 </html>

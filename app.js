@@ -3157,17 +3157,18 @@ async function loadStaffCache() {
   return _allStaffCache;
 }
 
-function renderStaffOptions(selectedUserId = '', selectedName = '') {
-  let html = '<option value="">-- เลือกบุคลากรในระบบ --</option>';
-  if (!_allStaffCache || _allStaffCache.length === 0) return html;
-  
-  _allStaffCache.forEach(u => {
-    const isSel = (selectedUserId && String(u.userId) === String(selectedUserId)) ||
-                  (selectedName && u.fullName.trim() === selectedName.trim());
-    const posStr = u.position ? ` (${u.position})` : '';
-    html += `<option value="${u.userId}" data-name="${escapeHtml(u.fullName)}" data-position="${escapeHtml(u.position || '')}" ${isSel ? 'selected' : ''}>${escapeHtml(u.fullName)}${escapeHtml(posStr)}</option>`;
-  });
-  return html;
+function populateTravelStaffDatalist() {
+  const datalist = document.getElementById('travel-staff-datalist');
+  if (!datalist) return;
+  datalist.innerHTML = '';
+  if (_allStaffCache && _allStaffCache.length > 0) {
+    _allStaffCache.forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u.fullName;
+      if (u.position) opt.label = u.position;
+      datalist.appendChild(opt);
+    });
+  }
 }
 
 function populateTravelQuickSelect() {
@@ -3225,68 +3226,40 @@ window.onQuickSelectStaff = (selectElem) => {
     return;
   }
 
-  window.addTravelerRow(name, pos, userId);
+  window.addTravelerRow(name, pos);
   selectElem.value = '';
 };
 
-window.onTravelerRowSelectChange = (selectElem) => {
-  const row = selectElem.closest('.travel-traveler-row');
+window.onTravelerNameInput = (inputElem) => {
+  const row = inputElem.closest('.travel-traveler-row');
   if (!row) return;
-  const opt = selectElem.options[selectElem.selectedIndex];
-  const nameInput = row.querySelector('.traveler-name');
   const posInput = row.querySelector('.traveler-position');
+  const val = (inputElem.value || '').trim();
+  if (!val || !_allStaffCache) return;
   
-  if (selectElem.value && opt) {
-    const selectedName = opt.getAttribute('data-name') || '';
-    const selectedPos = opt.getAttribute('data-position') || '';
-    if (nameInput) nameInput.value = selectedName;
-    if (posInput) posInput.value = selectedPos;
+  const matched = _allStaffCache.find(u => u && u.fullName && u.fullName.trim() === val);
+  if (matched && posInput) {
+    posInput.value = matched.position || '';
   }
 };
 
-window.addTravelerRow = (name = '', position = '', userId = '') => {
+window.addTravelerRow = (name = '', position = '') => {
   const container = document.getElementById('travel-accompanied-list');
   if (!container) return;
   
   const div = document.createElement('div');
   div.className = 'travel-traveler-row';
   div.style.display = 'flex';
-  div.style.gap = '8px';
+  div.style.gap = '10px';
   div.style.alignItems = 'center';
   div.style.marginTop = '8px';
-  div.style.flexWrap = 'wrap';
-  div.style.background = '#ffffff';
-  div.style.padding = '8px 12px';
-  div.style.borderRadius = '8px';
-  div.style.border = '1px solid #e2e8f0';
-  div.style.boxShadow = '0 1px 2px rgba(0,0,0,0.03)';
-  
-  const optionsHtml = renderStaffOptions(userId, name);
   
   div.innerHTML = `
-    <div style="flex: 1 1 200px; min-width: 170px;">
-      <select class="form-input form-input-sm traveler-staff-select" onchange="onTravelerRowSelectChange(this)" style="width: 100%; font-size: 0.85rem; padding: 6px 8px;">
-        ${optionsHtml}
-      </select>
-    </div>
-    <div style="flex: 1 1 180px; min-width: 150px;">
-      <input type="text" class="form-input form-input-sm traveler-name" placeholder="ชื่อ-นามสกุล..." value="${escapeHtml(name)}" required style="width: 100%; font-size: 0.85rem; padding: 6px 8px;">
-    </div>
-    <div style="flex: 1 1 150px; min-width: 130px;">
-      <input type="text" class="form-input form-input-sm traveler-position" placeholder="ตำแหน่ง..." value="${escapeHtml(position)}" required style="width: 100%; font-size: 0.85rem; padding: 6px 8px;">
-    </div>
-    <button type="button" class="btn btn-outline btn-sm" onclick="removeTravelerRow(this)" style="padding: 6px 10px; border-color:var(--danger); color:var(--danger); border-radius:6px; font-size:0.85rem; height: 34px; min-width: 38px;" title="ลบผู้ร่วมเดินทาง">❌</button>
+    <input type="text" list="travel-staff-datalist" class="form-input traveler-name" placeholder="ชื่อ-นามสกุล (พิมพ์เอง หรือเลือกจากรายชื่อ)..." value="${escapeHtml(name)}" oninput="onTravelerNameInput(this)" autocomplete="off" required style="flex-grow: 1;">
+    <input type="text" class="form-input traveler-position" placeholder="ตำแหน่ง..." value="${escapeHtml(position)}" required style="width: 220px;">
+    <button type="button" class="btn btn-outline btn-sm" onclick="removeTravelerRow(this)" style="padding: 10px; border-color:var(--danger); color:var(--danger); border-radius:6px; min-width:40px;" title="ลบผู้ร่วมเดินทาง">❌</button>
   `;
   container.appendChild(div);
-  
-  // If cache wasn't ready yet, load it and update this row's select
-  if (!_allStaffCache || _allStaffCache.length === 0) {
-    loadStaffCache().then(() => {
-      const sel = div.querySelector('.traveler-staff-select');
-      if (sel) sel.innerHTML = renderStaffOptions(userId, name);
-    });
-  }
-  
   updateTravelersCount();
 };
 
@@ -3374,8 +3347,7 @@ window.openStaffSelectionModal = async () => {
     document.querySelectorAll('.travel-traveler-row').forEach(row => {
       const name = row.querySelector('.traveler-name')?.value?.trim();
       const pos = row.querySelector('.traveler-position')?.value?.trim();
-      const sel = row.querySelector('.traveler-staff-select')?.value;
-      if (name && !sel && !_allStaffCache.some(u => u.fullName === name)) {
+      if (name && !_allStaffCache.some(u => u.fullName === name)) {
         manualRows.push({ name, position: pos });
       }
     });
@@ -3384,7 +3356,7 @@ window.openStaffSelectionModal = async () => {
     if (container) {
       container.innerHTML = '';
       selectedList.forEach(s => {
-        window.addTravelerRow(s.name, s.position, s.userId);
+        window.addTravelerRow(s.name, s.position);
       });
       manualRows.forEach(m => {
         window.addTravelerRow(m.name, m.position);
@@ -4029,9 +4001,10 @@ async function initTravelPage() {
   const accList = document.getElementById('travel-accompanied-list');
   if (accList) accList.innerHTML = '';
 
-  // Load staff cache and populate quick select
+  // Load staff cache, populate quick select and datalist
   loadStaffCache().then(() => {
     populateTravelQuickSelect();
+    populateTravelStaffDatalist();
   });
 
   // Reset multi-leg vehicle container
@@ -5087,7 +5060,7 @@ window.approveClearance = async (clearanceId, status) => {
 };
 
 window.printClearance = (reportId) => {
-  window.open(`print_clearance_template.html?v=41.0&reportId=${reportId}`, '_blank');
+  window.open(`print_clearance_template.html?v=42.0&reportId=${reportId}`, '_blank');
 };
 
 async function loadTravelReportsHistory() {
@@ -5214,11 +5187,11 @@ async function loadTravelReportsHistory() {
 }
 
 window.printTravelReport = (reportId) => {
-  window.open(`print_report_template.html?v=41.0&reportId=${reportId}`, '_blank');
+  window.open(`print_report_template.html?v=42.0&reportId=${reportId}`, '_blank');
 };
 
 window.printTravelRequest = (travelId) => {
-  window.open(`print_travel_template.html?v=41.0&travelId=${travelId}`, '_blank');
+  window.open(`print_travel_template.html?v=42.0&travelId=${travelId}`, '_blank');
 };
 
 
