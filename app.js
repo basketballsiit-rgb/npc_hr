@@ -3126,30 +3126,300 @@ window.switchTravelTab = (tabId) => {
 window.travelGoToTab = window.switchTravelTab;
 
 
-// Traveler dynamic rows management
-window.addTravelerRow = (name = '', position = '') => {
+// ============================================================
+// Traveler dynamic rows management & Staff selection
+// ============================================================
+let _allStaffCache = [];
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+async function loadStaffCache() {
+  if (_allStaffCache && _allStaffCache.length > 0) return _allStaffCache;
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/users`);
+    if (res.ok) {
+      const data = await res.json();
+      _allStaffCache = (data || [])
+        .filter(u => u && u.fullName && u.status !== 'pending' && u.status !== 'rejected')
+        .sort((a, b) => (a.fullName || '').localeCompare(b.fullName || '', 'th'));
+    }
+  } catch (err) {
+    console.error('Error fetching staff cache:', err);
+  }
+  return _allStaffCache;
+}
+
+function renderStaffOptions(selectedUserId = '', selectedName = '') {
+  let html = '<option value="">-- เลือกบุคลากรในระบบ --</option>';
+  if (!_allStaffCache || _allStaffCache.length === 0) return html;
+  
+  _allStaffCache.forEach(u => {
+    const isSel = (selectedUserId && String(u.userId) === String(selectedUserId)) ||
+                  (selectedName && u.fullName.trim() === selectedName.trim());
+    const posStr = u.position ? ` (${u.position})` : '';
+    html += `<option value="${u.userId}" data-name="${escapeHtml(u.fullName)}" data-position="${escapeHtml(u.position || '')}" ${isSel ? 'selected' : ''}>${escapeHtml(u.fullName)}${escapeHtml(posStr)}</option>`;
+  });
+  return html;
+}
+
+function populateTravelQuickSelect() {
+  const sel = document.getElementById('travel-quick-add-staff');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">➕ เลือกบุคลากรในระบบเพื่อเพิ่ม...</option>';
+  if (_allStaffCache && _allStaffCache.length > 0) {
+    _allStaffCache.forEach(u => {
+      const posStr = u.position ? ` (${u.position})` : '';
+      const opt = document.createElement('option');
+      opt.value = u.userId;
+      opt.setAttribute('data-name', u.fullName);
+      opt.setAttribute('data-position', u.position || '');
+      opt.textContent = `${u.fullName}${posStr}`;
+      sel.appendChild(opt);
+    });
+  }
+}
+
+window.onQuickSelectStaff = (selectElem) => {
+  const userId = selectElem.value;
+  if (!userId) return;
+  const opt = selectElem.options[selectElem.selectedIndex];
+  const name = opt.getAttribute('data-name') || '';
+  const pos = opt.getAttribute('data-position') || '';
+
+  // Check if currentUser themselves
+  if (currentUser && (String(currentUser.userId) === String(userId) || (currentUser.fullName && currentUser.fullName.trim() === name.trim()))) {
+    Swal.fire({
+      icon: 'info',
+      title: 'แจ้งเตือน',
+      text: 'ท่านเป็นผู้ยื่นคำขอหลักอยู่แล้ว ไม่จำเป็นต้องเพิ่มตนเองเป็นผู้ร่วมเดินทาง',
+      timer: 2500,
+      showConfirmButton: false
+    });
+    selectElem.value = '';
+    return;
+  }
+
+  // Check if already added
+  let alreadyAdded = false;
+  document.querySelectorAll('.travel-traveler-row .traveler-name').forEach(inp => {
+    if (inp.value.trim() === name.trim()) alreadyAdded = true;
+  });
+
+  if (alreadyAdded) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'แจ้งเตือน',
+      text: `${name} อยู่ในรายชื่อผู้ร่วมเดินทางแล้ว`,
+      timer: 2000,
+      showConfirmButton: false
+    });
+    selectElem.value = '';
+    return;
+  }
+
+  window.addTravelerRow(name, pos, userId);
+  selectElem.value = '';
+};
+
+window.onTravelerRowSelectChange = (selectElem) => {
+  const row = selectElem.closest('.travel-traveler-row');
+  if (!row) return;
+  const opt = selectElem.options[selectElem.selectedIndex];
+  const nameInput = row.querySelector('.traveler-name');
+  const posInput = row.querySelector('.traveler-position');
+  
+  if (selectElem.value && opt) {
+    const selectedName = opt.getAttribute('data-name') || '';
+    const selectedPos = opt.getAttribute('data-position') || '';
+    if (nameInput) nameInput.value = selectedName;
+    if (posInput) posInput.value = selectedPos;
+  }
+};
+
+window.addTravelerRow = (name = '', position = '', userId = '') => {
   const container = document.getElementById('travel-accompanied-list');
   if (!container) return;
   
   const div = document.createElement('div');
   div.className = 'travel-traveler-row';
   div.style.display = 'flex';
-  div.style.gap = '10px';
+  div.style.gap = '8px';
   div.style.alignItems = 'center';
   div.style.marginTop = '8px';
+  div.style.flexWrap = 'wrap';
+  div.style.background = '#ffffff';
+  div.style.padding = '8px 12px';
+  div.style.borderRadius = '8px';
+  div.style.border = '1px solid #e2e8f0';
+  div.style.boxShadow = '0 1px 2px rgba(0,0,0,0.03)';
+  
+  const optionsHtml = renderStaffOptions(userId, name);
   
   div.innerHTML = `
-    <input type="text" class="form-input traveler-name" placeholder="ชื่อ-นามสกุล..." value="${name}" required style="flex-grow: 1;">
-    <input type="text" class="form-input traveler-position" placeholder="ตำแหน่ง..." value="${position}" required style="width: 200px;">
-    <button type="button" class="btn btn-outline btn-sm" onclick="removeTravelerRow(this)" style="padding: 10px; border-color:var(--danger); color:var(--danger);">❌</button>
+    <div style="flex: 1 1 200px; min-width: 170px;">
+      <select class="form-input form-input-sm traveler-staff-select" onchange="onTravelerRowSelectChange(this)" style="width: 100%; font-size: 0.85rem; padding: 6px 8px;">
+        ${optionsHtml}
+      </select>
+    </div>
+    <div style="flex: 1 1 180px; min-width: 150px;">
+      <input type="text" class="form-input form-input-sm traveler-name" placeholder="ชื่อ-นามสกุล..." value="${escapeHtml(name)}" required style="width: 100%; font-size: 0.85rem; padding: 6px 8px;">
+    </div>
+    <div style="flex: 1 1 150px; min-width: 130px;">
+      <input type="text" class="form-input form-input-sm traveler-position" placeholder="ตำแหน่ง..." value="${escapeHtml(position)}" required style="width: 100%; font-size: 0.85rem; padding: 6px 8px;">
+    </div>
+    <button type="button" class="btn btn-outline btn-sm" onclick="removeTravelerRow(this)" style="padding: 6px 10px; border-color:var(--danger); color:var(--danger); border-radius:6px; font-size:0.85rem; height: 34px; min-width: 38px;" title="ลบผู้ร่วมเดินทาง">❌</button>
   `;
   container.appendChild(div);
+  
+  // If cache wasn't ready yet, load it and update this row's select
+  if (!_allStaffCache || _allStaffCache.length === 0) {
+    loadStaffCache().then(() => {
+      const sel = div.querySelector('.traveler-staff-select');
+      if (sel) sel.innerHTML = renderStaffOptions(userId, name);
+    });
+  }
+  
   updateTravelersCount();
 };
 
 window.removeTravelerRow = (button) => {
-  button.parentElement.remove();
+  const row = button.closest('.travel-traveler-row');
+  if (row) row.remove();
   updateTravelersCount();
+};
+
+window.openStaffSelectionModal = async () => {
+  await loadStaffCache();
+  if (!_allStaffCache || _allStaffCache.length === 0) {
+    Swal.fire('ข้อผิดพลาด', 'ไม่สามารถโหลดรายชื่อบุคลากรได้ในขณะนี้', 'error');
+    return;
+  }
+
+  // Get currently selected names
+  const currentNames = new Set();
+  document.querySelectorAll('.travel-traveler-row .traveler-name').forEach(inp => {
+    if (inp.value.trim()) currentNames.add(inp.value.trim());
+  });
+
+  const staffItemsHtml = _allStaffCache.map(u => {
+    const isMe = currentUser && (String(currentUser.userId) === String(u.userId) || (currentUser.fullName && currentUser.fullName.trim() === u.fullName.trim()));
+    const isChecked = currentNames.has(u.fullName.trim());
+    const disabledAttr = isMe ? 'disabled' : '';
+    const badgeText = isMe ? '<span style="color:#ef4444; font-size:0.75rem; margin-left:6px; font-weight:bold;">(ผู้ยื่นคำขอหลัก)</span>' : '';
+    
+    return `
+      <label class="staff-modal-item" style="display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid #f1f5f9; cursor:${isMe ? 'not-allowed' : 'pointer'}; background:${isChecked ? '#f0fdf4' : '#ffffff'}; transition: background 0.15s ease;">
+        <input type="checkbox" class="staff-modal-checkbox" value="${u.userId}" data-name="${escapeHtml(u.fullName)}" data-position="${escapeHtml(u.position || '')}" ${isChecked ? 'checked' : ''} ${disabledAttr} style="width:18px; height:18px; accent-color:#0284c7; cursor:pointer;" onchange="this.closest('.staff-modal-item').style.background = this.checked ? '#f0fdf4' : '#ffffff';">
+        <div style="text-align:left; flex:1;">
+          <div style="font-weight:600; color:#1e293b; font-size:0.9rem;">${escapeHtml(u.fullName)} ${badgeText}</div>
+          <div style="font-size:0.8rem; color:#64748b; margin-top:2px;">${escapeHtml(u.position || 'บุคลากร')} ${u.staffType ? `• ${escapeHtml(u.staffType)}` : ''}</div>
+        </div>
+      </label>
+    `;
+  }).join('');
+
+  const modalHtml = `
+    <div style="text-align:left; margin-bottom:12px;">
+      <input type="text" id="staff-modal-search" class="form-input" placeholder="🔍 พิมพ์ค้นหาชื่อ หรือตำแหน่ง..." style="width:100%; box-sizing:border-box; padding:9px 12px; font-size:0.9rem; border-radius:8px; border:1px solid #cbd5e1;" oninput="filterStaffModalList(this.value)">
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:0.85rem; color:#64748b;">
+      <span id="staff-modal-count">บุคลากรทั้งหมด ${_allStaffCache.length} ท่าน</span>
+      <div style="display:flex; gap:6px;">
+        <button type="button" class="btn btn-outline btn-xs" onclick="toggleAllStaffModal(true)" style="padding:4px 8px; font-size:0.75rem;">เลือกทั้งหมด</button>
+        <button type="button" class="btn btn-outline btn-xs" onclick="toggleAllStaffModal(false)" style="padding:4px 8px; font-size:0.75rem;">ล้างการเลือก</button>
+      </div>
+    </div>
+    <div id="staff-modal-list" style="max-height:360px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; background:#fff; text-align:left;">
+      ${staffItemsHtml}
+    </div>
+  `;
+
+  const result = await Swal.fire({
+    title: '👥 เลือกบุคลากรผู้ร่วมเดินทาง',
+    html: modalHtml,
+    width: '620px',
+    showCancelButton: true,
+    confirmButtonText: '✅ บันทึกผู้ร่วมเดินทางที่เลือก',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#0284c7',
+    focusConfirm: false,
+    preConfirm: () => {
+      const selectedStaff = [];
+      document.querySelectorAll('.staff-modal-checkbox:checked').forEach(cb => {
+        if (!cb.disabled) {
+          selectedStaff.push({
+            userId: cb.value,
+            name: cb.getAttribute('data-name'),
+            position: cb.getAttribute('data-position')
+          });
+        }
+      });
+      return selectedStaff;
+    }
+  });
+
+  if (result.isConfirmed && result.value) {
+    const selectedList = result.value;
+    
+    // Preserve any existing manually typed rows that don't match any staff
+    const manualRows = [];
+    document.querySelectorAll('.travel-traveler-row').forEach(row => {
+      const name = row.querySelector('.traveler-name')?.value?.trim();
+      const pos = row.querySelector('.traveler-position')?.value?.trim();
+      const sel = row.querySelector('.traveler-staff-select')?.value;
+      if (name && !sel && !_allStaffCache.some(u => u.fullName === name)) {
+        manualRows.push({ name, position: pos });
+      }
+    });
+
+    const container = document.getElementById('travel-accompanied-list');
+    if (container) {
+      container.innerHTML = '';
+      selectedList.forEach(s => {
+        window.addTravelerRow(s.name, s.position, s.userId);
+      });
+      manualRows.forEach(m => {
+        window.addTravelerRow(m.name, m.position);
+      });
+      updateTravelersCount();
+    }
+  }
+};
+
+window.filterStaffModalList = (term) => {
+  const filter = (term || '').trim().toLowerCase();
+  let visibleCount = 0;
+  document.querySelectorAll('#staff-modal-list .staff-modal-item').forEach(item => {
+    const text = item.textContent.toLowerCase();
+    if (text.includes(filter)) {
+      item.style.display = 'flex';
+      visibleCount++;
+    } else {
+      item.style.display = 'none';
+    }
+  });
+  const countEl = document.getElementById('staff-modal-count');
+  if (countEl) countEl.textContent = `แสดง ${visibleCount} ท่าน`;
+};
+
+window.toggleAllStaffModal = (select) => {
+  document.querySelectorAll('#staff-modal-list .staff-modal-item').forEach(item => {
+    if (item.style.display !== 'none') {
+      const cb = item.querySelector('.staff-modal-checkbox');
+      if (cb && !cb.disabled) {
+        cb.checked = select;
+        item.style.background = select ? '#f0fdf4' : '#ffffff';
+      }
+    }
+  });
 };
 
 function updateTravelersCount() {
@@ -3758,6 +4028,11 @@ async function initTravelPage() {
   
   const accList = document.getElementById('travel-accompanied-list');
   if (accList) accList.innerHTML = '';
+
+  // Load staff cache and populate quick select
+  loadStaffCache().then(() => {
+    populateTravelQuickSelect();
+  });
 
   // Reset multi-leg vehicle container
   const legsContainer = document.getElementById('travel-legs-container');
@@ -4812,7 +5087,7 @@ window.approveClearance = async (clearanceId, status) => {
 };
 
 window.printClearance = (reportId) => {
-  window.open(`print_clearance_template.html?v=40.0&reportId=${reportId}`, '_blank');
+  window.open(`print_clearance_template.html?v=41.0&reportId=${reportId}`, '_blank');
 };
 
 async function loadTravelReportsHistory() {
@@ -4939,11 +5214,11 @@ async function loadTravelReportsHistory() {
 }
 
 window.printTravelReport = (reportId) => {
-  window.open(`print_report_template.html?v=40.0&reportId=${reportId}`, '_blank');
+  window.open(`print_report_template.html?v=41.0&reportId=${reportId}`, '_blank');
 };
 
 window.printTravelRequest = (travelId) => {
-  window.open(`print_travel_template.html?v=40.0&travelId=${travelId}`, '_blank');
+  window.open(`print_travel_template.html?v=41.0&travelId=${travelId}`, '_blank');
 };
 
 
