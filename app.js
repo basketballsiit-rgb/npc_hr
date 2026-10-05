@@ -3776,6 +3776,7 @@ window.toggleExpenseFields = () => {
     if (submitBtn) submitBtn.style.display = 'inline-block';
   }
 };
+window.handleExpenseTypeChange = window.toggleExpenseFields;
 
 // Toggle loan form fields
 window.toggleLoanForm = () => {
@@ -4495,7 +4496,7 @@ window.openEditTravelForm = async (travelId) => {
     const eRadio = document.querySelector(`input[name="travel-expense-type"][value="${expType}"]`);
     if (eRadio) {
       eRadio.checked = true;
-      handleExpenseTypeChange();
+      if (typeof toggleExpenseFields === 'function') toggleExpenseFields();
     }
 
     // Populate Travelers list
