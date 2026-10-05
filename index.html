@@ -1571,6 +1571,10 @@
                         <label style="font-size:0.8rem; font-weight:600; color:#475569;">ค่าพาหนะ/ค่าน้ำมันเชื้อเพลิง (บาท)</label>
                         <input type="number" id="travel-loan-fuel" class="form-input" value="0" onchange="calculateLoanTotal()">
                       </div>
+                      <div>
+                        <label style="font-size:0.8rem; font-weight:600; color:#475569;">ค่าใช้จ่ายอื่น ๆ (บาท)</label>
+                        <input type="number" id="travel-loan-other" class="form-input" value="0" onchange="calculateLoanTotal()">
+                      </div>
                     </div>
 
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; align-items:center; font-weight:700; color:#166534; font-size:1.05rem; margin-top:16px;">
@@ -2203,6 +2207,6 @@
   </div>
 
   <!-- Load Custom JS logic -->
-  <script src="app.js?v=39.0"></script>
+  <script src="app.js?v=40.0"></script>
 </body>
 </html>

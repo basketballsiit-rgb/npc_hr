@@ -3520,6 +3520,11 @@ window.toggleLoanForm = () => {
       // Calculate total transportation cost from routes
       const routeTotal = parseFloat(document.getElementById('travel-legs-grand')?.value) || 0;
       document.getElementById('travel-loan-fuel').value = routeTotal;
+
+      // Sync other costs
+      const otherCost = parseFloat(document.getElementById('travel-other-cost')?.value) || 0;
+      const loanOtherEl = document.getElementById('travel-loan-other');
+      if (loanOtherEl) loanOtherEl.value = otherCost;
       
       // Sync purpose and location
       document.getElementById('travel-loan-purpose').value = document.getElementById('travel-subject').value;
@@ -3661,16 +3666,19 @@ window.calculateExpenses = () => {
     document.getElementById('travel-loan-allowance').value = totalAllow;
     document.getElementById('travel-loan-rent').value = totalRent;
     document.getElementById('travel-loan-fuel').value = routeTotal;
+    const loanOtherEl = document.getElementById('travel-loan-other');
+    if (loanOtherEl) loanOtherEl.value = otherCost;
     calculateLoanTotal();
   }
 };
 
 // Calculate loan total
 window.calculateLoanTotal = () => {
-  const allow = parseFloat(document.getElementById('travel-loan-allowance').value) || 0;
-  const rent = parseFloat(document.getElementById('travel-loan-rent').value) || 0;
-  const fuel = parseFloat(document.getElementById('travel-loan-fuel').value) || 0;
-  const total = allow + rent + fuel;
+  const allow = parseFloat(document.getElementById('travel-loan-allowance')?.value) || 0;
+  const rent = parseFloat(document.getElementById('travel-loan-rent')?.value) || 0;
+  const fuel = parseFloat(document.getElementById('travel-loan-fuel')?.value) || 0;
+  const other = parseFloat(document.getElementById('travel-loan-other')?.value) || 0;
+  const total = allow + rent + fuel + other;
   
   const totalTxt = document.getElementById('travel-loan-total-txt');
   const totalThaiTxt = document.getElementById('travel-loan-total-thai-txt');
@@ -4171,7 +4179,8 @@ async function handleTravelSubmit(e) {
     const allow = parseFloat(document.getElementById('travel-loan-allowance')?.value || 0);
     const rent = parseFloat(document.getElementById('travel-loan-rent')?.value || 0);
     const fuel = parseFloat(document.getElementById('travel-loan-fuel')?.value || 0);
-    budget = allow + rent + fuel;
+    const other = parseFloat(document.getElementById('travel-loan-other')?.value || 0);
+    budget = allow + rent + fuel + other;
   } else if (expenseType === 'claim') {
     const allow = parseFloat(document.getElementById('travel-total-allowance-txt')?.textContent?.replace(/,/g,'')) || 0;
     const rent = parseFloat(document.getElementById('travel-total-rent-txt')?.textContent?.replace(/,/g,'')) || 0;
@@ -4296,6 +4305,7 @@ async function handleTravelSubmit(e) {
       allowance: parseFloat(document.getElementById('travel-loan-allowance')?.value || 0),
       rent: parseFloat(document.getElementById('travel-loan-rent')?.value || 0),
       fuel: parseFloat(document.getElementById('travel-loan-fuel')?.value || 0),
+      other: parseFloat(document.getElementById('travel-loan-other')?.value || 0),
       loanAmount: budget,
       thaiBathText: document.getElementById('travel-loan-total-thai-txt')?.textContent || 'ศูนย์บาทถ้วน'
     }
@@ -4802,7 +4812,7 @@ window.approveClearance = async (clearanceId, status) => {
 };
 
 window.printClearance = (reportId) => {
-  window.open(`print_clearance_template.html?v=39.0&reportId=${reportId}`, '_blank');
+  window.open(`print_clearance_template.html?v=40.0&reportId=${reportId}`, '_blank');
 };
 
 async function loadTravelReportsHistory() {
@@ -4929,11 +4939,11 @@ async function loadTravelReportsHistory() {
 }
 
 window.printTravelReport = (reportId) => {
-  window.open(`print_report_template.html?v=39.0&reportId=${reportId}`, '_blank');
+  window.open(`print_report_template.html?v=40.0&reportId=${reportId}`, '_blank');
 };
 
 window.printTravelRequest = (travelId) => {
-  window.open(`print_travel_template.html?v=39.0&travelId=${travelId}`, '_blank');
+  window.open(`print_travel_template.html?v=40.0&travelId=${travelId}`, '_blank');
 };
 
 

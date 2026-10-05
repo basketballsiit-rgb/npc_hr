@@ -1189,9 +1189,11 @@
           let displayLoanVehicle = details.loan && parseFloat(details.loan.fuel) > 0 ? parseFloat(details.loan.fuel) : (details.vehicleData ? (parseFloat(details.vehicleData.routeTotal) || 0) : 0);
           displayLoanVehicle = Math.max(0, displayLoanVehicle - govCarCost);
           
-          let displayOtherCost = (details.otherCost ? (parseFloat(details.otherCost) || 0) : 0) + govCarCost;
+          let displayOtherCost = (details.loan && parseFloat(details.loan.other) > 0 ? parseFloat(details.loan.other) : (details.otherCost ? (parseFloat(details.otherCost) || 0) : 0)) + govCarCost;
           
-          let displayLoanAmount = details.loan && parseFloat(details.loan.loanAmount) > 0 ? parseFloat(details.loan.loanAmount) : (parseFloat(displayLoanAllowance) + parseFloat(displayLoanRent) + parseFloat(displayLoanVehicle) + parseFloat(displayOtherCost));
+          // Calculate sum of all breakdown components to guarantee exact match
+          const breakdownSum = parseFloat(displayLoanAllowance) + parseFloat(displayLoanRent) + parseFloat(displayLoanVehicle) + parseFloat(displayOtherCost);
+          let displayLoanAmount = breakdownSum > 0 ? breakdownSum : (details.loan && parseFloat(details.loan.loanAmount) > 0 ? parseFloat(details.loan.loanAmount) : 0);
 
           if (isProjectClaim) {
             displayLoanAmount = 0;

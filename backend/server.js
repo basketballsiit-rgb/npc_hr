@@ -2259,10 +2259,13 @@ async function syncTravelLoanToSmartFlow(travelId) {
           detail: details.routes ? details.routes.map(r => `${r.from}->${r.to}`).join(', ') : ''
         },
         otherCost: {
-          amount: parseFloat(details.otherCost || 0),
+          amount: parseFloat(details.loan?.other || details.otherCost || 0),
           detail: details.otherDetail || ''
         },
-        totalLoanAmount: parseFloat(details.loan?.loanAmount || travel.budget || 0),
+        totalLoanAmount: (parseFloat(details.loan?.allowance || details.allowance?.total || 0) +
+                          parseFloat(details.loan?.rent || details.rent?.total || 0) +
+                          parseFloat(details.loan?.fuel || details.vehicleData?.routeTotal || 0) +
+                          parseFloat(details.loan?.other || details.otherCost || 0)) || parseFloat(details.loan?.loanAmount || travel.budget || 0),
         thaiBahtText: details.loan?.thaiBathText || ''
       },
       approvalInfo: {
