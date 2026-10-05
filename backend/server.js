@@ -2151,13 +2151,21 @@ app.get('/api/travel', async (req, res) => {
 // Update Travel Request (Admin/Owner)
 app.put('/api/travel/:travelId', async (req, res) => {
   const { travelId } = req.params;
-  const { subject, destination, startDate, endDate, totalDays, budget, vehicleType, details } = req.body;
+  const { subject, destination, startDate, endDate, totalDays, budget, vehicleType, details, status } = req.body;
   try {
+    const [currentRows] = await db.query('SELECT status FROM travel_data WHERE travelId = ?', [travelId]);
+    let newStatus = currentRows[0]?.status || 'รอการอนุมัติ';
+    if (status) {
+      newStatus = status;
+    } else if (newStatus === 'ส่งกลับแก้ไข') {
+      newStatus = 'รอการอนุมัติ';
+    }
+
     const [result] = await db.query(
       `UPDATE travel_data 
-       SET subject = ?, destination = ?, startDate = ?, endDate = ?, totalDays = ?, budget = ?, vehicleType = ?, details = ?
+       SET subject = ?, destination = ?, startDate = ?, endDate = ?, totalDays = ?, budget = ?, vehicleType = ?, details = ?, status = ?
        WHERE travelId = ?`,
-      [subject, destination, startDate, endDate, totalDays, budget, vehicleType, details, travelId]
+      [subject, destination, startDate, endDate, totalDays, budget, vehicleType, details, newStatus, travelId]
     );
     if (result.affectedRows === 0) {
       return res.status(404).json({ success: false, message: 'ไม่พบข้อมูลคำขอเดินทางที่ต้องการแก้ไข' });
@@ -2349,12 +2357,24 @@ async function syncTravelClearanceToSmartFlow(clearanceId) {
 }
 
 app.post('/api/travel/approve', async (req, res) => {
-  const { travelId, status } = req.body; // status: 'อนุมัติ' or 'ไม่อนุมัติ'
+  const { travelId, status, comment } = req.body; // status: 'อนุมัติ', 'ไม่อนุมัติ', or 'ส่งกลับแก้ไข'
   if (!travelId || !status) {
     return res.status(400).json({ success: false, message: 'ข้อมูลไม่ครบถ้วน' });
   }
   try {
-    await db.query('UPDATE travel_data SET status = ? WHERE travelId = ?', [status, travelId]);
+    const [current] = await db.query('SELECT details FROM travel_data WHERE travelId = ?', [travelId]);
+    let detailsObj = {};
+    if (current.length > 0 && current[0].details) {
+      try { detailsObj = JSON.parse(current[0].details); } catch(e) {}
+    }
+    if (comment !== undefined) {
+      detailsObj.returnComment = comment;
+      detailsObj.returnDate = new Date().toISOString();
+    } else if (status === 'อนุมัติ') {
+      detailsObj.returnComment = ''; // Clear return comment on approval
+    }
+
+    await db.query('UPDATE travel_data SET status = ?, details = ? WHERE travelId = ?', [status, JSON.stringify(detailsObj), travelId]);
 
     // Auto sync loan contract to SmartFlow when approved
     if (status === 'อนุมัติ') {
@@ -2370,8 +2390,25 @@ app.post('/api/travel/approve', async (req, res) => {
       const [userRows] = await db.query('SELECT lineUserId FROM users WHERE userId = ?', [travel.userId]);
       if (userRows.length > 0 && userRows[0].lineUserId) {
         const lineUserId = userRows[0].lineUserId;
-        const emoji = status === 'อนุมัติ' ? '✅' : '❌';
-        const msg = `${emoji} แจ้งเตือนการขออนุมัติเดินทางไปราชการ\n\nคำขอของคุณได้รับการพิจารณาเรียบร้อยแล้ว\n\nเรื่อง: ${travel.subject}\nปลายทาง: ${travel.destination}\nผลการพิจารณา: ${status}`;
+        let emoji = '📋';
+        let msg = '';
+        if (status === 'อนุมัติ') {
+          emoji = '✅';
+          msg = `${emoji} แจ้งเตือนการขออนุมัติเดินทางไปราชการ\n\nคำขอของคุณได้รับการพิจารณาเรียบร้อยแล้ว\n\nเรื่อง: ${travel.subject}\nปลายทาง: ${travel.destination}\nผลการพิจารณา: อนุมัติ`;
+        } else if (status === 'ส่งกลับแก้ไข') {
+          emoji = '↩️';
+          msg = `${emoji} แจ้งเตือนการขออนุมัติเดินทางไปราชการ\n\nคำขอของคุณถูกส่งกลับเพื่อแก้ไข\n\nเรื่อง: ${travel.subject}\nปลายทาง: ${travel.destination}\nสถานะ: ส่งกลับแก้ไข`;
+          if (comment && comment.trim()) {
+            msg += `\nหมายเหตุจากแอดมิน: ${comment.trim()}`;
+          }
+          msg += `\n\nกรุณาเข้าสู่ระบบเพื่อแก้ไขและยื่นคำขออีกครั้ง`;
+        } else {
+          emoji = '❌';
+          msg = `${emoji} แจ้งเตือนการขออนุมัติเดินทางไปราชการ\n\nคำขอของคุณได้รับการพิจารณาเรียบร้อยแล้ว\n\nเรื่อง: ${travel.subject}\nปลายทาง: ${travel.destination}\nผลการพิจารณา: ${status}`;
+          if (comment && comment.trim()) {
+            msg += `\nหมายเหตุ: ${comment.trim()}`;
+          }
+        }
         await sendLinePushMessage(lineUserId, msg);
       }
     }

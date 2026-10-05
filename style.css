@@ -866,6 +866,12 @@ select.form-input {
   border: 1px solid #bae6fd;
 }
 
+.badge-returned {
+  background: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
 /* ================================================================= */
 /* Signatures Layout                                                 */
 /* ================================================================= */

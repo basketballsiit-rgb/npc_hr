@@ -2107,6 +2107,8 @@ function renderBadge(status, isUserStatus = false) {
       className = 'badge-pending';
     } else if (status === 'ไม่อนุมัติ') {
       className = 'badge-rejected';
+    } else if (status === 'ส่งกลับแก้ไข') {
+      className = 'badge-returned';
     } else if (status === 'ยกเลิกโดยผู้ใช้') {
       className = 'badge-cancelled';
     }
@@ -3409,6 +3411,7 @@ function updateTravelersCount() {
 // Each leg has its own vehicle type and input fields
 // ============================================================
 let _travelLegCounter = 0;
+let _editingTravelId = null;
 
 const VEHICLE_OPTIONS = `
   <option value="">-- เลือกพาหนะ --</option>
@@ -3429,7 +3432,7 @@ const VEHICLE_OPTIONS = `
   </optgroup>
 `;
 
-window.addTravelLeg = () => {
+window.addTravelLeg = (legData = null) => {
   const container = document.getElementById('travel-legs-container');
   if (!container) return;
   const id = ++_travelLegCounter;
@@ -3458,6 +3461,32 @@ window.addTravelLeg = () => {
     </div>
   `;
   container.appendChild(card);
+
+  if (legData && legData.type) {
+    const sel = card.querySelector('.leg-vehicle-select');
+    if (sel) {
+      sel.value = legData.type;
+      onLegVehicleChange(id);
+      setTimeout(() => {
+        const cardEl = document.getElementById(`tleg-${id}`);
+        if (cardEl) {
+          if (legData.from && cardEl.querySelector('.leg-from')) cardEl.querySelector('.leg-from').value = legData.from;
+          if (legData.to && cardEl.querySelector('.leg-to')) cardEl.querySelector('.leg-to').value = legData.to;
+          if (legData.departDatetime && cardEl.querySelector('.leg-depart')) cardEl.querySelector('.leg-depart').value = legData.departDatetime;
+          if (legData.returnDatetime && cardEl.querySelector('.leg-return')) cardEl.querySelector('.leg-return').value = legData.returnDatetime;
+          if (legData.priceGo !== undefined && cardEl.querySelector('.leg-price-go')) cardEl.querySelector('.leg-price-go').value = legData.priceGo;
+          if (legData.priceBack !== undefined && cardEl.querySelector('.leg-price-back')) cardEl.querySelector('.leg-price-back').value = legData.priceBack;
+          if (legData.note && cardEl.querySelector('.leg-note')) cardEl.querySelector('.leg-note').value = legData.note;
+          if (legData.km !== undefined && cardEl.querySelector('.leg-km')) cardEl.querySelector('.leg-km').value = legData.km;
+          if (legData.roundtrip !== undefined && cardEl.querySelector('.leg-roundtrip')) cardEl.querySelector('.leg-roundtrip').checked = !!legData.roundtrip;
+          if (legData.mode) setLegMode(id, legData.mode);
+          if (legData.loanAmount !== undefined && cardEl.querySelector('.leg-loan-amount')) cardEl.querySelector('.leg-loan-amount').value = legData.loanAmount;
+          calcLegCost(id);
+        }
+      }, 0);
+    }
+  }
+
   calcAllLegsTotal();
 };
 
@@ -3988,6 +4017,15 @@ function numToThaiBath(num) {
 
 async function initTravelPage() {
   if (!currentUser) return;
+  _editingTravelId = null;
+  const editBanner = document.getElementById('travel-edit-mode-banner');
+  if (editBanner) editBanner.style.display = 'none';
+
+  const btn1 = document.getElementById('travel-nav-tab1-submit');
+  if (btn1) btn1.innerHTML = '🚀 ยื่นขออนุญาตเดินทางไปราชการ';
+  const btn3 = document.getElementById('travel-nav-tab3-submit');
+  if (btn3) btn3.innerHTML = '🚀 ยื่นขออนุญาตเดินทางไปราชการ';
+
   const form = document.getElementById('travel-request-form');
   if (form) form.reset();
   
@@ -4062,6 +4100,13 @@ async function loadTravelHistory() {
     }
     
     travels.forEach(t => {
+      let details = {};
+      try {
+        details = typeof t.details === 'string' ? JSON.parse(t.details) : (t.details || {});
+      } catch (e) {
+        details = {};
+      }
+
       let actionHtml = '';
       const printBtn = `<button class="btn btn-outline btn-xs" onclick="printTravelRequest('${t.travelId}')" style="padding:3px 6px; font-size:10px; display:inline-flex; align-items:center; gap:2px;">🖨️ พิมพ์ใบขออนุมัติ</button>`;
       
@@ -4069,9 +4114,16 @@ async function loadTravelHistory() {
         let approveBlock = '';
         if (t.status === 'รอการอนุมัติ') {
           approveBlock = `
-            <div style="display:flex; gap:4px; margin-bottom:4px;">
+            <div style="display:flex; gap:4px; margin-bottom:4px; flex-wrap:wrap; justify-content:center;">
               <button class="btn btn-primary btn-sm" onclick="approveTravel('${t.travelId}', 'อนุมัติ')" style="padding:4px 8px; font-size:11px; background:#10b981; border-color:#10b981;">อนุมัติ</button>
               <button class="btn btn-danger btn-sm" onclick="approveTravel('${t.travelId}', 'ไม่อนุมัติ')" style="padding:4px 8px; font-size:11px; background:#ef4444; border-color:#ef4444; color:white;">ปฏิเสธ</button>
+              <button class="btn btn-warning btn-sm" onclick="returnTravelForEdit('${t.travelId}')" style="padding:4px 8px; font-size:11px; background:#f59e0b; border-color:#d97706; color:white;">↩️ ส่งกลับแก้ไข</button>
+            </div>
+          `;
+        } else if (t.status === 'อนุมัติ') {
+          approveBlock = `
+            <div style="display:flex; gap:4px; margin-bottom:4px; flex-wrap:wrap; justify-content:center;">
+              <button class="btn btn-warning btn-xs" onclick="returnTravelForEdit('${t.travelId}')" style="padding:3px 6px; font-size:10px; background:#fef3c7; color:#d97706; border-color:#fde68a;">↩️ ส่งกลับแก้ไข</button>
             </div>
           `;
         }
@@ -4081,21 +4133,39 @@ async function loadTravelHistory() {
             ${approveBlock}
             <div style="display:flex; gap:4px; flex-wrap:wrap; justify-content:center;">
               ${printBtn}
-              <button class="btn btn-outline btn-xs" onclick="editTravelRecord('${t.travelId}')" style="padding:3px 6px; font-size:10px; color:#4f46e5; border-color:#818cf8; display:inline-flex; align-items:center; gap:2px;">✏️ แก้ไข</button>
+              <button class="btn btn-outline btn-xs" onclick="openEditTravelForm('${t.travelId}')" style="padding:3px 6px; font-size:10px; color:#4f46e5; border-color:#818cf8; display:inline-flex; align-items:center; gap:2px;">✏️ แก้ไข</button>
               <button class="btn btn-outline btn-xs" onclick="deleteTravelRecord('${t.travelId}')" style="padding:3px 6px; font-size:10px; color:#ef4444; border-color:#fca5a5; display:inline-flex; align-items:center; gap:2px;">🗑️ ลบ</button>
             </div>
           </div>
         `;
       } else {
-        actionHtml = printBtn;
+        let editBtn = '';
+        if (t.status === 'ส่งกลับแก้ไข' || t.status === 'รอการอนุมัติ') {
+          editBtn = `<button class="btn btn-warning btn-xs" onclick="openEditTravelForm('${t.travelId}')" style="padding:3px 6px; font-size:10px; background:#fef3c7; color:#d97706; border-color:#fde68a; display:inline-flex; align-items:center; gap:2px; font-weight:600;">✏️ แก้ไขคำขอ</button>`;
+        }
+        actionHtml = `
+          <div style="display:flex; gap:4px; flex-wrap:wrap; justify-content:center; align-items:center;">
+            ${printBtn}
+            ${editBtn}
+          </div>
+        `;
       }
       
       const budgetText = parseFloat(t.budget) > 0 ? ` (งบ ${parseFloat(t.budget).toLocaleString()} บ.)` : '';
-      const hasLoanFlag = (parseFloat(t.budget) > 0) || (t.details && (typeof t.details === 'string' ? t.details.includes('"hasLoan":true') : t.details.hasLoan));
+      const hasLoanFlag = (parseFloat(t.budget) > 0) || (details && details.hasLoan);
       const sfBadge = hasLoanFlag 
         ? `<div style="margin-top:4px;"><span class="badge" style="font-size:10px; padding:2px 6px; background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; cursor:pointer;" onclick="manualSyncTravelLoan('${t.travelId}')" title="คลิกเพื่อส่งสัญญายืมเงินไปยัง SmartFlow อีกครั้ง">⚡ SmartFlow Link</span></div>` 
         : '';
       
+      let returnCommentBadge = '';
+      if (details.returnComment && (t.status === 'ส่งกลับแก้ไข' || t.status === 'รอการอนุมัติ')) {
+        returnCommentBadge = `
+          <div style="font-size:11px; color:#d97706; margin-top:4px; max-width:200px; background:#fffbeb; padding:3px 6px; border-radius:4px; border:1px solid #fde68a; text-align:left; line-height:1.3;">
+            💬 <strong>หมายเหตุแอดมิน:</strong> ${escapeHtml(details.returnComment)}
+          </div>
+        `;
+      }
+
       tbody.innerHTML += `
         <tr>
           <td>
@@ -4112,7 +4182,10 @@ async function loadTravelHistory() {
           <td style="text-align:right; font-weight:600; color:#0f766e;">
             ${parseFloat(t.budget) > 0 ? parseFloat(t.budget).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'}
           </td>
-          <td>${renderBadge(t.status)}</td>
+          <td>
+            ${renderBadge(t.status)}
+            ${returnCommentBadge}
+          </td>
           <td>${actionHtml}</td>
         </tr>
       `;
@@ -4281,6 +4354,47 @@ async function approveTravel(travelId, status) {
   }
 }
 
+window.returnTravelForEdit = async (travelId) => {
+  const { value: comment } = await Swal.fire({
+    title: '↩️ ส่งกลับเพื่อแก้ไขคำขอ',
+    text: 'ระบุเหตุผลหรือจุดที่ต้องการให้ผู้เสนอขอแก้ไข:',
+    input: 'textarea',
+    inputPlaceholder: 'กรอกเหตุผลหรือรายละเอียดที่ต้องแก้ไข เช่น กรุณาแนบเอกสารอ้างอิง หรือปรับยอดเงิน...',
+    inputAttributes: {
+      'aria-label': 'เหตุผลการส่งกลับแก้ไข'
+    },
+    showCancelButton: true,
+    confirmButtonText: 'ยืนยันส่งกลับแก้ไข',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#d97706',
+    inputValidator: (value) => {
+      if (!value || !value.trim()) {
+        return 'กรุณาระบุเหตุผลการส่งกลับแก้ไข!';
+      }
+    }
+  });
+
+  if (comment !== undefined && comment !== null) {
+    showLoading('กำลังส่งกลับเพื่อแก้ไข...');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/travel/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ travelId, status: 'ส่งกลับแก้ไข', comment: comment.trim() })
+      });
+      const data = await res.json();
+      if (data.success) {
+        Swal.fire('สำเร็จ', 'ส่งกลับคำขอเพื่อแก้ไขเรียบร้อยแล้ว และระบบได้ส่งการแจ้งเตือนไปยังผู้ขอแล้ว', 'success');
+        loadTravelHistory();
+      } else {
+        showError(data.message);
+      }
+    } catch (err) {
+      showError('เกิดข้อผิดพลาด: ' + err.message);
+    }
+  }
+};
+
 window.deleteTravelRecord = (travelId) => {
   Swal.fire({
     title: 'ต้องการลบประวัติการขอไปราชการ?',
@@ -4311,103 +4425,185 @@ window.deleteTravelRecord = (travelId) => {
   });
 };
 
-window.editTravelRecord = async (travelId) => {
-  showLoading('กำลังดึงข้อมูลคำขอเดินทาง...');
+window.openEditTravelForm = async (travelId) => {
+  showLoading('กำลังโหลดข้อมูลคำขอเดินทาง...');
   try {
     const res = await fetch(`${API_BASE_URL}/api/travel?travelId=${travelId}`);
     const travels = await res.json();
-    if (travels.length === 0) {
+    if (!travels || travels.length === 0) {
       Swal.close();
       showError('ไม่พบข้อมูลคำขอเดินทาง');
       return;
     }
     const t = travels[0];
+    let details = {};
+    try {
+      details = typeof t.details === 'string' ? JSON.parse(t.details) : (t.details || {});
+    } catch (e) {
+      details = {};
+    }
     Swal.close();
 
-    const { value: formValues } = await Swal.fire({
-      title: '✏️ แก้ไขข้อมูลคำขอไปราชการ',
-      html: `
-        <div style="text-align: left; font-family: 'Sarabun', sans-serif; font-size: 14px;">
-          <label style="font-weight: 600; display: block; margin-bottom: 4px;">เรื่อง:</label>
-          <input id="swal-edit-subject" class="swal2-input" style="width: 90%; margin: 0 0 12px 0;" value="${t.subject || ''}">
-          
-          <label style="font-weight: 600; display: block; margin-bottom: 4px;">สถานที่ปลายทาง:</label>
-          <input id="swal-edit-destination" class="swal2-input" style="width: 90%; margin: 0 0 12px 0;" value="${t.destination || ''}">
-          
-          <div style="display: flex; gap: 8px;">
-            <div style="flex: 1;">
-              <label style="font-weight: 600; display: block; margin-bottom: 4px;">วันที่เริ่มต้น:</label>
-              <input id="swal-edit-start" type="date" class="swal2-input" style="width: 90%; margin: 0 0 12px 0;" value="${t.startDate ? t.startDate.substring(0,10) : ''}">
-            </div>
-            <div style="flex: 1;">
-              <label style="font-weight: 600; display: block; margin-bottom: 4px;">วันที่สิ้นสุด:</label>
-              <input id="swal-edit-end" type="date" class="swal2-input" style="width: 90%; margin: 0 0 12px 0;" value="${t.endDate ? t.endDate.substring(0,10) : ''}">
-            </div>
-          </div>
-          
-          <div style="display: flex; gap: 8px;">
-            <div style="flex: 1;">
-              <label style="font-weight: 600; display: block; margin-bottom: 4px;">จำนวนวัน:</label>
-              <input id="swal-edit-days" type="number" step="0.5" class="swal2-input" style="width: 90%; margin: 0 0 12px 0;" value="${t.totalDays || 0}">
-            </div>
-            <div style="flex: 1;">
-              <label style="font-weight: 600; display: block; margin-bottom: 4px;">งบประมาณ (บาท):</label>
-              <input id="swal-edit-budget" type="number" class="swal2-input" style="width: 90%; margin: 0 0 12px 0;" value="${t.budget || 0}">
-            </div>
-          </div>
-        </div>
-      `,
-      focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonText: '💾 บันทึกการแก้ไข',
-      cancelButtonText: 'ยกเลิก',
-      preConfirm: () => {
-        return {
-          subject: document.getElementById('swal-edit-subject').value.trim(),
-          destination: document.getElementById('swal-edit-destination').value.trim(),
-          startDate: document.getElementById('swal-edit-start').value,
-          endDate: document.getElementById('swal-edit-end').value,
-          totalDays: parseFloat(document.getElementById('swal-edit-days').value) || 0,
-          budget: parseFloat(document.getElementById('swal-edit-budget').value) || 0
-        };
-      }
-    });
+    _editingTravelId = travelId;
 
-    if (formValues) {
-      if (!formValues.subject || !formValues.destination) {
-        showError('กรุณากรอกข้อมูลเรื่องและสถานที่ปลายทางให้ครบถ้วน');
-        return;
-      }
-      showLoading('กำลังบันทึกการแก้ไข...');
-      
-      const details = JSON.parse(t.details || '{}');
-      
-      const updateRes = await fetch(`${API_BASE_URL}/api/travel/${travelId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subject: formValues.subject,
-          destination: formValues.destination,
-          startDate: formValues.startDate,
-          endDate: formValues.endDate,
-          totalDays: formValues.totalDays,
-          budget: formValues.budget,
-          vehicleType: t.vehicleType,
-          details: JSON.stringify(details)
-        })
-      });
-      
-      const r = await updateRes.json();
-      if (r.success) {
-        Swal.fire('สำเร็จ', 'แก้ไขข้อมูลคำขอไปราชการเรียบร้อยแล้ว', 'success');
-        loadTravelHistory();
+    // Show Edit Mode Banner
+    const banner = document.getElementById('travel-edit-mode-banner');
+    const bSubject = document.getElementById('travel-edit-banner-subject');
+    const bCommentWrap = document.getElementById('travel-edit-banner-comment-wrapper');
+    const bComment = document.getElementById('travel-edit-banner-comment');
+    if (banner) {
+      banner.style.display = 'flex';
+      if (bSubject) bSubject.textContent = `"${t.subject}" (ID: ${travelId})`;
+      if (details.returnComment) {
+        if (bCommentWrap) bCommentWrap.style.display = 'block';
+        if (bComment) bComment.textContent = details.returnComment;
       } else {
-        showError(r.message);
+        if (bCommentWrap) bCommentWrap.style.display = 'none';
       }
     }
+
+    // Update submit button texts
+    const btn1 = document.getElementById('travel-nav-tab1-submit');
+    if (btn1) btn1.innerHTML = '💾 บันทึกการแก้ไขและยื่นคำขอ';
+    const btn3 = document.getElementById('travel-nav-tab3-submit');
+    if (btn3) btn3.innerHTML = '💾 บันทึกการแก้ไขและยื่นคำขอ';
+
+    // Populate Tab 1: Memo fields
+    if (document.getElementById('travel-subject')) document.getElementById('travel-subject').value = t.subject || '';
+    if (document.getElementById('travel-destination')) document.getElementById('travel-destination').value = t.destination || '';
+    if (document.getElementById('travel-start-date')) document.getElementById('travel-start-date').value = t.startDate ? t.startDate.substring(0, 10) : '';
+    if (document.getElementById('travel-end-date')) document.getElementById('travel-end-date').value = t.endDate ? t.endDate.substring(0, 10) : '';
+    if (document.getElementById('travel-total-days')) document.getElementById('travel-total-days').value = t.totalDays || 1;
+    if (document.getElementById('travel-doc-date')) document.getElementById('travel-doc-date').value = details.docDate || (t.startDate ? t.startDate.substring(0, 10) : '');
+    if (document.getElementById('travel-requester-name')) document.getElementById('travel-requester-name').value = details.requesterName || t.fullName || '';
+    if (document.getElementById('travel-department')) document.getElementById('travel-department').value = details.department || '';
+    if (document.getElementById('travel-purpose-detail')) document.getElementById('travel-purpose-detail').value = details.purposeDetail || '';
+    if (document.getElementById('travel-ref-doc')) document.getElementById('travel-ref-doc').value = details.refDoc || '';
+    if (document.getElementById('travel-ref-date')) document.getElementById('travel-ref-date').value = details.refDate || '';
+    if (document.getElementById('travel-delegate-name')) document.getElementById('travel-delegate-name').value = details.delegateName || '';
+    if (document.getElementById('travel-delegate-pos')) document.getElementById('travel-delegate-pos').value = details.delegatePos || '';
+    if (document.getElementById('travel-vehicle-plate')) document.getElementById('travel-vehicle-plate').value = details.vehiclePlate || '';
+    if (document.getElementById('travel-vehicle-driver')) document.getElementById('travel-vehicle-driver').value = details.vehicleDriver || '';
+    if (document.getElementById('travel-vehicle-supervisor')) document.getElementById('travel-vehicle-supervisor').value = details.vehicleSupervisor || '';
+
+    // Vehicle type radio
+    const vRadio = document.querySelector(`input[name="travel-vehicle-type"][value="${t.vehicleType || 'public'}"]`);
+    if (vRadio) vRadio.checked = true;
+
+    // Expense type radio
+    const expType = details.expenseType || 'claim';
+    const eRadio = document.querySelector(`input[name="travel-expense-type"][value="${expType}"]`);
+    if (eRadio) {
+      eRadio.checked = true;
+      handleExpenseTypeChange();
+    }
+
+    // Populate Travelers list
+    const accContainer = document.getElementById('travel-accompanied-list');
+    if (accContainer) {
+      accContainer.innerHTML = '';
+      if (details.travelers && Array.isArray(details.travelers) && details.travelers.length > 0) {
+        details.travelers.forEach(tr => {
+          window.addTravelerRow(tr.name || '', tr.position || '');
+        });
+      }
+      updateTravelersCount();
+    }
+
+    // Populate Multi-leg vehicle transport
+    const legsContainer = document.getElementById('travel-legs-container');
+    if (legsContainer) {
+      legsContainer.innerHTML = '';
+      _travelLegCounter = 0;
+      const legs = details.vehicleData?.legs || [];
+      if (legs.length > 0) {
+        legs.forEach(leg => window.addTravelLeg(leg));
+      } else if (details.routes && details.routes.length > 0) {
+        details.routes.forEach(r => window.addTravelLeg({ type: r.vehicle, from: r.from, to: r.to, cost: r.cost }));
+      } else {
+        window.addTravelLeg();
+      }
+    }
+
+    // Populate Allowance days
+    const adaysContainer = document.getElementById('allowance-days-container');
+    if (adaysContainer) {
+      adaysContainer.innerHTML = '';
+      _allowanceDayCounter = 0;
+      if (details.allowanceDaysList && details.allowanceDaysList.length > 0) {
+        details.allowanceDaysList.forEach(ad => window.addAllowanceDay(ad.rate, ad.date));
+      } else {
+        window.addAllowanceDay(240, '');
+      }
+    }
+
+    // Populate Rent and Other
+    if (details.rent) {
+      if (document.getElementById('travel-days-rent')) document.getElementById('travel-days-rent').value = details.rent.days || 0;
+      if (document.getElementById('travel-rate-rent')) document.getElementById('travel-rate-rent').value = details.rent.rate || 0;
+    }
+    if (document.getElementById('travel-other-cost')) document.getElementById('travel-other-cost').value = details.otherCost || 0;
+    if (document.getElementById('travel-other-detail')) document.getElementById('travel-other-detail').value = details.otherDetail || '';
+
+    // Calculate estimation totals
+    window.calculateExpenses();
+
+    // Populate Tab 3: Loan
+    const hasLoanCheck = document.getElementById('travel-has-loan');
+    if (hasLoanCheck) {
+      hasLoanCheck.checked = !!details.hasLoan;
+      toggleLoanForm();
+      if (details.hasLoan && details.loan) {
+        if (details.loan.to && document.getElementById('travel-loan-to')) document.getElementById('travel-loan-to').value = details.loan.to;
+        if (details.loan.office && document.getElementById('travel-loan-office')) document.getElementById('travel-loan-office').value = details.loan.office;
+        if (details.loan.purpose && document.getElementById('travel-loan-purpose')) document.getElementById('travel-loan-purpose').value = details.loan.purpose;
+        if (details.loan.location && document.getElementById('travel-loan-location')) document.getElementById('travel-loan-location').value = details.loan.location;
+        if (details.loan.allowance !== undefined && document.getElementById('travel-loan-allowance')) document.getElementById('travel-loan-allowance').value = details.loan.allowance;
+        if (details.loan.rent !== undefined && document.getElementById('travel-loan-rent')) document.getElementById('travel-loan-rent').value = details.loan.rent;
+        if (details.loan.fuel !== undefined && document.getElementById('travel-loan-fuel')) document.getElementById('travel-loan-fuel').value = details.loan.fuel;
+        if (details.loan.other !== undefined && document.getElementById('travel-loan-other')) document.getElementById('travel-loan-other').value = details.loan.other;
+        calculateLoanTotal();
+      }
+    }
+
+    // Switch to Tab 1 (Memo) and scroll up to the form
+    switchTravelTab('travel-tab-memo');
+    const formSection = document.getElementById('travel-section') || document.getElementById('travel-request-form');
+    if (formSection) {
+      formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    Swal.fire({
+      icon: 'info',
+      title: '✏️ เข้าสู่โหมดแก้ไขคำขอ',
+      text: 'คุณสามารถปรับปรุงข้อมูลในแถบที่ 1, 2 และ 3 ได้ตามต้องการ เมื่อเสร็จแล้วกด "บันทึกการแก้ไขและยื่นคำขอ"',
+      confirmButtonText: 'ตกลง',
+      confirmButtonColor: '#0284c7'
+    });
   } catch (err) {
-    showError(err.message);
+    Swal.close();
+    showError('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + err.message);
   }
+};
+
+window.cancelEditTravelMode = () => {
+  _editingTravelId = null;
+  const banner = document.getElementById('travel-edit-mode-banner');
+  if (banner) banner.style.display = 'none';
+
+  const btn1 = document.getElementById('travel-nav-tab1-submit');
+  if (btn1) btn1.innerHTML = '🚀 ยื่นขออนุญาตเดินทางไปราชการ';
+  const btn3 = document.getElementById('travel-nav-tab3-submit');
+  if (btn3) btn3.innerHTML = '🚀 ยื่นขออนุญาตเดินทางไปราชการ';
+
+  const form = document.getElementById('travel-request-form');
+  if (form) form.reset();
+
+  initTravelPage();
+};
+
+window.editTravelRecord = (travelId) => {
+  window.openEditTravelForm(travelId);
 };
 
 window.submitTravelForm = (e) => {
@@ -4589,6 +4785,44 @@ async function handleTravelSubmit(e) {
     }
   };
   
+  if (_editingTravelId) {
+    showLoading('กำลังบันทึกการแก้ไขและยื่นคำขอ...');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/travel/${_editingTravelId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject,
+          destination,
+          startDate,
+          endDate,
+          totalDays,
+          budget,
+          vehicleType,
+          details: JSON.stringify(detailsObj),
+          status: 'รอการอนุมัติ'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        Swal.fire('สำเร็จ', 'บันทึกการแก้ไขและยื่นคำขอไปราชการเรียบร้อยแล้ว (สถานะเปลี่ยนเป็นรอการอนุมัติ)', 'success');
+        _editingTravelId = null;
+        const banner = document.getElementById('travel-edit-mode-banner');
+        if (banner) banner.style.display = 'none';
+        const btn1 = document.getElementById('travel-nav-tab1-submit');
+        if (btn1) btn1.innerHTML = '🚀 ยื่นขออนุญาตเดินทางไปราชการ';
+        const btn3 = document.getElementById('travel-nav-tab3-submit');
+        if (btn3) btn3.innerHTML = '🚀 ยื่นขออนุญาตเดินทางไปราชการ';
+        initTravelPage();
+      } else {
+        showError(data.message);
+      }
+    } catch (err) {
+      showError('เกิดข้อผิดพลาด: ' + err.message);
+    }
+    return;
+  }
+
   showLoading('กำลังยื่นคำขอไปราชการ...');
   try {
     const res = await fetch(`${API_BASE_URL}/api/travel`, {
