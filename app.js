@@ -4113,7 +4113,7 @@ async function loadTravelHistory() {
       
       if (currentUser.role === 'admin') {
         let approveBlock = '';
-        if (t.status === 'รอการอนุมัติ') {
+        if (t.status === 'รอการอนุมัติ' || t.status === 'รับทราบ') {
           approveBlock = `
             <div style="display:flex; gap:4px; margin-bottom:4px; flex-wrap:wrap; justify-content:center;">
               <button class="btn btn-primary btn-sm" onclick="approveTravel('${t.travelId}', 'อนุมัติ')" style="padding:4px 8px; font-size:11px; background:#10b981; border-color:#10b981;">อนุมัติ</button>
@@ -4141,7 +4141,7 @@ async function loadTravelHistory() {
         `;
       } else {
         let editBtn = '';
-        if (t.status === 'ส่งกลับแก้ไข' || t.status === 'รอการอนุมัติ') {
+        if (t.status === 'ส่งกลับแก้ไข' || t.status === 'รอการอนุมัติ' || t.status === 'รับทราบ') {
           editBtn = `<button class="btn btn-warning btn-xs" onclick="openEditTravelForm('${t.travelId}')" style="padding:3px 6px; font-size:10px; background:#fef3c7; color:#d97706; border-color:#fde68a; display:inline-flex; align-items:center; gap:2px; font-weight:600;">✏️ แก้ไขคำขอ</button>`;
         }
         actionHtml = `
@@ -4159,7 +4159,7 @@ async function loadTravelHistory() {
         : '';
       
       let returnCommentBadge = '';
-      if (details.returnComment && (t.status === 'ส่งกลับแก้ไข' || t.status === 'รอการอนุมัติ')) {
+      if (details.returnComment && (t.status === 'ส่งกลับแก้ไข' || t.status === 'รอการอนุมัติ' || t.status === 'รับทราบ')) {
         returnCommentBadge = `
           <div style="font-size:11px; color:#d97706; margin-top:4px; max-width:200px; background:#fffbeb; padding:3px 6px; border-radius:4px; border:1px solid #fde68a; text-align:left; line-height:1.3;">
             💬 <strong>หมายเหตุแอดมิน:</strong> ${escapeHtml(details.returnComment)}

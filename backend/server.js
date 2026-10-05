@@ -2077,7 +2077,7 @@ app.post('/api/travel', async (req, res) => {
   try {
     await db.query(
       `INSERT INTO travel_data (travelId, userId, fullName, subject, destination, startDate, endDate, totalDays, budget, vehicleType, details, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'รับทราบ')`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'รอการอนุมัติ')`,
       [travelId, userId, fullName, subject, destination, startDate, endDate, totalDays, budget || 0, vehicleType, details || null]
     );
 
