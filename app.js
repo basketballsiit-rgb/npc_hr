@@ -4801,12 +4801,12 @@ async function handleTravelSubmit(e) {
           budget,
           vehicleType,
           details: JSON.stringify(detailsObj),
-          status: 'รอการอนุมัติ'
+          status: 'รับทราบ'
         })
       });
       const data = await res.json();
       if (data.success) {
-        Swal.fire('สำเร็จ', 'บันทึกการแก้ไขและยื่นคำขอไปราชการเรียบร้อยแล้ว (สถานะเปลี่ยนเป็นรอการอนุมัติ)', 'success');
+        Swal.fire('สำเร็จ', 'บันทึกการแก้ไขเอกสารเรียบร้อยแล้ว (สถานะเปลี่ยนเป็นรับทราบ และส่งข้อมูลต่อไปยัง SmartFlow แล้ว)', 'success');
         _editingTravelId = null;
         const banner = document.getElementById('travel-edit-mode-banner');
         if (banner) banner.style.display = 'none';

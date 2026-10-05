@@ -2077,7 +2077,7 @@ app.post('/api/travel', async (req, res) => {
   try {
     await db.query(
       `INSERT INTO travel_data (travelId, userId, fullName, subject, destination, startDate, endDate, totalDays, budget, vehicleType, details, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'รอการอนุมัติ')`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'รับทราบ')`,
       [travelId, userId, fullName, subject, destination, startDate, endDate, totalDays, budget || 0, vehicleType, details || null]
     );
 
@@ -2153,12 +2153,10 @@ app.put('/api/travel/:travelId', async (req, res) => {
   const { travelId } = req.params;
   const { subject, destination, startDate, endDate, totalDays, budget, vehicleType, details, status } = req.body;
   try {
-    const [currentRows] = await db.query('SELECT status FROM travel_data WHERE travelId = ?', [travelId]);
-    let newStatus = currentRows[0]?.status || 'รอการอนุมัติ';
-    if (status) {
-      newStatus = status;
-    } else if (newStatus === 'ส่งกลับแก้ไข') {
-      newStatus = 'รอการอนุมัติ';
+    const [currentRows] = await db.query('SELECT status, details FROM travel_data WHERE travelId = ?', [travelId]);
+    let newStatus = status || 'รับทราบ';
+    if (newStatus === 'ส่งกลับแก้ไข' || newStatus === 'รอการอนุมัติ' || !status) {
+      newStatus = 'รับทราบ';
     }
 
     const [result] = await db.query(
@@ -2907,6 +2905,7 @@ app.get('/api/activities/participants/:activityId', async (req, res) => {
       await db.query(`ALTER TABLE travel_reports MODIFY COLUMN benefits LONGTEXT NULL`);
       await db.query(`ALTER TABLE travel_data MODIFY COLUMN details LONGTEXT NULL`);
       await db.query(`ALTER TABLE travel_clearances MODIFY COLUMN details LONGTEXT NULL`);
+      await db.query(`UPDATE travel_data SET status = 'รับทราบ' WHERE status = 'รอการอนุมัติ'`);
     } catch (alterErr) {
       console.log('Notice on modifying columns to LONGTEXT:', alterErr.message);
     }
