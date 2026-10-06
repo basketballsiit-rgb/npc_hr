@@ -221,18 +221,39 @@
     }
 
     .print-checkbox {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       width: 14px;
       height: 14px;
-      border: 1px solid #000;
+      border: 1.2px solid #000;
       margin-right: 6px;
-      text-align: center;
-      line-height: 11px;
-      font-size: 16pt;
       vertical-align: middle;
-      font-family: 'Sarabun', sans-serif;
-      font-weight: bold;
       flex-shrink: 0;
+      box-sizing: border-box;
+      position: relative;
+      background: transparent;
+      padding: 0;
+      overflow: hidden;
+      line-height: 1;
+    }
+
+    .print-checkbox svg.chk-icon {
+      width: 11px;
+      height: 11px;
+      display: block;
+      pointer-events: none;
+    }
+
+    @media print {
+      .print-checkbox {
+        border: 1.2px solid #000 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .print-checkbox svg.chk-icon path {
+        stroke: #000 !important;
+      }
     }
   </style>
 </head>
@@ -824,10 +845,17 @@
           document.title = `ใบขออนุมัติเดินทางไปราชการ - ${t.fullName}`;
         }
 
-        // Helper to set checkbox slash text
+        // Helper to set checkbox checkmark icon
         const setCheckbox = (id, checked) => {
           const el = document.getElementById(id);
-          if (el) el.textContent = checked ? '/' : '';
+          if (!el) return;
+          if (checked) {
+            el.innerHTML = '<svg viewBox="0 0 16 16" class="chk-icon"><path d="M2.5 8.5L6.5 12.5L13.5 3.5" fill="none" stroke="black" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            el.classList.add('checked');
+          } else {
+            el.innerHTML = '';
+            el.classList.remove('checked');
+          }
         };
 
         // Helper to conditionally set values and format/hide underlines
