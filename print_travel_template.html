@@ -939,10 +939,16 @@
 
         // Populate Page 1 other detail text
         let memoOtherText = '';
+        const rawMemoOtherCost = parseFloat(details.otherCost) > 0 ? parseFloat(details.otherCost) : (details.loan && parseFloat(details.loan.other) > 0 ? parseFloat(details.loan.other) : 0);
+        const memoOtherDetailFormatted = details.otherDetail
+          ? `${details.otherDetail}${rawMemoOtherCost > 0 ? ` (${rawMemoOtherCost.toLocaleString()} บาท)` : ''}`
+          : '';
         if (govCarCost > 0) {
-          memoOtherText = 'ค่าน้ำมันเชื้อเพลิง' + (details.otherDetail ? `, ${details.otherDetail}` : '');
-        } else if (details.otherCost > 0) {
-          memoOtherText = details.otherDetail || '';
+          memoOtherText = `ค่าน้ำมันเชื้อเพลิง (${parseFloat(govCarCost).toLocaleString()} บาท)` + (memoOtherDetailFormatted ? ` + ${memoOtherDetailFormatted}` : '');
+        } else if (memoOtherDetailFormatted) {
+          memoOtherText = memoOtherDetailFormatted;
+        } else if (rawMemoOtherCost > 0) {
+          memoOtherText = `ค่าใช้จ่ายอื่นๆ (${rawMemoOtherCost.toLocaleString()} บาท)`;
         }
         setFieldVal('memo-other-detail', memoOtherText, '............................................................');
         
@@ -1153,11 +1159,16 @@
           document.getElementById('est-remark-other').textContent = otherText || '-';
 
           // Set other calculation text on Page 2
+          const rawOtherCost = parseFloat(details.otherCost) > 0 ? parseFloat(details.otherCost) : (details.loan && parseFloat(details.loan.other) > 0 ? parseFloat(details.loan.other) : 0);
+          const otherDetailFormatted = details.otherDetail
+            ? `${details.otherDetail}${rawOtherCost > 0 ? ` (&nbsp;${rawOtherCost.toLocaleString()}&nbsp;บาท)` : ''}`
+            : (rawOtherCost > 0 ? `ค่าใช้จ่ายอื่นๆ (&nbsp;${rawOtherCost.toLocaleString()}&nbsp;บาท)` : '');
+
           let otherCalcText = '';
           if (govCarCost > 0) {
-            otherCalcText = `ค่าน้ำมันเชื้อเพลิงรถราชการ (&nbsp;${parseFloat(govCarCost).toLocaleString()}&nbsp;บาท)` + (details.otherDetail ? ` + ${details.otherDetail}` : '');
+            otherCalcText = `ค่าน้ำมันเชื้อเพลิงรถราชการ (&nbsp;${parseFloat(govCarCost).toLocaleString()}&nbsp;บาท)` + (otherDetailFormatted ? ` + ${otherDetailFormatted}` : '');
           } else {
-            otherCalcText = details.otherDetail || '';
+            otherCalcText = otherDetailFormatted;
           }
           document.getElementById('est-other-calc').innerHTML = otherCalcText;
         }
@@ -1273,10 +1284,21 @@
           const vehicleLabel = `${vehicleBaseLabel} ${routesText ? `(${routesText})` : ''}`;
 
           // Other Cost Label
-          let otherRemarkText = details.otherDetail || details.otherRemark || 'ระบุ';
+          const rawLoanOtherCost = parseFloat(details.otherCost) > 0 ? parseFloat(details.otherCost) : (details.loan && parseFloat(details.loan.other) > 0 ? parseFloat(details.loan.other) : 0);
+          let otherParts = [];
           if (govCarCost > 0) {
-            otherRemarkText = 'ค่าน้ำมันเชื้อเพลิง' + (details.otherDetail ? `, ${details.otherDetail}` : '');
+            otherParts.push(`ค่าน้ำมันเชื้อเพลิงรถราชการ ${parseFloat(govCarCost).toLocaleString()} บาท`);
           }
+          if (details.otherDetail) {
+            if (rawLoanOtherCost > 0) {
+              otherParts.push(`${details.otherDetail} ${rawLoanOtherCost.toLocaleString()} บาท`);
+            } else {
+              otherParts.push(details.otherDetail);
+            }
+          } else if (rawLoanOtherCost > 0 && govCarCost === 0) {
+            otherParts.push(`${rawLoanOtherCost.toLocaleString()} บาท`);
+          }
+          let otherRemarkText = otherParts.length > 0 ? otherParts.join(' + ') : (details.otherRemark || 'ระบุ');
           const otherLabel = `ค่าใช้จ่ายอื่น ๆ (${otherRemarkText})`;
 
           let tableHtml = '';
