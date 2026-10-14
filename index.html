@@ -969,9 +969,14 @@
 
         <!-- Excel export card -->
         <div class="glass-card">
-          <div style="display:flex; justify-content:between; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
             <h3 style="font-size:1.1rem; font-weight:600;">ส่งออกประวัติคำขอลาเป็นไฟล์ Excel</h3>
-            <button id="export-excel-btn" class="btn btn-primary" style="background:#10b981; box-shadow: 0 4px 14px rgba(16,185,129,0.35);">📊 ดาวน์โหลดไฟล์ Excel (.xlsx)</button>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <button id="sync-sheets-report-btn" class="btn btn-outline" style="border-color:#0284c7; color:#0284c7; height:42px;">
+                <i class="fa-solid fa-arrows-rotate"></i> ซิงค์ข้อมูล Google Sheets
+              </button>
+              <button id="export-excel-btn" class="btn btn-primary" style="background:#10b981; box-shadow: 0 4px 14px rgba(16,185,129,0.35);">📊 ดาวน์โหลดไฟล์ Excel (.xlsx)</button>
+            </div>
           </div>
           
           <div class="table-container">

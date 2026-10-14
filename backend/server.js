@@ -935,11 +935,14 @@ app.post('/api/leaves/cancel', async (req, res) => {
       return res.json({ success: false, message: 'คุณไม่มีสิทธิ์ยกเลิกใบลาของคนอื่น' });
     }
 
-    if (leave.status !== 'รอการอนุมัติ') {
-      return res.json({ success: false, message: 'ไม่สามารถยกเลิกได้ เนื่องจากสถานะถูกเปลี่ยนไปแล้ว' });
-    }
+    const [result] = await db.query(
+      "UPDATE leave_data SET status = 'ยกเลิกโดยผู้ใช้' WHERE leaveId = ? AND status = 'รอการอนุมัติ'",
+      [leaveId]
+    );
 
-    await db.query("UPDATE leave_data SET status = 'ยกเลิกโดยผู้ใช้' WHERE leaveId = ?", [leaveId]);
+    if (result.affectedRows === 0) {
+      return res.json({ success: false, message: 'ไม่สามารถยกเลิกได้ เนื่องจากสถานะถูกเปลี่ยนไปแล้วหรือไม่มีสิทธิ์' });
+    }
 
     // Notify LINE Admin
     const adminGroupId = await getSettingValue('adminGroupId');
@@ -2987,6 +2990,17 @@ app.listen(PORT, () => {
   }).catch(err => {
     console.warn('[SheetsSync Auto] Warning:', err.message);
   });
+
+  // Periodically sync missing leave data from Google Sheets every 5 minutes
+  setInterval(() => {
+    syncLeaveDataFromSheets().then(res => {
+      if (res && res.insertedLeaves > 0) {
+        console.log(`[SheetsSync Interval] Auto-imported ${res.insertedLeaves} missing leave records from Google Sheets.`);
+      }
+    }).catch(err => {
+      console.warn('[SheetsSync Interval] Warning:', err.message);
+    });
+  }, 5 * 60 * 1000);
 });
 
 async function repairZeroDaysLeaves() {

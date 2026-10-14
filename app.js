@@ -266,6 +266,29 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Forms submit & events
   document.getElementById('leave-request-form').addEventListener('submit', handleLeaveSubmit);
   document.getElementById('export-excel-btn').addEventListener('click', handleExportExcel);
+  const syncReportBtn = document.getElementById('sync-sheets-report-btn');
+  if (syncReportBtn) {
+    syncReportBtn.addEventListener('click', async () => {
+      showLoading('กำลังตรวจสอบและซิงค์ข้อมูลจาก Google Sheets...');
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/admin/sync-sheets`, { method: 'POST' });
+        const json = await res.json();
+        Swal.close();
+        if (json.success) {
+          Swal.fire({
+            title: 'ซิงค์ข้อมูลสำเร็จ!',
+            text: `นำเข้าข้อมูลประวัติการลาใหม่ ${json.insertedLeaves || 0} รายการ (อัปเดตสถานะ ${json.updatedLeaves || 0} รายการ)`,
+            icon: 'success'
+          }).then(() => loadReportPage());
+        } else {
+          Swal.fire('ข้อผิดพลาด', json.message || 'ไม่สามารถซิงค์ได้', 'error');
+        }
+      } catch (e) {
+        Swal.close();
+        Swal.fire('ข้อผิดพลาด', e.message, 'error');
+      }
+    });
+  }
   document.getElementById('import-excel-input').addEventListener('change', handleImportExcel);
   document.getElementById('print-report-btn').addEventListener('click', handlePrintReport);
   
