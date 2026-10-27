@@ -1598,6 +1598,113 @@ app.post('/api/settings', async (req, res) => {
   }
 });
 
+// --- Official Thai Government Public Holidays (2025 - 2027) ---
+const OFFICIAL_THAI_HOLIDAYS = [
+  // 2025
+  { date: '2025-01-01', desc: 'วันขึ้นปีใหม่' },
+  { date: '2025-02-12', desc: 'วันมาฆบูชา' },
+  { date: '2025-04-06', desc: 'วันจักรี' },
+  { date: '2025-04-07', desc: 'วันหยุดชดเชยวันจักรี' },
+  { date: '2025-04-13', desc: 'วันสงกรานต์' },
+  { date: '2025-04-14', desc: 'วันสงกรานต์' },
+  { date: '2025-04-15', desc: 'วันสงกรานต์' },
+  { date: '2025-04-16', desc: 'วันหยุดชดเชยวันสงกรานต์' },
+  { date: '2025-05-01', desc: 'วันแรงงานแห่งชาติ' },
+  { date: '2025-05-04', desc: 'วันฉัตรมงคล' },
+  { date: '2025-05-05', desc: 'วันหยุดชดเชยวันฉัตรมงคล' },
+  { date: '2025-05-11', desc: 'วันวิสาขบูชา' },
+  { date: '2025-05-12', desc: 'วันหยุดชดเชยวันวิสาขบูชา' },
+  { date: '2025-06-03', desc: 'วันเฉลิมพระชนมพรรษาสมเด็จพระนางเจ้าฯ พระบรมราชินี' },
+  { date: '2025-07-10', desc: 'วันอาสาฬหบูชา' },
+  { date: '2025-07-11', desc: 'วันเข้าพรรษา' },
+  { date: '2025-07-28', desc: 'วันเฉลิมพระชนมพรรษาพระบาทสมเด็จพระวชิรเกล้าเจ้าอยู่หัว' },
+  { date: '2025-08-12', desc: 'วันแม่แห่งชาติ' },
+  { date: '2025-10-13', desc: 'วันนวมินทรมหาราช' },
+  { date: '2025-10-23', desc: 'วันปิยมหาราช' },
+  { date: '2025-12-05', desc: 'วันพ่อแห่งชาติ' },
+  { date: '2025-12-10', desc: 'วันรัฐธรรมนูญ' },
+  { date: '2025-12-31', desc: 'วันสิ้นปี' },
+
+  // 2026
+  { date: '2026-01-01', desc: 'วันขึ้นปีใหม่' },
+  { date: '2026-01-02', desc: 'วันหยุดราชการกรณีพิเศษ' },
+  { date: '2026-03-03', desc: 'วันมาฆบูชา' },
+  { date: '2026-04-06', desc: 'วันจักรี' },
+  { date: '2026-04-13', desc: 'วันสงกรานต์' },
+  { date: '2026-04-14', desc: 'วันสงกรานต์' },
+  { date: '2026-04-15', desc: 'วันสงกรานต์' },
+  { date: '2026-05-01', desc: 'วันแรงงานแห่งชาติ' },
+  { date: '2026-05-04', desc: 'วันฉัตรมงคล' },
+  { date: '2026-05-31', desc: 'วันวิสาขบูชา' },
+  { date: '2026-06-01', desc: 'วันหยุดชดเชยวันวิสาขบูชา' },
+  { date: '2026-06-03', desc: 'วันเฉลิมพระชนมพรรษาสมเด็จพระนางเจ้าฯ พระบรมราชินี' },
+  { date: '2026-07-28', desc: 'วันเฉลิมพระชนมพรรษาพระบาทสมเด็จพระวชิรเกล้าเจ้าอยู่หัว' },
+  { date: '2026-07-29', desc: 'วันอาสาฬหบูชา' },
+  { date: '2026-07-30', desc: 'วันเข้าพรรษา' },
+  { date: '2026-08-12', desc: 'วันแม่แห่งชาติ' },
+  { date: '2026-10-13', desc: 'วันนวมินทรมหาราช' },
+  { date: '2026-10-23', desc: 'วันปิยมหาราช' },
+  { date: '2026-12-05', desc: 'วันพ่อแห่งชาติ' },
+  { date: '2026-12-07', desc: 'วันหยุดชดเชยวันพ่อแห่งชาติ' },
+  { date: '2026-12-10', desc: 'วันรัฐธรรมนูญ' },
+  { date: '2026-12-31', desc: 'วันสิ้นปี' },
+
+  // 2027
+  { date: '2027-01-01', desc: 'วันขึ้นปีใหม่' },
+  { date: '2027-02-21', desc: 'วันมาฆบูชา' },
+  { date: '2027-02-22', desc: 'วันหยุดชดเชยวันมาฆบูชา' },
+  { date: '2027-04-06', desc: 'วันจักรี' },
+  { date: '2027-04-13', desc: 'วันสงกรานต์' },
+  { date: '2027-04-14', desc: 'วันสงกรานต์' },
+  { date: '2027-04-15', desc: 'วันสงกรานต์' },
+  { date: '2027-05-01', desc: 'วันแรงงานแห่งชาติ' },
+  { date: '2027-05-04', desc: 'วันฉัตรมงคล' },
+  { date: '2027-05-20', desc: 'วันวิสาขบูชา' },
+  { date: '2027-06-03', desc: 'วันเฉลิมพระชนมพรรษาสมเด็จพระนางเจ้าฯ พระบรมราชินี' },
+  { date: '2027-07-18', desc: 'วันอาสาฬหบูชา' },
+  { date: '2027-07-19', desc: 'วันเข้าพรรษา' },
+  { date: '2027-07-28', desc: 'วันเฉลิมพระชนมพรรษาพระบาทสมเด็จพระวชิรเกล้าเจ้าอยู่หัว' },
+  { date: '2027-08-12', desc: 'วันแม่แห่งชาติ' },
+  { date: '2027-10-13', desc: 'วันนวมินทรมหาราช' },
+  { date: '2027-10-23', desc: 'วันปิยมหาราช' },
+  { date: '2027-10-25', desc: 'วันหยุดชดเชยวันปิยมหาราช' },
+  { date: '2027-12-05', desc: 'วันพ่อแห่งชาติ' },
+  { date: '2027-12-06', desc: 'วันหยุดชดเชยวันพ่อแห่งชาติ' },
+  { date: '2027-12-10', desc: 'วันรัฐธรรมนูญ' },
+  { date: '2027-12-31', desc: 'วันสิ้นปี' }
+];
+
+async function syncOfficialThaiHolidays() {
+  try {
+    for (const h of OFFICIAL_THAI_HOLIDAYS) {
+      await db.query(
+        'INSERT INTO holidays (holidayDate, description) VALUES (?, ?) ON DUPLICATE KEY UPDATE description = VALUES(description)',
+        [h.date, h.desc]
+      );
+      await db.query(
+        'INSERT IGNORE INTO special_days (dateKey, dayType, description) VALUES (?, ?, ?)',
+        [h.date, 'holiday', h.desc]
+      );
+    }
+
+    // Specific fix: Ensure 2026-10-23 (วันปิยมหาราช) is holiday and delete any mistaken attendance records
+    await db.query(
+      "INSERT INTO special_days (dateKey, dayType, description) VALUES ('2026-10-23', 'holiday', 'วันปิยมหาราช') ON DUPLICATE KEY UPDATE dayType = 'holiday', description = 'วันปิยมหาราช'"
+    );
+    await db.query(
+      "INSERT INTO holidays (holidayDate, description) VALUES ('2026-10-23', 'วันปิยมหาราช') ON DUPLICATE KEY UPDATE description = 'วันปิยมหาราช'"
+    );
+    const [delAtt] = await db.query("DELETE FROM attendance WHERE attendanceDate = '2026-10-23'");
+    if (delAtt.affectedRows > 0) {
+      console.log(`[Holidays Sync] Cleared ${delAtt.affectedRows} attendance records for 2026-10-23 (วันปิยมหาราช)`);
+    }
+
+    console.log('✅ Official Thai holidays synced successfully.');
+  } catch (err) {
+    console.error('Error syncing official Thai holidays:', err.message);
+  }
+}
+
 // 5.5 Special Days / Compensatory Workday Routes
 app.get('/api/special-days', async (req, res) => {
   try {
@@ -1643,6 +1750,27 @@ app.delete('/api/special-days/:dateKey', async (req, res) => {
     await db.query('DELETE FROM special_days WHERE dateKey = ?', [adDate]);
     await db.query('DELETE FROM holidays WHERE holidayDate = ?', [adDate]);
     res.json({ success: true, message: 'ลบข้อมูลสำเร็จ' });
+
+// Clear/Delete attendance records for a specific date
+app.delete('/api/attendance', async (req, res) => {
+  const rawDate = req.query.date;
+  if (!rawDate) {
+    return res.status(400).json({ success: false, message: 'กรุณาระบุวันที่ต้องการลบข้อมูล' });
+  }
+  const adDate = normalizeDateToAD(rawDate);
+  try {
+    const [result] = await db.query('DELETE FROM attendance WHERE attendanceDate = ?', [adDate]);
+    res.json({
+      success: true,
+      deletedCount: result.affectedRows,
+      message: `นำข้อมูลการเช็คชื่อวันที่ ${formatDateThai(adDate)} ออกเรียบร้อยแล้ว (${result.affectedRows} คน)`
+    });
+  } catch (err) {
+    console.error('Error deleting attendance for date:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -3253,6 +3381,7 @@ app.get('/api/activities/participants/:activityId', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   repairZeroDaysLeaves();
+  syncOfficialThaiHolidays();
   syncLeaveDataFromSheets().then(res => {
     if (res.insertedLeaves > 0) {
       console.log(`[SheetsSync Auto] Imported ${res.insertedLeaves} missing leave records from Google Sheets.`);

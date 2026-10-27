@@ -2791,21 +2791,43 @@ async function checkAttendanceDateStatus(dateStr) {
     if (res.ok) {
       const data = await res.json();
       if (data && data.success) {
-        if (data.isRecorded) {
+        if (data.isHoliday) {
+          const clearBtn = data.isRecorded ? `<button type="button" onclick="clearAttendanceForDate('${dateStr}')" class="btn btn-sm" style="margin-left:8px; background:#ef4444; color:white; border:none; padding:4px 10px; border-radius:12px; font-size:0.75rem; cursor:pointer; font-weight:600;">🗑️ นำข้อมูลเช็คชื่อออก</button>` : '';
+          const recordedNote = data.isRecorded ? ` <span style="color:#b91c1c; font-weight:700;">(พบข้อมูล ${data.totalRecorded} คน)</span>` : '';
+          container.innerHTML = `
+            <div style="display:inline-flex; align-items:center; gap:8px; padding:7px 16px; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:24px; font-size:0.88rem; font-weight:600;">
+              <span style="font-size:1.15rem;">🏖️</span>
+              <span>วันหยุด (${data.holidayDesc || 'วันหยุดราชการ/สถานศึกษา'})${recordedNote}</span>
+              ${clearBtn}
+            </div>
+          `;
+          return;
+        } else if (data.isCompensatory) {
+          const timeStr = data.lastUpdated ? new Date(data.lastUpdated).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
+          const updaterText = data.updatedBy ? `โดย: ${data.updatedBy}` : '';
+          if (data.isRecorded) {
+            container.innerHTML = `
+              <div style="display:inline-flex; align-items:center; gap:8px; padding:7px 16px; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; border-radius:24px; font-size:0.88rem; font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,0.04);">
+                <span style="font-size:1.15rem;">🔨</span>
+                <span>วันทำงานชดเชย (${data.holidayDesc || 'วันชดเชย'}) — บันทึกแล้ว (${data.totalRecorded} คน | ล่าสุด: ${timeStr} น. ${updaterText})</span>
+              </div>
+            `;
+          } else {
+            container.innerHTML = `
+              <div style="display:inline-flex; align-items:center; gap:8px; padding:7px 16px; background:#fef3c7; color:#b45309; border:1px solid #fcd34d; border-radius:24px; font-size:0.88rem; font-weight:600;">
+                <span style="font-size:1.15rem;">🔨</span>
+                <span>วันทำงานชดเชย (${data.holidayDesc || 'วันชดเชย'}) — ต้องบันทึกการเข้าปฏิบัติงาน (ยังไม่บันทึก)</span>
+              </div>
+            `;
+          }
+          return;
+        } else if (data.isRecorded) {
           const timeStr = data.lastUpdated ? new Date(data.lastUpdated).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
           const updaterText = data.updatedBy ? `โดย: ${data.updatedBy}` : '';
           container.innerHTML = `
             <div style="display:inline-flex; align-items:center; gap:8px; padding:7px 16px; background:#ecfdf5; color:#065f46; border:1px solid #6ee7b7; border-radius:24px; font-size:0.88rem; font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,0.04);">
               <span style="font-size:1.15rem;">✅</span>
               <span>บันทึกข้อมูลแล้ว (${data.totalRecorded} คน | ล่าสุด: ${timeStr} น. ${updaterText})</span>
-            </div>
-          `;
-          return;
-        } else if (data.isHoliday) {
-          container.innerHTML = `
-            <div style="display:inline-flex; align-items:center; gap:8px; padding:7px 16px; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:24px; font-size:0.88rem; font-weight:600;">
-              <span style="font-size:1.15rem;">🏖️</span>
-              <span>วันหยุด (${data.holidayDesc || 'วันหยุดสุดสัปดาห์'}) — ยังไม่มีการบันทึก</span>
             </div>
           `;
           return;
@@ -3086,21 +3108,33 @@ async function generateClientSideAttendanceReport(monthNum, yearNum) {
   const daysInMonth = new Date(Date.UTC(targetYear, m, 0)).getUTCDate();
   const todayStr = new Date().toISOString().split('T')[0];
 
-  // Fetch holidays
+  // Fetch holidays & special days
   const holidayMap = new Map();
+  const specialMap = new Map();
   try {
     const fetchFunc = window.originalFetch || window.fetch;
-    const holRes = await fetchFunc(`${API_BASE_URL}/api/holidays`);
-    if (holRes.ok) {
+    const [holRes, spRes] = await Promise.all([
+      fetchFunc(`${API_BASE_URL}/api/holidays`).catch(() => null),
+      fetchFunc(`${API_BASE_URL}/api/special-days`).catch(() => null)
+    ]);
+    if (holRes && holRes.ok) {
       const hols = await holRes.json();
       if (Array.isArray(hols)) {
         hols.forEach(h => {
-          if (h.holidayDate) holidayMap.set(h.holidayDate.split('T')[0], h.description || 'วันหยุดนักขัตฤกษ์');
+          if (h.holidayDate) holidayMap.set(h.holidayDate.split('T')[0], h.description || 'วันหยุดราชการ');
+        });
+      }
+    }
+    if (spRes && spRes.ok) {
+      const specials = await spRes.json();
+      if (Array.isArray(specials)) {
+        specials.forEach(s => {
+          if (s.dateKey) specialMap.set(s.dateKey.split('T')[0], { dayType: s.dayType, description: s.description });
         });
       }
     }
   } catch (e) {
-    console.warn('Could not load holidays:', e);
+    console.warn('Could not load holidays/special days:', e);
   }
 
   // Pre-build days
@@ -3112,15 +3146,50 @@ async function generateClientSideAttendanceReport(monthNum, yearNum) {
     const dStr = `${targetYear}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const dObj = new Date(Date.UTC(targetYear, m - 1, day));
     const dayOfWeek = dObj.getUTCDay();
-    const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
-    const isHoliday = holidayMap.has(dStr);
-    const holidayDesc = isHoliday ? holidayMap.get(dStr) : null;
-    const isWorkDay = !isWeekend && !isHoliday;
+    let isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+    let isHoliday = false;
+    let holidayDesc = null;
+    let isCompensatory = false;
+    let isWorkDay = false;
 
-    if (isWeekend || isHoliday) {
+    const special = specialMap.get(dStr);
+    if (special) {
+      if (special.dayType === 'workday') {
+        isWorkDay = true;
+        isWeekend = false;
+        isCompensatory = true;
+        holidayDesc = null;
+      } else if (special.dayType === 'holiday') {
+        isHoliday = true;
+        holidayDesc = special.description || 'วันหยุดพิเศษ';
+        isWorkDay = false;
+      }
+    } else if (holidayMap.has(dStr)) {
+      isHoliday = true;
+      holidayDesc = holidayMap.get(dStr);
+      isWorkDay = false;
+    } else if (isWeekend) {
+      isWorkDay = false;
+    } else {
+      isWorkDay = true;
+    }
+
+    if (isHoliday || (isWeekend && !isCompensatory)) {
       holidayDays++;
     } else {
       workDays++;
+    }
+
+    let initialStatus = 'pending';
+    let initialLabel = '⏳ รอการบันทึก';
+    if (isHoliday || (isWeekend && !isCompensatory)) {
+      initialStatus = 'holiday';
+      initialLabel = holidayDesc ? `🏖️ วันหยุด (${holidayDesc})` : '🏖️ วันหยุดสุดสัปดาห์';
+    } else if (dStr <= todayStr) {
+      initialStatus = 'missing';
+      initialLabel = isCompensatory ? '❌ ยังไม่ได้บันทึก (ชดเชย)' : '❌ ยังไม่ได้บันทึก';
+    } else if (isCompensatory) {
+      initialLabel = '⏳ รอการบันทึก (ชดเชย)';
     }
 
     days.push({
@@ -3130,6 +3199,7 @@ async function generateClientSideAttendanceReport(monthNum, yearNum) {
       dayOfWeek,
       isWeekend,
       isHoliday,
+      isCompensatory,
       holidayDesc,
       isWorkDay,
       isRecorded: false,
@@ -3141,8 +3211,8 @@ async function generateClientSideAttendanceReport(monthNum, yearNum) {
       lateCount: 0,
       updaterName: null,
       lastUpdated: null,
-      status: (isWeekend || isHoliday) ? 'holiday' : (dStr <= todayStr ? 'missing' : 'pending'),
-      statusLabel: (isWeekend || isHoliday) ? '🏖️ วันหยุด' : (dStr <= todayStr ? '❌ ยังไม่ได้บันทึก' : '⏳ รอการบันทึก')
+      status: initialStatus,
+      statusLabel: initialLabel
     });
   }
 
@@ -6661,3 +6731,220 @@ async function removeSpecialDaySetting(dateKey) {
 window.renderSpecialDaysList = renderSpecialDaysList;
 window.addSpecialDaySetting = addSpecialDaySetting;
 window.removeSpecialDaySetting = removeSpecialDaySetting;
+
+
+
+// Clear attendance records for a specific date
+window.clearAttendanceForDate = async function(dateStr) {
+  const confirm = await Swal.fire({
+    title: 'ยืนยันการนำข้อมูลออก?',
+    text: `ต้องการนำข้อมูลการเช็คชื่อวันที่ ${formatDateThai(dateStr)} ออกจากระบบใช่หรือไม่?`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'ใช่, นำข้อมูลออก',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#ef4444'
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  showLoading('กำลังนำข้อมูลการเช็คชื่อออก...');
+  try {
+    const fetchFunc = window.originalFetch || window.fetch;
+    const res = await fetchFunc(`${API_BASE_URL}/api/attendance?date=${dateStr}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    Swal.close();
+
+    if (data.success) {
+      await Swal.fire({ icon: 'success', title: 'นำข้อมูลออกสำเร็จ', text: data.message, timer: 1800 });
+      loadAttendanceData();
+      if (typeof loadAttendanceSummaryReport === 'function') {
+        loadAttendanceSummaryReport();
+      }
+    } else {
+      showError(data.message || 'ไม่สามารถนำข้อมูลออกได้');
+    }
+  } catch (err) {
+    Swal.close();
+    showError('เกิดข้อผิดพลาด: ' + err.message);
+  }
+};
+
+let currentModalSpecialDaysList = [];
+
+window.openSpecialDaysModal = function() {
+  const modal = document.getElementById('modal-special-days');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  modal.classList.remove('hidden');
+
+  const curAttDate = document.getElementById('attendance-date');
+  const modalDate = document.getElementById('modal-special-date');
+  if (modalDate && curAttDate && curAttDate.value) {
+    modalDate.value = curAttDate.value;
+  }
+  loadModalSpecialDaysList();
+};
+
+window.closeSpecialDaysModal = function() {
+  const modal = document.getElementById('modal-special-days');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.classList.add('hidden');
+  }
+};
+
+window.onSpecialTypeChange = function(type) {
+  const lbl = document.getElementById('lbl-clear-attendance-opt');
+  if (lbl) {
+    lbl.style.display = type === 'holiday' ? 'flex' : 'none';
+  }
+};
+
+window.loadModalSpecialDaysList = async function() {
+  const tbody = document.getElementById('modal-special-days-body');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="4" class="text-center" style="padding:16px;">กำลังโหลดข้อมูล...</td></tr>';
+
+  try {
+    const fetchFunc = window.originalFetch || window.fetch;
+    const res = await fetchFunc(`${API_BASE_URL}/api/special-days`);
+    const list = await res.json();
+    currentModalSpecialDaysList = Array.isArray(list) ? list : [];
+    renderModalSpecialDaysTable(currentModalSpecialDaysList);
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center" style="color:#ef4444; padding:16px;">โหลดข้อมูลไม่สำเร็จ</td></tr>';
+  }
+};
+
+function renderModalSpecialDaysTable(list) {
+  const tbody = document.getElementById('modal-special-days-body');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (!list || list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center" style="padding:20px; color:var(--neutral-400);">ไม่พบรายการวันหยุดหรือวันชดเชย</td></tr>';
+    return;
+  }
+
+  list.forEach(item => {
+    const isWorkday = item.dayType === 'workday';
+    const badge = isWorkday
+      ? '<span style="background:#fef3c7; color:#92400e; padding:4px 10px; border-radius:12px; font-size:0.8rem; font-weight:600;">🔨 ทำงานชดเชย</span>'
+      : '<span style="background:#eff6ff; color:#1e40af; padding:4px 10px; border-radius:12px; font-size:0.8rem; font-weight:600;">🏖️ วันหยุด</span>';
+
+    tbody.innerHTML += `
+      <tr>
+        <td style="font-weight:600; padding:10px 14px;">${formatDateThai(item.dateKey)}</td>
+        <td style="padding:10px 14px;">${badge}</td>
+        <td style="padding:10px 14px; color:#334155;">${item.description || '-'}</td>
+        <td style="text-align:center; padding:10px 14px;">
+          <button type="button" class="btn btn-outline btn-sm" style="border-color:#ef4444; color:#ef4444; padding:3px 8px; font-size:0.75rem;" onclick="removeModalSpecialDay('${item.dateKey}')">ลบ</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+window.filterModalSpecialDaysTable = function() {
+  const searchInput = document.getElementById('modal-special-search');
+  const q = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  if (!q) {
+    renderModalSpecialDaysTable(currentModalSpecialDaysList);
+    return;
+  }
+
+  const filtered = currentModalSpecialDaysList.filter(item => {
+    const thaiD = formatDateThai(item.dateKey).toLowerCase();
+    const desc = (item.description || '').toLowerCase();
+    const dt = (item.dayType || '').toLowerCase();
+    return thaiD.includes(q) || desc.includes(q) || dt.includes(q);
+  });
+  renderModalSpecialDaysTable(filtered);
+};
+
+window.submitModalSpecialDay = async function() {
+  const dateInput = document.getElementById('modal-special-date');
+  const typeSelect = document.getElementById('modal-special-type');
+  const descInput = document.getElementById('modal-special-desc');
+  const clearChk = document.getElementById('modal-special-clear-attendance');
+
+  if (!dateInput || !typeSelect || !descInput) return;
+
+  const dateKey = dateInput.value;
+  const dayType = typeSelect.value;
+  const description = descInput.value.trim();
+  const clearAttendance = clearChk ? clearChk.checked : false;
+
+  if (!dateKey || !description) {
+    Swal.fire({ icon: 'warning', title: 'กรุณากรอกข้อมูลให้ครบถ้วน', text: 'ต้องระบุวันที่และรายละเอียดวันหยุด/วันชดเชย' });
+    return;
+  }
+
+  showLoading('กำลังบันทึกข้อมูล...');
+  try {
+    const fetchFunc = window.originalFetch || window.fetch;
+    const res = await fetchFunc(`${API_BASE_URL}/api/special-days`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dateKey, dayType, description, clearAttendance })
+    });
+    const data = await res.json();
+    Swal.close();
+
+    if (data.success) {
+      descInput.value = '';
+      await Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: data.message, timer: 1500, showConfirmButton: false });
+      loadModalSpecialDaysList();
+      renderSpecialDaysList();
+      loadAttendanceData();
+      if (typeof loadAttendanceSummaryReport === 'function') {
+        loadAttendanceSummaryReport();
+      }
+    } else {
+      showError(data.message || 'บันทึกไม่สำเร็จ');
+    }
+  } catch (err) {
+    Swal.close();
+    showError('เกิดข้อผิดพลาด: ' + err.message);
+  }
+};
+
+window.removeModalSpecialDay = async function(dateKey) {
+  const confirm = await Swal.fire({
+    title: 'ยืนยันการลบรายการ?',
+    text: `ต้องการลบรายการวันที่ ${formatDateThai(dateKey)} ใช่หรือไม่?`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'ใช่, ลบรายการ',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#ef4444'
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  showLoading('กำลังลบรายการ...');
+  try {
+    const fetchFunc = window.originalFetch || window.fetch;
+    const res = await fetchFunc(`${API_BASE_URL}/api/special-days/${dateKey}`, { method: 'DELETE' });
+    const data = await res.json();
+    Swal.close();
+
+    if (data.success) {
+      await Swal.fire({ icon: 'success', title: 'ลบรายการสำเร็จ', timer: 1200, showConfirmButton: false });
+      loadModalSpecialDaysList();
+      renderSpecialDaysList();
+      loadAttendanceData();
+      if (typeof loadAttendanceSummaryReport === 'function') {
+        loadAttendanceSummaryReport();
+      }
+    } else {
+      showError(data.message || 'ลบไม่สำเร็จ');
+    }
+  } catch (err) {
+    Swal.close();
+    showError('เกิดข้อผิดพลาด: ' + err.message);
+  }
+};

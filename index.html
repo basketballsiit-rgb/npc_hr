@@ -1195,12 +1195,17 @@
             <h1 style="font-size:1.8rem; font-weight:700; color:var(--neutral-800); margin:0;">ระบบเช็คชื่อและลงเวลาปฏิบัติงาน</h1>
             <p style="color:var(--neutral-500); margin:4px 0 0 0; font-size:0.95rem;">บันทึกการเข้าปฏิบัติงานประจำวัน และตรวจสอบสถานะรายงานการบันทึกข้อมูลย้อนหลัง</p>
           </div>
-          <div style="display:flex; gap:8px; background:var(--neutral-100); padding:4px; border-radius:12px; border:1px solid var(--neutral-200);">
-            <button id="btn-view-att-daily" type="button" class="btn btn-sm" onclick="switchAttendanceView('daily')" style="border-radius:8px; padding:8px 16px; font-weight:600; background:var(--primary); color:white; border:none; box-shadow:0 2px 6px rgba(0,0,0,0.1); cursor:pointer; transition:all 0.2s;">
-              ⏱️ เช็คชื่อประจำวัน
-            </button>
-            <button id="btn-view-att-report" type="button" class="btn btn-sm" onclick="switchAttendanceView('report')" style="border-radius:8px; padding:8px 16px; font-weight:600; background:transparent; color:var(--neutral-700); border:none; cursor:pointer; transition:all 0.2s;">
-              📊 รายงานสถานะการบันทึกข้อมูล
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <div style="display:flex; gap:8px; background:var(--neutral-100); padding:4px; border-radius:12px; border:1px solid var(--neutral-200);">
+              <button id="btn-view-att-daily" type="button" class="btn btn-sm" onclick="switchAttendanceView('daily')" style="border-radius:8px; padding:8px 16px; font-weight:600; background:var(--primary); color:white; border:none; box-shadow:0 2px 6px rgba(0,0,0,0.1); cursor:pointer; transition:all 0.2s;">
+                ⏱️ เช็คชื่อประจำวัน
+              </button>
+              <button id="btn-view-att-report" type="button" class="btn btn-sm" onclick="switchAttendanceView('report')" style="border-radius:8px; padding:8px 16px; font-weight:600; background:transparent; color:var(--neutral-700); border:none; cursor:pointer; transition:all 0.2s;">
+                📊 รายงานสถานะการบันทึกข้อมูล
+              </button>
+            </div>
+            <button id="btn-open-special-days" type="button" class="btn btn-sm" onclick="openSpecialDaysModal()" style="border-radius:12px; padding:8px 16px; font-weight:600; background:#f5f3ff; color:#7c3aed; border:1px solid #ddd6fe; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+              🗓️ จัดการวันหยุด / วันชดเชย
             </button>
           </div>
         </div>
@@ -2416,7 +2421,78 @@
     </div>
   </div>
 
+  <!-- Modal: Manage Special Holidays & Compensatory Workdays -->
+  <div id="modal-special-days" class="modal hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; display:none; justify-content:center; align-items:center; padding:16px;">
+    <div class="glass-card" style="background:white; max-width:850px; width:100%; max-height:90vh; overflow-y:auto; border-radius:16px; padding:24px; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--neutral-200); padding-bottom:12px;">
+        <h3 style="font-size:1.25rem; font-weight:700; color:var(--neutral-800); margin:0; display:flex; align-items:center; gap:8px;">
+          <span>🗓️</span> จัดการวันหยุดราชการ / วันหยุดพิเศษสถานศึกษา / วันทำงานชดเชย
+        </h3>
+        <button type="button" onclick="closeSpecialDaysModal()" style="background:transparent; border:none; font-size:1.5rem; cursor:pointer; color:var(--neutral-400); line-height:1;">&times;</button>
+      </div>
+      
+      <p style="font-size:0.9rem; color:#64748b; margin-bottom:16px;">
+        ระบบเชื่อมโยงปฏิทินปฏิบัติงานราชการอัตโนมัติ และเปิดให้สถานศึกษากำหนดวันหยุดพิเศษเพิ่มเติม หรือกำหนดวันเสาร์-อาทิตย์เป็นวันทำงานชดเชยได้
+      </p>
+
+      <!-- Form to add special day -->
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin-bottom:20px;">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:12px;">
+          <div>
+            <label style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:4px;">วันที่:</label>
+            <input type="date" id="modal-special-date" class="form-input" style="width:100%;">
+          </div>
+          <div>
+            <label style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:4px;">ประเภทวัน:</label>
+            <select id="modal-special-type" class="form-input" style="width:100%; background:white; color:#0f172a;" onchange="onSpecialTypeChange(this.value)">
+              <option value="holiday">🏖️ วันหยุดพิเศษสถานศึกษา / วันหยุดราชการ</option>
+              <option value="workday">🔨 วันทำงานชดเชย (เสาร์-อาทิตย์ ที่ให้มาทำงาน)</option>
+            </select>
+          </div>
+          <div style="grid-column: 1 / -1;">
+            <label style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:4px;">รายละเอียด / หมายเหตุ:</label>
+            <input type="text" id="modal-special-desc" placeholder="เช่น วันปิยมหาราช, วันหยุดพิเศษสถานศึกษา, สอนชดเชยวันสงกรานต์" class="form-input" style="width:100%;">
+          </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <label id="lbl-clear-attendance-opt" style="font-size:0.85rem; color:#dc2626; display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <input type="checkbox" id="modal-special-clear-attendance" checked> นำข้อมูลการเช็คชื่อของวันดังกล่าวออก (หากมีบันทึกไว้)
+          </label>
+          <button type="button" onclick="submitModalSpecialDay()" class="btn btn-primary" style="padding:8px 20px;">
+            ➕ บันทึกข้อมูล
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter & Table of special days -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+        <h4 style="margin:0; font-size:1rem; font-weight:600; color:var(--neutral-700);">รายการวันหยุดและวันชดเชยในระบบ</h4>
+        <input type="text" id="modal-special-search" placeholder="🔍 ค้นหาวันที่ / ชื่อวัน..." class="form-input" style="max-width:240px; padding:6px 12px; font-size:0.85rem;" oninput="filterModalSpecialDaysTable()">
+      </div>
+      
+      <div class="table-container" style="max-height: 380px; overflow-y: auto;">
+        <table class="custom-table">
+          <thead>
+            <tr>
+              <th style="width: 150px;">วันที่</th>
+              <th style="width: 170px;">ประเภท</th>
+              <th>รายละเอียด</th>
+              <th style="text-align: center; width: 80px;">เครื่องมือ</th>
+            </tr>
+          </thead>
+          <tbody id="modal-special-days-body">
+            <!-- Loaded dynamically -->
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; margin-top:20px; border-top:1px solid var(--neutral-200); padding-top:12px;">
+        <button type="button" onclick="closeSpecialDaysModal()" class="btn btn-secondary">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Load Custom JS logic -->
-  <script src="app.js?v=55.0"></script>
+  <script src="app.js?v=60.0"></script>
 </body>
 </html>
