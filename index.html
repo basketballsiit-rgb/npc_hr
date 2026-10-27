@@ -1143,67 +1143,204 @@
 
       <!-- 7. Attendance Check-in Page (Admin Only) -->
       <div id="attendance-page" class="page hidden">
-        <h1 style="font-size:1.8rem; font-weight:700; color:var(--neutral-800); margin-bottom:24px;">เช็คชื่อการเข้าปฏิบัติงาน</h1>
-        
-        <div class="glass-card" style="margin-bottom: 24px;">
-          <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
-            <div class="form-group" style="margin-bottom:0; flex-grow:1; max-width:300px;">
-              <label class="form-label" style="font-weight:600;">เลือกวันที่ปฏิบัติงาน</label>
-              <input type="date" id="attendance-date" class="form-input">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:24px;">
+          <div>
+            <h1 style="font-size:1.8rem; font-weight:700; color:var(--neutral-800); margin:0;">ระบบเช็คชื่อและลงเวลาปฏิบัติงาน</h1>
+            <p style="color:var(--neutral-500); margin:4px 0 0 0; font-size:0.95rem;">บันทึกการเข้าปฏิบัติงานประจำวัน และตรวจสอบสถานะรายงานการบันทึกข้อมูลย้อนหลัง</p>
+          </div>
+          <div style="display:flex; gap:8px; background:var(--neutral-100); padding:4px; border-radius:12px; border:1px solid var(--neutral-200);">
+            <button id="btn-view-att-daily" type="button" class="btn btn-sm" onclick="switchAttendanceView('daily')" style="border-radius:8px; padding:8px 16px; font-weight:600; background:var(--primary); color:white; border:none; box-shadow:0 2px 6px rgba(0,0,0,0.1); cursor:pointer; transition:all 0.2s;">
+              ⏱️ เช็คชื่อประจำวัน
+            </button>
+            <button id="btn-view-att-report" type="button" class="btn btn-sm" onclick="switchAttendanceView('report')" style="border-radius:8px; padding:8px 16px; font-weight:600; background:transparent; color:var(--neutral-700); border:none; cursor:pointer; transition:all 0.2s;">
+              📊 รายงานสถานะการบันทึกข้อมูล
+            </button>
+          </div>
+        </div>
+
+        <!-- VIEW 1: DAILY CHECK-IN -->
+        <div id="attendance-view-daily">
+          <div class="glass-card" style="margin-bottom: 24px;">
+            <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+              <div class="form-group" style="margin-bottom:0; flex-grow:1; max-width:280px;">
+                <label class="form-label" style="font-weight:600;">เลือกวันที่ปฏิบัติงาน</label>
+                <input type="date" id="attendance-date" class="form-input">
+              </div>
+              <div style="margin-top:24px;">
+                <button id="btn-load-attendance" class="btn btn-secondary" style="padding: 10px 20px;">ดึงข้อมูล</button>
+              </div>
+              <!-- Real-time status indicator for selected date -->
+              <div id="attendance-date-status-badge" style="margin-top:24px; display:flex; align-items:center; flex-grow:1;">
+                <!-- Updated dynamically by app.js -->
+              </div>
+              <div class="form-group" style="margin-bottom:0; flex-grow:1; max-width:250px; margin-left: auto; display: none;">
+                <label class="form-label" style="font-weight:600;">กรองประเภทบุคลากร</label>
+                <select id="attendance-filter-type" class="form-input">
+                  <option value="ทั้งหมด">ทั้งหมด</option>
+                  <option value="ข้าราชการ">ข้าราชการ</option>
+                  <option value="พนักงานราชการ">พนักงานราชการ</option>
+                  <option value="ครูพิเศษสอนรายเดือน">ครูพิเศษสอนรายเดือน</option>
+                  <option value="ครูพิเศษสอนรายชั่วโมง">ครูพิเศษสอนรายชั่วโมง</option>
+                  <option value="ลูกจ้างชั่วคราว">ลูกจ้างชั่วคราว</option>
+                  <option value="จ้างเหมาบริการ">จ้างเหมาบริการ</option>
+                  <option value="อื่นๆ">อื่นๆ / ไม่ระบุ</option>
+                </select>
+              </div>
             </div>
-            <div style="margin-top:24px;">
-              <button id="btn-load-attendance" class="btn btn-secondary" style="padding: 10px 20px;">ดึงข้อมูล</button>
+          </div>
+
+          <div class="glass-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:24px;">
+              <h3 style="font-size:1.1rem; font-weight:600; margin:0;">รายชื่อผู้ปฏิบัติงานและการลงเวลา</h3>
+              <div style="display:flex; gap:10px; align-items:center;">
+                <button type="button" onclick="switchAttendanceView('report')" class="btn btn-outline" style="padding: 10px 16px; border-color:#0284c7; color:#0284c7; font-weight:600;">
+                  📋 ดูรายงานสถานะทั้งเดือน
+                </button>
+                <button id="btn-save-attendance" class="btn btn-primary" style="padding: 10px 20px;">💾 บันทึกข้อมูลการเช็คชื่อ</button>
+              </div>
             </div>
-            <div class="form-group" style="margin-bottom:0; flex-grow:1; max-width:250px; margin-left: auto; display: none;">
-              <label class="form-label" style="font-weight:600;">กรองประเภทบุคลากร</label>
-              <select id="attendance-filter-type" class="form-input">
-                <option value="ทั้งหมด">ทั้งหมด</option>
-                <option value="ข้าราชการ">ข้าราชการ</option>
-                <option value="พนักงานราชการ">พนักงานราชการ</option>
-                <option value="ครูพิเศษสอนรายเดือน">ครูพิเศษสอนรายเดือน</option>
-                <option value="ครูพิเศษสอนรายชั่วโมง">ครูพิเศษสอนรายชั่วโมง</option>
-                <option value="ลูกจ้างชั่วคราว">ลูกจ้างชั่วคราว</option>
-                <option value="จ้างเหมาบริการ">จ้างเหมาบริการ</option>
-                <option value="อื่นๆ">อื่นๆ / ไม่ระบุ</option>
-              </select>
+
+            <!-- Tab filtering buttons for staff types -->
+            <div class="attendance-tabs" style="display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; border-bottom:1px solid var(--neutral-200); padding-bottom:12px;">
+              <button type="button" class="btn btn-tab active" onclick="switchAttendanceTab('ทั้งหมด')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--primary); background: var(--primary); color: white; cursor:pointer; outline:none; transition: all 0.2s;">ทั้งหมด</button>
+              <button type="button" class="btn btn-tab" onclick="switchAttendanceTab('ข้าราชการ')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--neutral-300); background: white; color: var(--neutral-700); cursor:pointer; outline:none; transition: all 0.2s;">ข้าราชการ</button>
+              <button type="button" class="btn btn-tab" onclick="switchAttendanceTab('พนักงานราชการ')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--neutral-300); background: white; color: var(--neutral-700); cursor:pointer; outline:none; transition: all 0.2s;">พนักงานราชการ</button>
+              <button type="button" class="btn btn-tab" onclick="switchAttendanceTab('ครูพิเศษสอนรายเดือน')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--neutral-300); background: white; color: var(--neutral-700); cursor:pointer; outline:none; transition: all 0.2s;">ครูพิเศษสอนรายเดือน</button>
+              <button type="button" class="btn btn-tab" onclick="switchAttendanceTab('ครูพิเศษสอนรายชั่วโมง')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--neutral-300); background: white; color: var(--neutral-700); cursor:pointer; outline:none; transition: all 0.2s;">ครูพิเศษสอนรายชั่วโมง</button>
+              <button type="button" class="btn btn-tab" onclick="switchAttendanceTab('ลูกจ้างชั่วคราว')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--neutral-300); background: white; color: var(--neutral-700); cursor:pointer; outline:none; transition: all 0.2s;">ลูกจ้างชั่วคราว</button>
+              <button type="button" class="btn btn-tab" onclick="switchAttendanceTab('จ้างเหมาบริการ')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--neutral-300); background: white; color: var(--neutral-700); cursor:pointer; outline:none; transition: all 0.2s;">จ้างเหมาบริการ</button>
+              <button type="button" class="btn btn-tab" onclick="switchAttendanceTab('อื่นๆ')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--neutral-300); background: white; color: var(--neutral-700); cursor:pointer; outline:none; transition: all 0.2s;">อื่นๆ</button>
+            </div>
+
+            <div class="table-container">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>ชื่อ-นามสกุล</th>
+                    <th>ตำแหน่ง</th>
+                    <th>ข้อมูลการลา (หากมี)</th>
+                    <th style="width:280px; text-align:center;">สถานะการเข้าปฏิบัติงาน</th>
+                  </tr>
+                </thead>
+                <tbody id="attendance-table-body">
+                  <!-- Loaded dynamically by app.js -->
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
 
-        <div class="glass-card">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:24px;">
-            <h3 style="font-size:1.1rem; font-weight:600; margin:0;">รายชื่อผู้ปฏิบัติงานและการลงเวลา</h3>
-            <div>
-              <button id="btn-save-attendance" class="btn btn-primary" style="padding: 10px 20px;">💾 บันทึกข้อมูลการเช็คชื่อ</button>
+        <!-- VIEW 2: RECORDING STATUS REPORT -->
+        <div id="attendance-view-report" class="hidden">
+          <!-- Filter Card -->
+          <div class="glass-card" style="margin-bottom: 24px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;">
+              <div style="display:flex; align-items:flex-end; gap:16px; flex-wrap:wrap; flex-grow:1;">
+                <div class="form-group" style="margin-bottom:0; min-width:180px;">
+                  <label class="form-label" style="font-weight:600;">เลือกเดือน</label>
+                  <select id="att-report-month" class="form-input">
+                    <option value="1">มกราคม</option>
+                    <option value="2">กุมภาพันธ์</option>
+                    <option value="3">มีนาคม</option>
+                    <option value="4">เมษายน</option>
+                    <option value="5">พฤษภาคม</option>
+                    <option value="6">มิถุนายน</option>
+                    <option value="7">กรกฎาคม</option>
+                    <option value="8">สิงหาคม</option>
+                    <option value="9">กันยายน</option>
+                    <option value="10">ตุลาคม</option>
+                    <option value="11">พฤศจิกายน</option>
+                    <option value="12">ธันวาคม</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0; min-width:140px;">
+                  <label class="form-label" style="font-weight:600;">เลือกปี พ.ศ.</label>
+                  <select id="att-report-year" class="form-input">
+                    <option value="2567">2567</option>
+                    <option value="2568">2568</option>
+                    <option value="2569">2569</option>
+                    <option value="2570">2570</option>
+                    <option value="2571">2571</option>
+                  </select>
+                </div>
+                <div>
+                  <button id="btn-load-att-report" type="button" class="btn btn-primary" style="padding: 10px 20px;">
+                    🔍 ค้นหารายงาน
+                  </button>
+                </div>
+              </div>
+              <div>
+                <button id="btn-export-att-report-excel" type="button" class="btn btn-outline" style="border-color:#10b981; color:#059669; font-weight:600; padding:10px 18px;">
+                  📊 ส่งออก Excel (.xlsx)
+                </button>
+              </div>
             </div>
           </div>
 
-          <!-- Tab filtering buttons for staff types -->
-          <div class="attendance-tabs" style="display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; border-bottom:1px solid var(--neutral-200); padding-bottom:12px;">
-            <button type="button" class="btn btn-tab active" onclick="switchAttendanceTab('ทั้งหมด')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--primary); background: var(--primary); color: white; cursor:pointer; outline:none; transition: all 0.2s;">ทั้งหมด</button>
-            <button type="button" class="btn btn-tab" onclick="switchAttendanceTab('ข้าราชการ')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--neutral-300); background: white; color: var(--neutral-700); cursor:pointer; outline:none; transition: all 0.2s;">ข้าราชการ</button>
-            <button type="button" class="btn btn-tab" onclick="switchAttendanceTab('พนักงานราชการ')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--neutral-300); background: white; color: var(--neutral-700); cursor:pointer; outline:none; transition: all 0.2s;">พนักงานราชการ</button>
-            <button type="button" class="btn btn-tab" onclick="switchAttendanceTab('ครูพิเศษสอนรายเดือน')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--neutral-300); background: white; color: var(--neutral-700); cursor:pointer; outline:none; transition: all 0.2s;">ครูพิเศษสอนรายเดือน</button>
-            <button type="button" class="btn btn-tab" onclick="switchAttendanceTab('ครูพิเศษสอนรายชั่วโมง')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--neutral-300); background: white; color: var(--neutral-700); cursor:pointer; outline:none; transition: all 0.2s;">ครูพิเศษสอนรายชั่วโมง</button>
-            <button type="button" class="btn btn-tab" onclick="switchAttendanceTab('ลูกจ้างชั่วคราว')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--neutral-300); background: white; color: var(--neutral-700); cursor:pointer; outline:none; transition: all 0.2s;">ลูกจ้างชั่วคราว</button>
-            <button type="button" class="btn btn-tab" onclick="switchAttendanceTab('จ้างเหมาบริการ')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--neutral-300); background: white; color: var(--neutral-700); cursor:pointer; outline:none; transition: all 0.2s;">จ้างเหมาบริการ</button>
-            <button type="button" class="btn btn-tab" onclick="switchAttendanceTab('อื่นๆ')" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--neutral-300); background: white; color: var(--neutral-700); cursor:pointer; outline:none; transition: all 0.2s;">อื่นๆ</button>
+          <!-- KPI Summary Cards -->
+          <div class="stats-grid" style="margin-bottom: 24px;">
+            <div class="glass-card stat-card" style="border-left: 4px solid #3b82f6;">
+              <div class="stat-content">
+                <span class="stat-label">💼 วันทำการทั้งหมดในเดือน</span>
+                <span class="stat-value" id="kpi-att-workdays" style="color:#1d4ed8;">-</span>
+                <span class="stat-sub" id="kpi-att-totaldays">รวมปฏิทิน - วัน</span>
+              </div>
+            </div>
+            <div class="glass-card stat-card border-success" style="border-left: 4px solid #10b981;">
+              <div class="stat-content">
+                <span class="stat-label">✅ บันทึกข้อมูลแล้ว</span>
+                <span class="stat-value" id="kpi-att-recorded" style="color:#047857;">-</span>
+                <span class="stat-sub" id="kpi-att-rate" style="color:#047857; font-weight:600;">ความสมบูรณ์ 0%</span>
+              </div>
+            </div>
+            <div class="glass-card stat-card border-danger" style="border-left: 4px solid #ef4444;">
+              <div class="stat-content">
+                <span class="stat-label">❌ ยังไม่ได้บันทึก (ขาด)</span>
+                <span class="stat-value" id="kpi-att-missing" style="color:#b91c1c;">-</span>
+                <span class="stat-sub" style="color:#b91c1c; font-weight:600;">วันทำการที่ตกหล่น</span>
+              </div>
+            </div>
+            <div class="glass-card stat-card" style="border-left: 4px solid #8b5cf6;">
+              <div class="stat-content">
+                <span class="stat-label">🏖️ วันหยุด / เสาร์-อาทิตย์</span>
+                <span class="stat-value" id="kpi-att-holidays" style="color:#6d28d9;">-</span>
+                <span class="stat-sub">วันหยุดราชการและสุดสัปดาห์</span>
+              </div>
+            </div>
           </div>
 
-          <div class="table-container">
-            <table class="custom-table">
-              <thead>
-                <tr>
-                  <th>ชื่อ-นามสกุล</th>
-                  <th>ตำแหน่ง</th>
-                  <th>ข้อมูลการลา (หากมี)</th>
-                  <th style="width:280px; text-align:center;">สถานะการเข้าปฏิบัติงาน</th>
-                </tr>
-              </thead>
-              <tbody id="attendance-table-body">
-                <!-- Loaded dynamically by app.js -->
-              </tbody>
-            </table>
+          <!-- Detailed Report Table -->
+          <div class="glass-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:20px;">
+              <h3 style="font-size:1.15rem; font-weight:700; color:var(--neutral-800); margin:0;" id="att-report-table-title">
+                ตารางสถานะการบันทึกข้อมูลการเช็คชื่อรายวัน
+              </h3>
+              <!-- Filter pills -->
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-sm btn-outline active" onclick="filterAttReportStatus('all')" id="btn-filter-att-all" style="border-radius:20px; padding:4px 12px; font-size:0.8rem; background:var(--primary); color:white; border-color:var(--primary);">ทั้งหมด</button>
+                <button type="button" class="btn btn-sm btn-outline" onclick="filterAttReportStatus('recorded')" id="btn-filter-att-recorded" style="border-radius:20px; padding:4px 12px; font-size:0.8rem;">✅ บันทึกแล้ว</button>
+                <button type="button" class="btn btn-sm btn-outline" onclick="filterAttReportStatus('missing')" id="btn-filter-att-missing" style="border-radius:20px; padding:4px 12px; font-size:0.8rem; border-color:#ef4444; color:#ef4444;">❌ ยังไม่ได้บันทึก</button>
+                <button type="button" class="btn btn-sm btn-outline" onclick="filterAttReportStatus('workday')" id="btn-filter-att-workday" style="border-radius:20px; padding:4px 12px; font-size:0.8rem;">💼 เฉพาะวันทำการ</button>
+              </div>
+            </div>
+
+            <div class="table-container">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th style="width:160px;">วันที่</th>
+                    <th style="width:120px;">วันในสัปดาห์</th>
+                    <th style="width:170px; text-align:center;">สถานะการบันทึก</th>
+                    <th style="text-align:center;">สรุปการลงเวลา</th>
+                    <th>ผู้บันทึก & วันเวลาล่าสุด</th>
+                    <th style="width:150px; text-align:center;">ดำเนินการ</th>
+                  </tr>
+                </thead>
+                <tbody id="att-report-table-body">
+                  <!-- Loaded dynamically by app.js -->
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>

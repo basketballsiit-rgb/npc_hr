@@ -330,6 +330,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Attendance page actions
   document.getElementById('btn-load-attendance').addEventListener('click', loadAttendanceData);
   document.getElementById('btn-save-attendance').addEventListener('click', saveAttendanceData);
+  const dateInputEl = document.getElementById('attendance-date');
+  if (dateInputEl) dateInputEl.addEventListener('change', () => loadAttendanceData());
+  const btnLoadAttReport = document.getElementById('btn-load-att-report');
+  if (btnLoadAttReport) btnLoadAttReport.addEventListener('click', loadAttendanceSummaryReport);
+  const btnExportAttExcel = document.getElementById('btn-export-att-report-excel');
+  if (btnExportAttExcel) btnExportAttExcel.addEventListener('click', exportAttendanceReportToExcel);
   const filterSelect = document.getElementById('attendance-filter-type');
   if (filterSelect) {
     filterSelect.addEventListener('change', filterAndRenderAttendance);
@@ -2688,6 +2694,11 @@ function renderAttendanceCharts(c) {
 // --- Attendance Check-in Controller ---
 // ==========================================
 
+let currentAttReportData = [];
+let currentAttReportStats = null;
+let currentAttReportMeta = null;
+let currentAttReportFilter = 'all';
+
 function initAttendancePage() {
   const dateInput = document.getElementById('attendance-date');
   if (!dateInput.value) {
@@ -2696,7 +2707,107 @@ function initAttendancePage() {
     const localToday = new Date(today.getTime() - (offset*60*1000));
     dateInput.value = localToday.toISOString().split('T')[0];
   }
+
+  // Initialize report month & year dropdowns
+  const now = new Date();
+  const curMonth = now.getMonth() + 1;
+  const curYearBE = (now.getFullYear() > 2400 ? now.getFullYear() : now.getFullYear() + 543);
+  
+  const mSelect = document.getElementById('att-report-month');
+  if (mSelect) mSelect.value = String(curMonth);
+  const ySelect = document.getElementById('att-report-year');
+  if (ySelect) {
+    if (![...ySelect.options].some(o => o.value == curYearBE)) {
+      const opt = document.createElement('option');
+      opt.value = curYearBE;
+      opt.textContent = curYearBE;
+      ySelect.appendChild(opt);
+    }
+    ySelect.value = String(curYearBE);
+  }
+
+  switchAttendanceView('daily');
   loadAttendanceData();
+}
+
+// Switch between Daily Check-in view and Monthly Report view
+window.switchAttendanceView = function(viewName) {
+  const dailyView = document.getElementById('attendance-view-daily');
+  const reportView = document.getElementById('attendance-view-report');
+  const btnDaily = document.getElementById('btn-view-att-daily');
+  const btnReport = document.getElementById('btn-view-att-report');
+
+  if (viewName === 'report') {
+    if (dailyView) dailyView.classList.add('hidden');
+    if (reportView) reportView.classList.remove('hidden');
+    if (btnDaily) {
+      btnDaily.style.background = 'transparent';
+      btnDaily.style.color = 'var(--neutral-700)';
+      btnDaily.style.boxShadow = 'none';
+      btnDaily.classList.remove('active');
+    }
+    if (btnReport) {
+      btnReport.style.background = 'var(--primary)';
+      btnReport.style.color = 'white';
+      btnReport.style.boxShadow = '0 2px 6px rgba(0,0,0,0.1)';
+      btnReport.classList.add('active');
+    }
+    loadAttendanceSummaryReport();
+  } else {
+    if (reportView) reportView.classList.add('hidden');
+    if (dailyView) dailyView.classList.remove('hidden');
+    if (btnReport) {
+      btnReport.style.background = 'transparent';
+      btnReport.style.color = 'var(--neutral-700)';
+      btnReport.style.boxShadow = 'none';
+      btnReport.classList.remove('active');
+    }
+    if (btnDaily) {
+      btnDaily.style.background = 'var(--primary)';
+      btnDaily.style.color = 'white';
+      btnDaily.style.boxShadow = '0 2px 6px rgba(0,0,0,0.1)';
+      btnDaily.classList.add('active');
+    }
+  }
+};
+
+// Check and update real-time status badge for selected attendance date
+async function checkAttendanceDateStatus(dateStr) {
+  const container = document.getElementById('attendance-date-status-badge');
+  if (!container) return;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/attendance/status?date=${dateStr}`);
+    if (!res.ok) return;
+    const data = await res.json();
+
+    if (data.isRecorded) {
+      const timeStr = data.lastUpdated ? new Date(data.lastUpdated).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
+      const updaterText = data.updatedBy ? `โดย: ${data.updatedBy}` : '';
+      container.innerHTML = `
+        <div style="display:inline-flex; align-items:center; gap:8px; padding:7px 16px; background:#ecfdf5; color:#065f46; border:1px solid #6ee7b7; border-radius:24px; font-size:0.88rem; font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,0.04);">
+          <span style="font-size:1.15rem;">✅</span>
+          <span>บันทึกข้อมูลแล้ว (${data.totalRecorded} คน | ล่าสุด: ${timeStr} น. ${updaterText})</span>
+        </div>
+      `;
+    } else if (data.isHoliday) {
+      container.innerHTML = `
+        <div style="display:inline-flex; align-items:center; gap:8px; padding:7px 16px; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:24px; font-size:0.88rem; font-weight:600;">
+          <span style="font-size:1.15rem;">🏖️</span>
+          <span>วันหยุด (${data.holidayDesc || 'วันหยุดสุดสัปดาห์'}) — ยังไม่มีการบันทึก</span>
+        </div>
+      `;
+    } else {
+      container.innerHTML = `
+        <div style="display:inline-flex; align-items:center; gap:8px; padding:7px 16px; background:#fffbeb; color:#b45309; border:1px solid #fde68a; border-radius:24px; font-size:0.88rem; font-weight:600;">
+          <span style="font-size:1.15rem;">⚠️</span>
+          <span>ยังไม่มีการบันทึกข้อมูลของวันนี้ (เป็นข้อมูลเริ่มต้น กรุณากดปุ่มบันทึก)</span>
+        </div>
+      `;
+    }
+  } catch (e) {
+    console.warn('Error checking attendance date status:', e);
+  }
 }
 
 async function loadAttendanceData() {
@@ -2708,6 +2819,7 @@ async function loadAttendanceData() {
 
   showLoading('กำลังดึงข้อมูลการลงเวลา...');
   try {
+    checkAttendanceDateStatus(date);
     const res = await fetch(`${API_BASE_URL}/api/attendance?date=${date}`);
     if (!res.ok) throw new Error('ดึงข้อมูลการเข้าปฏิบัติงานล้มเหลว');
     
@@ -2913,6 +3025,208 @@ function styleAttendanceSelect(selectEl) {
     selectEl.style.borderColor = '#3B82F6';
     selectEl.style.backgroundColor = '#EFF6FF';
   }
+}
+
+
+// --- ATTENDANCE RECORDING STATUS REPORT FUNCTIONS ---
+
+async function loadAttendanceSummaryReport() {
+  const mSelect = document.getElementById('att-report-month');
+  const ySelect = document.getElementById('att-report-year');
+  const m = mSelect ? mSelect.value : (new Date().getMonth() + 1);
+  const y = ySelect ? ySelect.value : (new Date().getFullYear() + 543);
+
+  showLoading('กำลังประมวลผลรายงานสถานะการบันทึกข้อมูล...');
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/attendance/summary-report?month=${m}&year=${y}`);
+    const data = await res.json();
+    Swal.close();
+
+    if (!data.success) throw new Error(data.error || 'ไม่สามารถโหลดข้อมูลรายงานได้');
+
+    currentAttReportMeta = data;
+    currentAttReportStats = data.stats;
+    currentAttReportData = data.days || [];
+
+    // Update KPI cards
+    const elWork = document.getElementById('kpi-att-workdays');
+    const elTotal = document.getElementById('kpi-att-totaldays');
+    const elRec = document.getElementById('kpi-att-recorded');
+    const elRate = document.getElementById('kpi-att-rate');
+    const elMis = document.getElementById('kpi-att-missing');
+    const elHol = document.getElementById('kpi-att-holidays');
+    const elTitle = document.getElementById('att-report-table-title');
+
+    if (elWork) elWork.textContent = `${data.stats.workDays} วัน`;
+    if (elTotal) elTotal.textContent = `รวมปฏิทิน ${data.stats.totalDays} วัน`;
+    if (elRec) elRec.textContent = `${data.stats.recordedDays} วัน`;
+    if (elRate) elRate.textContent = `ความสมบูรณ์ ${data.stats.completionRate}%`;
+    if (elMis) elMis.textContent = `${data.stats.missingDays} วัน`;
+    if (elHol) elHol.textContent = `${data.stats.holidayDays} วัน`;
+    if (elTitle) elTitle.textContent = `ตารางสถานะการบันทึกข้อมูลการเช็คชื่อ ประจำเดือน${data.monthName} ${data.year}`;
+
+    // Render table
+    window.filterAttReportStatus(currentAttReportFilter || 'all');
+  } catch (err) {
+    Swal.close();
+    showError('เกิดข้อผิดพลาดในการโหลดรายงาน: ' + err.message);
+  }
+}
+
+window.filterAttReportStatus = function(filter) {
+  currentAttReportFilter = filter;
+  ['all', 'recorded', 'missing', 'workday'].forEach(k => {
+    const btn = document.getElementById(`btn-filter-att-${k}`);
+    if (btn) {
+      if (k === filter) {
+        btn.style.background = k === 'missing' ? '#ef4444' : 'var(--primary)';
+        btn.style.color = 'white';
+        btn.style.borderColor = k === 'missing' ? '#ef4444' : 'var(--primary)';
+      } else {
+        btn.style.background = 'white';
+        btn.style.color = k === 'missing' ? '#ef4444' : 'var(--neutral-700)';
+        btn.style.borderColor = k === 'missing' ? '#ef4444' : 'var(--neutral-300)';
+      }
+    }
+  });
+
+  let filtered = [...currentAttReportData];
+  if (filter === 'recorded') {
+    filtered = filtered.filter(d => d.isRecorded);
+  } else if (filter === 'missing') {
+    filtered = filtered.filter(d => d.status === 'missing');
+  } else if (filter === 'workday') {
+    filtered = filtered.filter(d => d.isWorkDay);
+  }
+
+  renderAttendanceReportTable(filtered);
+};
+
+function renderAttendanceReportTable(list) {
+  const tbody = document.getElementById('att-report-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (!list || list.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding:28px; color:var(--neutral-400);">ไม่พบรายการตามเงื่อนไขที่เลือก</td></tr>`;
+    return;
+  }
+
+  list.forEach(row => {
+    let badgeHtml = '';
+    let rowBg = '';
+
+    if (row.isRecorded) {
+      badgeHtml = `<span style="background:#ecfdf5; color:#059669; border:1px solid #a7f3d0; padding:4px 10px; border-radius:12px; font-size:0.82rem; font-weight:700;">✅ บันทึกแล้ว</span>`;
+    } else if (row.status === 'missing') {
+      badgeHtml = `<span style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:4px 10px; border-radius:12px; font-size:0.82rem; font-weight:700;">❌ ยังไม่ได้บันทึก</span>`;
+      rowBg = 'background-color:#fff5f5;';
+    } else if (row.status === 'holiday') {
+      badgeHtml = `<span style="background:#f1f5f9; color:#64748b; border:1px solid #e2e8f0; padding:4px 10px; border-radius:12px; font-size:0.82rem; font-weight:600;">🏖️ วันหยุด</span>`;
+    } else if (row.status === 'pending') {
+      badgeHtml = `<span style="background:#fefce8; color:#ca8a04; border:1px solid #fef08a; padding:4px 10px; border-radius:12px; font-size:0.82rem; font-weight:600;">⏳ รอการบันทึก</span>`;
+    }
+
+    let summaryHtml = '-';
+    if (row.isRecorded) {
+      summaryHtml = `
+        <div style="font-size:0.85rem; line-height:1.4;">
+          <span style="font-weight:700; color:#0f172a;">${row.totalRecorded} คน</span>
+          <div style="font-size:0.75rem; color:var(--neutral-500); display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:2px;">
+            <span style="color:#10b981;">มา: ${row.presentCount}</span>
+            <span style="color:#f59e0b;">ลา: ${row.leaveCount}</span>
+            <span style="color:#8b5cf6;">ราชการ: ${row.travelCount}</span>
+            ${row.absentCount > 0 ? `<span style="color:#ef4444; font-weight:700;">ขาด: ${row.absentCount}</span>` : ''}
+            ${row.lateCount > 0 ? `<span style="color:#3b82f6;">สาย: ${row.lateCount}</span>` : ''}
+          </div>
+        </div>
+      `;
+    } else if (row.holidayDesc) {
+      summaryHtml = `<span style="font-size:0.82rem; color:#64748b;">${row.holidayDesc}</span>`;
+    } else if (row.isWeekend) {
+      summaryHtml = `<span style="font-size:0.82rem; color:#94a3b8;">วันหยุดสุดสัปดาห์</span>`;
+    }
+
+    let updaterHtml = '-';
+    if (row.isRecorded) {
+      const timeStr = row.lastUpdated ? new Date(row.lastUpdated).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
+      updaterHtml = `
+        <div style="font-size:0.85rem;">
+          <div style="font-weight:600; color:var(--neutral-800);">${row.updaterName || 'ผู้ดูแลระบบ'}</div>
+          <div style="font-size:0.75rem; color:var(--neutral-400);">${timeStr ? `เวลา ${timeStr} น.` : ''}</div>
+        </div>
+      `;
+    }
+
+    const actionBtn = `
+      <button type="button" class="btn btn-outline btn-sm" onclick="goToAttendanceDate('${row.date}')" style="padding:4px 10px; font-size:0.8rem; border-color:${row.isRecorded ? 'var(--primary)' : '#ef4444'}; color:${row.isRecorded ? 'var(--primary)' : '#ef4444'};">
+        ${row.isRecorded ? '🔍 ตรวจสอบ' : '✍️ ไปเช็คชื่อ'}
+      </button>
+    `;
+
+    tbody.innerHTML += `
+      <tr style="${rowBg}">
+        <td style="font-weight:600;">${row.dateFormattedThai}</td>
+        <td>
+          <span style="${row.isWeekend ? 'color:#94a3b8;' : 'color:var(--neutral-700); font-weight:500;'}">
+            ${row.dayName}
+          </span>
+        </td>
+        <td style="text-align:center;">${badgeHtml}</td>
+        <td style="text-align:center;">${summaryHtml}</td>
+        <td>${updaterHtml}</td>
+        <td style="text-align:center;">${actionBtn}</td>
+      </tr>
+    `;
+  });
+}
+
+window.goToAttendanceDate = function(dateStr) {
+  const input = document.getElementById('attendance-date');
+  if (input) input.value = dateStr;
+  switchAttendanceView('daily');
+  loadAttendanceData();
+};
+
+function exportAttendanceReportToExcel() {
+  if (!currentAttReportData || currentAttReportData.length === 0) {
+    Swal.fire('ข้อผิดพลาด', 'ไม่มีข้อมูลสำหรับส่งออก Excel', 'error');
+    return;
+  }
+
+  const meta = currentAttReportMeta || {};
+  const formatted = currentAttReportData.map((row, idx) => ({
+    "ลำดับ": idx + 1,
+    "วันที่": row.date,
+    "วันที่ (แบบไทย)": row.dateFormattedThai,
+    "วันในสัปดาห์": row.dayName,
+    "ประเภทวัน": row.holidayDesc ? `วันหยุด (${row.holidayDesc})` : (row.isWeekend ? 'วันหยุดสุดสัปดาห์' : 'วันทำการ'),
+    "สถานะการบันทึก": row.statusLabel,
+    "จำนวนคนที่บันทึก (คน)": row.isRecorded ? row.totalRecorded : 0,
+    "มาปฏิบัติงาน": row.isRecorded ? row.presentCount : 0,
+    "ลา": row.isRecorded ? row.leaveCount : 0,
+    "ไปราชการ": row.isRecorded ? row.travelCount : 0,
+    "ขาด": row.isRecorded ? row.absentCount : 0,
+    "มาสาย": row.isRecorded ? row.lateCount : 0,
+    "ผู้บันทึก": row.updaterName || '-',
+    "วันเวลาที่บันทึก": row.lastUpdated ? new Date(row.lastUpdated).toLocaleString('th-TH') : '-'
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(formatted);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "สถานะการบันทึกเช็คชื่อ");
+
+  const max_len = formatted.reduce((acc, row) => {
+    Object.keys(row).forEach((k, i) => {
+      const w = String(row[k] || '').length;
+      acc[i] = Math.max(acc[i] || 0, w);
+    });
+    return acc;
+  }, []);
+  ws['!cols'] = max_len.map(w => ({ w: Math.min(w + 3, 30) }));
+
+  const fileName = `รายงานสถานะการบันทึกข้อมูลการเช็คชื่อ_${meta.monthName || ''}_${meta.year || ''}.xlsx`;
+  XLSX.writeFile(wb, fileName);
 }
 
 async function saveAttendanceData() {

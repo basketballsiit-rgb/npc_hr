@@ -1912,6 +1912,276 @@ app.get('/api/attendance', async (req, res) => {
   }
 });
 
+// Get Attendance Status / Audit for a specific date
+app.get('/api/attendance/status', async (req, res) => {
+  const rawDate = req.query.date;
+  if (!rawDate) {
+    return res.status(400).json({ error: 'กรุณาระบุวันที่' });
+  }
+  const date = normalizeDateToAD(rawDate);
+
+  try {
+    const [attStats] = await db.query(
+      `SELECT 
+         COUNT(*) as totalRecorded,
+         SUM(CASE WHEN status = 'มาปฏิบัติงาน' THEN 1 ELSE 0 END) as presentCount,
+         SUM(CASE WHEN status LIKE 'ลา%' THEN 1 ELSE 0 END) as leaveCount,
+         SUM(CASE WHEN status = 'เดินทางไปราชการ' THEN 1 ELSE 0 END) as travelCount,
+         SUM(CASE WHEN status = 'ขาด' THEN 1 ELSE 0 END) as absentCount,
+         SUM(CASE WHEN status = 'มาสาย' THEN 1 ELSE 0 END) as lateCount,
+         SUM(CASE WHEN status = 'ไม่ทราบสาเหตุ' THEN 1 ELSE 0 END) as unknownCount,
+         MAX(updatedAt) as lastUpdated,
+         MAX(updatedBy) as lastUpdatedBy
+       FROM attendance 
+       WHERE attendanceDate = ?`,
+      [date]
+    );
+
+    const stat = attStats[0] || {};
+    const totalRecorded = stat.totalRecorded || 0;
+    const isRecorded = totalRecorded > 0;
+
+    let updaterName = stat.lastUpdatedBy || null;
+    if (stat.lastUpdatedBy) {
+      const [u] = await db.query('SELECT fullName FROM users WHERE userId = ?', [stat.lastUpdatedBy]);
+      if (u.length > 0) updaterName = u[0].fullName;
+    }
+
+    // Check holiday or weekend
+    const [hols] = await db.query('SELECT description FROM holidays WHERE holidayDate = ?', [date]);
+    const dObj = new Date(date + 'T00:00:00Z');
+    const dayOfWeek = isNaN(dObj.getTime()) ? null : dObj.getUTCDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    const isHoliday = hols.length > 0;
+    const holidayDesc = isHoliday ? hols[0].description : null;
+
+    res.json({
+      success: true,
+      date,
+      isRecorded,
+      totalRecorded,
+      counts: {
+        present: stat.presentCount || 0,
+        leave: stat.leaveCount || 0,
+        travel: stat.travelCount || 0,
+        absent: stat.absentCount || 0,
+        late: stat.lateCount || 0,
+        unknown: stat.unknownCount || 0
+      },
+      lastUpdated: stat.lastUpdated || null,
+      updatedBy: updaterName,
+      isWeekend,
+      isHoliday,
+      holidayDesc
+    });
+  } catch (err) {
+    console.error('Error fetching attendance status:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Get Monthly Attendance Recording Status Report
+app.get('/api/attendance/summary-report', async (req, res) => {
+  try {
+    let { month, year, startDate, endDate } = req.query;
+
+    const now = new Date();
+    let targetYear = year ? parseInt(year) : (now.getFullYear() > 2400 ? now.getFullYear() - 543 : now.getFullYear());
+    if (targetYear > 2400) targetYear -= 543;
+    let targetMonth = month ? parseInt(month) : (now.getMonth() + 1);
+
+    let startStr, endStr;
+    if (startDate && endDate) {
+      startStr = normalizeDateToAD(startDate);
+      endStr = normalizeDateToAD(endDate);
+    } else {
+      const padM = String(targetMonth).padStart(2, '0');
+      const daysInMonth = new Date(targetYear, targetMonth, 0).getDate();
+      startStr = `${targetYear}-${padM}-01`;
+      endStr = `${targetYear}-${padM}-${String(daysInMonth).padStart(2, '0')}`;
+    }
+
+    // 1. Fetch total active approved users
+    const [[activeUserRow]] = await db.query(
+      "SELECT COUNT(*) as activeCount FROM users WHERE status = 'approved'"
+    );
+    const activeUsers = activeUserRow ? activeUserRow.activeCount : 0;
+
+    // 2. Fetch holidays in range
+    const [holidaysList] = await db.query(
+      'SELECT holidayDate, description FROM holidays WHERE holidayDate BETWEEN ? AND ?',
+      [startStr, endStr]
+    );
+    const holidayMap = new Map();
+    holidaysList.forEach(h => {
+      const hd = normalizeDateToAD(h.holidayDate);
+      holidayMap.set(hd, h.description || 'วันหยุดราชการ');
+    });
+
+    // 3. Fetch attendance stats aggregated by date
+    const [attRows] = await db.query(
+      `SELECT 
+         attendanceDate,
+         COUNT(*) as totalRecorded,
+         SUM(CASE WHEN status = 'มาปฏิบัติงาน' THEN 1 ELSE 0 END) as presentCount,
+         SUM(CASE WHEN status LIKE 'ลา%' THEN 1 ELSE 0 END) as leaveCount,
+         SUM(CASE WHEN status = 'เดินทางไปราชการ' THEN 1 ELSE 0 END) as travelCount,
+         SUM(CASE WHEN status = 'ขาด' THEN 1 ELSE 0 END) as absentCount,
+         SUM(CASE WHEN status = 'มาสาย' THEN 1 ELSE 0 END) as lateCount,
+         SUM(CASE WHEN status = 'ไม่ทราบสาเหตุ' THEN 1 ELSE 0 END) as unknownCount,
+         MAX(updatedAt) as lastUpdated,
+         MAX(updatedBy) as lastUpdatedBy
+       FROM attendance 
+       WHERE attendanceDate BETWEEN ? AND ?
+       GROUP BY attendanceDate`,
+      [startStr, endStr]
+    );
+
+    // Map updaters to names
+    const userIdsToFetch = [...new Set(attRows.map(r => r.lastUpdatedBy).filter(Boolean))];
+    const updaterMap = new Map();
+    if (userIdsToFetch.length > 0) {
+      const [uRows] = await db.query(
+        `SELECT userId, fullName FROM users WHERE userId IN (${userIdsToFetch.map(() => '?').join(',')})`,
+        userIdsToFetch
+      );
+      uRows.forEach(u => updaterMap.set(u.userId, u.fullName));
+    }
+
+    const attMap = new Map();
+    attRows.forEach(r => {
+      const ad = normalizeDateToAD(r.attendanceDate);
+      attMap.set(ad, {
+        totalRecorded: r.totalRecorded || 0,
+        presentCount: r.presentCount || 0,
+        leaveCount: r.leaveCount || 0,
+        travelCount: r.travelCount || 0,
+        absentCount: r.absentCount || 0,
+        lateCount: r.lateCount || 0,
+        unknownCount: r.unknownCount || 0,
+        lastUpdated: r.lastUpdated,
+        updaterName: updaterMap.get(r.lastUpdatedBy) || r.lastUpdatedBy || '-'
+      });
+    });
+
+    // Current date in Thailand (GMT+7)
+    const nowUtc = new Date();
+    const thaiTime = new Date(nowUtc.getTime() + (7 * 60 * 60 * 1000));
+    const todayStr = thaiTime.toISOString().split('T')[0];
+
+    const thaiDays = ['วันอาทิตย์', 'วันจันทร์', 'วันอังคาร', 'วันพุธ', 'วันพฤหัสบดี', 'วันศุกร์', 'วันเสาร์'];
+    const thaiMonths = ['', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+
+    const days = [];
+    let cur = new Date(startStr + 'T00:00:00Z');
+    const endLimit = new Date(endStr + 'T00:00:00Z');
+
+    let totalDaysCount = 0;
+    let workDaysCount = 0;
+    let recordedDaysCount = 0;
+    let missingDaysCount = 0;
+    let holidayDaysCount = 0;
+    let pendingDaysCount = 0;
+
+    while (cur <= endLimit) {
+      totalDaysCount++;
+      const y = cur.getUTCFullYear();
+      const m = String(cur.getUTCMonth() + 1).padStart(2, '0');
+      const d = String(cur.getUTCDate()).padStart(2, '0');
+      const dateStr = `${y}-${m}-${d}`;
+      const dayOfWeek = cur.getUTCDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      const holidayDesc = holidayMap.get(dateStr) || null;
+      const isWorkDay = !isWeekend && !holidayDesc;
+
+      const att = attMap.get(dateStr);
+      const isRecorded = att && att.totalRecorded > 0;
+
+      let status = 'recorded';
+      let statusLabel = 'บันทึกแล้ว';
+
+      if (isRecorded) {
+        status = 'recorded';
+        statusLabel = 'บันทึกแล้ว';
+        recordedDaysCount++;
+        if (isWorkDay) workDaysCount++;
+      } else if (isWeekend || holidayDesc) {
+        status = 'holiday';
+        statusLabel = holidayDesc ? `วันหยุด (${holidayDesc})` : 'วันหยุดสุดสัปดาห์';
+        holidayDaysCount++;
+      } else {
+        workDaysCount++;
+        if (dateStr <= todayStr) {
+          status = 'missing';
+          statusLabel = 'ยังไม่ได้บันทึก';
+          missingDaysCount++;
+        } else {
+          status = 'pending';
+          statusLabel = 'รอการบันทึก';
+          pendingDaysCount++;
+        }
+      }
+
+      const dayNum = cur.getUTCDate();
+      const monthNum = cur.getUTCMonth() + 1;
+      const yearBE = y + 543;
+      const thaiFormatted = `${dayNum} ${thaiMonths[monthNum]} ${yearBE}`;
+
+      days.push({
+        date: dateStr,
+        dayOfWeek,
+        dayName: thaiDays[dayOfWeek],
+        dateFormattedThai: thaiFormatted,
+        isWeekend,
+        isHoliday: !!holidayDesc,
+        holidayDesc,
+        isWorkDay,
+        isRecorded,
+        status,
+        statusLabel,
+        totalRecorded: att ? att.totalRecorded : 0,
+        presentCount: att ? att.presentCount : 0,
+        leaveCount: att ? att.leaveCount : 0,
+        travelCount: att ? att.travelCount : 0,
+        absentCount: att ? att.absentCount : 0,
+        lateCount: att ? att.lateCount : 0,
+        unknownCount: att ? att.unknownCount : 0,
+        lastUpdated: att ? att.lastUpdated : null,
+        updaterName: att ? att.updaterName : null
+      });
+
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+
+    const completionRate = workDaysCount > 0 ? Math.round((recordedDaysCount / workDaysCount) * 100) : 0;
+
+    res.json({
+      success: true,
+      month: targetMonth,
+      monthName: thaiMonths[targetMonth] || '',
+      year: targetYear + 543,
+      yearAD: targetYear,
+      startDate: startStr,
+      endDate: endStr,
+      activeUsers,
+      today: todayStr,
+      stats: {
+        totalDays: totalDaysCount,
+        workDays: workDaysCount,
+        recordedDays: recordedDaysCount,
+        missingDays: missingDaysCount,
+        holidayDays: holidayDaysCount,
+        pendingDays: pendingDaysCount,
+        completionRate
+      },
+      days
+    });
+  } catch (err) {
+    console.error('Error in attendance summary report:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Save/Update Attendance records
 app.post('/api/attendance', async (req, res) => {
   const { date, records, adminUserId } = req.body;
