@@ -14,6 +14,7 @@ const API_BASE_URL = window.location.hostname !== 'service.npc.ac.th'
 // ---------------------------------------------------------------
 let _serverDown = false;
 const originalFetch = window.fetch;
+window.originalFetch = originalFetch;
 window.fetch = async function(...args) {
   try {
     const res = await originalFetch(...args);
@@ -23,7 +24,9 @@ window.fetch = async function(...args) {
     if (urlStr.includes('/api/')) {
       const contentType = res.headers.get('content-type') || '';
       if (!contentType.includes('application/json')) {
-        showServerDownBanner(res.status);
+        if (res.status >= 500) {
+          showServerDownBanner(res.status);
+        }
         throw new Error(`เซิร์ฟเวอร์ไม่พร้อมใช้งาน (HTTP ${res.status}) — กรุณาลองใหม่อีกครั้งในภายหลัง`);
       }
       if (!_serverDown && res.ok) hideServerDownBanner();
@@ -336,6 +339,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (btnLoadAttReport) btnLoadAttReport.addEventListener('click', loadAttendanceSummaryReport);
   const btnExportAttExcel = document.getElementById('btn-export-att-report-excel');
   if (btnExportAttExcel) btnExportAttExcel.addEventListener('click', exportAttendanceReportToExcel);
+  const btnViewDaily = document.getElementById('btn-view-att-daily');
+  if (btnViewDaily) btnViewDaily.addEventListener('click', () => switchAttendanceView('daily'));
+  const btnViewReport = document.getElementById('btn-view-att-report');
+  if (btnViewReport) btnViewReport.addEventListener('click', () => switchAttendanceView('report'));
+  const btnGotoReport = document.getElementById('btn-goto-att-report');
+  if (btnGotoReport) btnGotoReport.addEventListener('click', () => switchAttendanceView('report'));
   const filterSelect = document.getElementById('attendance-filter-type');
   if (filterSelect) {
     filterSelect.addEventListener('change', filterAndRenderAttendance);
@@ -2738,8 +2747,8 @@ window.switchAttendanceView = function(viewName) {
   const btnReport = document.getElementById('btn-view-att-report');
 
   if (viewName === 'report') {
-    if (dailyView) dailyView.classList.add('hidden');
-    if (reportView) reportView.classList.remove('hidden');
+    if (dailyView) { dailyView.classList.add('hidden'); dailyView.style.display = 'none'; }
+    if (reportView) { reportView.classList.remove('hidden'); reportView.style.display = 'block'; }
     if (btnDaily) {
       btnDaily.style.background = 'transparent';
       btnDaily.style.color = 'var(--neutral-700)';
@@ -2754,8 +2763,8 @@ window.switchAttendanceView = function(viewName) {
     }
     loadAttendanceSummaryReport();
   } else {
-    if (reportView) reportView.classList.add('hidden');
-    if (dailyView) dailyView.classList.remove('hidden');
+    if (reportView) { reportView.classList.add('hidden'); reportView.style.display = 'none'; }
+    if (dailyView) { dailyView.classList.remove('hidden'); dailyView.style.display = 'block'; }
     if (btnReport) {
       btnReport.style.background = 'transparent';
       btnReport.style.color = 'var(--neutral-700)';
@@ -2777,36 +2786,68 @@ async function checkAttendanceDateStatus(dateStr) {
   if (!container) return;
 
   try {
-    const res = await fetch(`${API_BASE_URL}/api/attendance/status?date=${dateStr}`);
-    if (!res.ok) return;
-    const data = await res.json();
+    const fetchFunc = window.originalFetch || window.fetch;
+    const res = await fetchFunc(`${API_BASE_URL}/api/attendance/status?date=${dateStr}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success) {
+        if (data.isRecorded) {
+          const timeStr = data.lastUpdated ? new Date(data.lastUpdated).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
+          const updaterText = data.updatedBy ? `โดย: ${data.updatedBy}` : '';
+          container.innerHTML = `
+            <div style="display:inline-flex; align-items:center; gap:8px; padding:7px 16px; background:#ecfdf5; color:#065f46; border:1px solid #6ee7b7; border-radius:24px; font-size:0.88rem; font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,0.04);">
+              <span style="font-size:1.15rem;">✅</span>
+              <span>บันทึกข้อมูลแล้ว (${data.totalRecorded} คน | ล่าสุด: ${timeStr} น. ${updaterText})</span>
+            </div>
+          `;
+          return;
+        } else if (data.isHoliday) {
+          container.innerHTML = `
+            <div style="display:inline-flex; align-items:center; gap:8px; padding:7px 16px; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:24px; font-size:0.88rem; font-weight:600;">
+              <span style="font-size:1.15rem;">🏖️</span>
+              <span>วันหยุด (${data.holidayDesc || 'วันหยุดสุดสัปดาห์'}) — ยังไม่มีการบันทึก</span>
+            </div>
+          `;
+          return;
+        }
+      }
+    }
+  } catch (e) {
+    // Silent catch, fallback below
+  }
 
-    if (data.isRecorded) {
-      const timeStr = data.lastUpdated ? new Date(data.lastUpdated).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
-      const updaterText = data.updatedBy ? `โดย: ${data.updatedBy}` : '';
+  // Fallback: check from currentAttendanceData
+  if (Array.isArray(currentAttendanceData) && currentAttendanceData.length > 0) {
+    const savedCount = currentAttendanceData.filter(r => r.hasSavedRecord).length;
+    if (savedCount > 0) {
       container.innerHTML = `
         <div style="display:inline-flex; align-items:center; gap:8px; padding:7px 16px; background:#ecfdf5; color:#065f46; border:1px solid #6ee7b7; border-radius:24px; font-size:0.88rem; font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,0.04);">
           <span style="font-size:1.15rem;">✅</span>
-          <span>บันทึกข้อมูลแล้ว (${data.totalRecorded} คน | ล่าสุด: ${timeStr} น. ${updaterText})</span>
+          <span>บันทึกข้อมูลแล้ว (${savedCount} คน)</span>
         </div>
       `;
-    } else if (data.isHoliday) {
-      container.innerHTML = `
-        <div style="display:inline-flex; align-items:center; gap:8px; padding:7px 16px; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:24px; font-size:0.88rem; font-weight:600;">
-          <span style="font-size:1.15rem;">🏖️</span>
-          <span>วันหยุด (${data.holidayDesc || 'วันหยุดสุดสัปดาห์'}) — ยังไม่มีการบันทึก</span>
-        </div>
-      `;
-    } else {
-      container.innerHTML = `
-        <div style="display:inline-flex; align-items:center; gap:8px; padding:7px 16px; background:#fffbeb; color:#b45309; border:1px solid #fde68a; border-radius:24px; font-size:0.88rem; font-weight:600;">
-          <span style="font-size:1.15rem;">⚠️</span>
-          <span>ยังไม่มีการบันทึกข้อมูลของวันนี้ (เป็นข้อมูลเริ่มต้น กรุณากดปุ่มบันทึก)</span>
-        </div>
-      `;
+      return;
     }
-  } catch (e) {
-    console.warn('Error checking attendance date status:', e);
+  }
+
+  // Check if weekend
+  const dObj = new Date(dateStr + 'T00:00:00Z');
+  const dayOfWeek = isNaN(dObj.getTime()) ? null : dObj.getUTCDay();
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+  if (isWeekend) {
+    container.innerHTML = `
+      <div style="display:inline-flex; align-items:center; gap:8px; padding:7px 16px; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:24px; font-size:0.88rem; font-weight:600;">
+        <span style="font-size:1.15rem;">🏖️</span>
+        <span>วันหยุดสุดสัปดาห์ — ยังไม่มีการบันทึก</span>
+      </div>
+    `;
+  } else {
+    container.innerHTML = `
+      <div style="display:inline-flex; align-items:center; gap:8px; padding:7px 16px; background:#fffbeb; color:#b45309; border:1px solid #fde68a; border-radius:24px; font-size:0.88rem; font-weight:600;">
+        <span style="font-size:1.15rem;">⚠️</span>
+        <span>ยังไม่มีการบันทึกข้อมูลของวันนี้ (เป็นข้อมูลเริ่มต้น กรุณากดปุ่มบันทึก)</span>
+      </div>
+    `;
   }
 }
 
@@ -3030,48 +3071,199 @@ function styleAttendanceSelect(selectEl) {
 
 // --- ATTENDANCE RECORDING STATUS REPORT FUNCTIONS ---
 
+// Client-side fallback report generator using /api/attendance?date=... and /api/holidays
+async function generateClientSideAttendanceReport(monthNum, yearNum) {
+  const m = parseInt(monthNum, 10);
+  let targetYear = parseInt(yearNum, 10);
+  if (targetYear > 2400) targetYear -= 543;
+
+  const monthNames = [
+    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+  ];
+  const thaiDays = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+
+  const daysInMonth = new Date(Date.UTC(targetYear, m, 0)).getUTCDate();
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  // Fetch holidays
+  const holidayMap = new Map();
+  try {
+    const fetchFunc = window.originalFetch || window.fetch;
+    const holRes = await fetchFunc(`${API_BASE_URL}/api/holidays`);
+    if (holRes.ok) {
+      const hols = await holRes.json();
+      if (Array.isArray(hols)) {
+        hols.forEach(h => {
+          if (h.holidayDate) holidayMap.set(h.holidayDate.split('T')[0], h.description || 'วันหยุดนักขัตฤกษ์');
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('Could not load holidays:', e);
+  }
+
+  // Pre-build days
+  const days = [];
+  let workDays = 0;
+  let holidayDays = 0;
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dStr = `${targetYear}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dObj = new Date(Date.UTC(targetYear, m - 1, day));
+    const dayOfWeek = dObj.getUTCDay();
+    const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+    const isHoliday = holidayMap.has(dStr);
+    const holidayDesc = isHoliday ? holidayMap.get(dStr) : null;
+    const isWorkDay = !isWeekend && !isHoliday;
+
+    if (isWeekend || isHoliday) {
+      holidayDays++;
+    } else {
+      workDays++;
+    }
+
+    days.push({
+      date: dStr,
+      dateFormattedThai: `${day} ${monthNames[m - 1]} ${targetYear + 543}`,
+      dayName: thaiDays[dayOfWeek],
+      dayOfWeek,
+      isWeekend,
+      isHoliday,
+      holidayDesc,
+      isWorkDay,
+      isRecorded: false,
+      totalRecorded: 0,
+      presentCount: 0,
+      leaveCount: 0,
+      travelCount: 0,
+      absentCount: 0,
+      lateCount: 0,
+      updaterName: null,
+      lastUpdated: null,
+      status: (isWeekend || isHoliday) ? 'holiday' : (dStr <= todayStr ? 'missing' : 'pending'),
+      statusLabel: (isWeekend || isHoliday) ? '🏖️ วันหยุด' : (dStr <= todayStr ? '❌ ยังไม่ได้บันทึก' : '⏳ รอการบันทึก')
+    });
+  }
+
+  // Fetch dates that could have attendance records
+  const datesToQuery = days.filter(d => d.date <= todayStr || !d.isWeekend);
+  const chunkSize = 6;
+  const fetchFunc = window.originalFetch || window.fetch;
+
+  for (let i = 0; i < datesToQuery.length; i += chunkSize) {
+    const chunk = datesToQuery.slice(i, i + chunkSize);
+    await Promise.all(chunk.map(async (dayItem) => {
+      try {
+        const res = await fetchFunc(`${API_BASE_URL}/api/attendance?date=${dayItem.date}`);
+        if (!res.ok) return;
+        const list = await res.json();
+        if (Array.isArray(list) && list.length > 0) {
+          const hasSaved = list.some(r => r.hasSavedRecord);
+          if (hasSaved) {
+            dayItem.isRecorded = true;
+            dayItem.status = 'recorded';
+            dayItem.statusLabel = '✅ บันทึกแล้ว';
+            dayItem.totalRecorded = list.length;
+            dayItem.presentCount = list.filter(r => r.status === 'มาปฏิบัติงาน').length;
+            dayItem.leaveCount = list.filter(r => r.status && r.status.startsWith('ลา')).length;
+            dayItem.travelCount = list.filter(r => r.status === 'เดินทางไปราชการ').length;
+            dayItem.absentCount = list.filter(r => r.status === 'ขาด' || r.status === 'ไม่ทราบสาเหตุ').length;
+            dayItem.lateCount = list.filter(r => r.status === 'มาสาย').length;
+          }
+        }
+      } catch (err) {
+        // Continue silently
+      }
+    }));
+  }
+
+  const recordedDays = days.filter(d => d.isWorkDay && d.isRecorded).length;
+  const missingDays = days.filter(d => d.isWorkDay && !d.isRecorded && d.date <= todayStr).length;
+  const completionRate = workDays > 0 ? Math.round((recordedDays / workDays) * 1000) / 10 : 0;
+
+  return {
+    success: true,
+    month: m,
+    year: targetYear + 543,
+    monthName: monthNames[m - 1],
+    stats: {
+      totalDays: daysInMonth,
+      workDays,
+      recordedDays,
+      missingDays,
+      holidayDays,
+      completionRate
+    },
+    days
+  };
+}
+
 async function loadAttendanceSummaryReport() {
   const mSelect = document.getElementById('att-report-month');
   const ySelect = document.getElementById('att-report-year');
-  const m = mSelect ? mSelect.value : (new Date().getMonth() + 1);
-  const y = ySelect ? ySelect.value : (new Date().getFullYear() + 543);
+  const m = mSelect ? parseInt(mSelect.value, 10) : (new Date().getMonth() + 1);
+  const y = ySelect ? parseInt(ySelect.value, 10) : (new Date().getFullYear() + 543);
 
   showLoading('กำลังประมวลผลรายงานสถานะการบันทึกข้อมูล...');
+  let data = null;
+
+  // 1. Dedicated backend summary-report API
   try {
-    const res = await fetch(`${API_BASE_URL}/api/attendance/summary-report?month=${m}&year=${y}`);
-    const data = await res.json();
-    Swal.close();
-
-    if (!data.success) throw new Error(data.error || 'ไม่สามารถโหลดข้อมูลรายงานได้');
-
-    currentAttReportMeta = data;
-    currentAttReportStats = data.stats;
-    currentAttReportData = data.days || [];
-
-    // Update KPI cards
-    const elWork = document.getElementById('kpi-att-workdays');
-    const elTotal = document.getElementById('kpi-att-totaldays');
-    const elRec = document.getElementById('kpi-att-recorded');
-    const elRate = document.getElementById('kpi-att-rate');
-    const elMis = document.getElementById('kpi-att-missing');
-    const elHol = document.getElementById('kpi-att-holidays');
-    const elTitle = document.getElementById('att-report-table-title');
-
-    if (elWork) elWork.textContent = `${data.stats.workDays} วัน`;
-    if (elTotal) elTotal.textContent = `รวมปฏิทิน ${data.stats.totalDays} วัน`;
-    if (elRec) elRec.textContent = `${data.stats.recordedDays} วัน`;
-    if (elRate) elRate.textContent = `ความสมบูรณ์ ${data.stats.completionRate}%`;
-    if (elMis) elMis.textContent = `${data.stats.missingDays} วัน`;
-    if (elHol) elHol.textContent = `${data.stats.holidayDays} วัน`;
-    if (elTitle) elTitle.textContent = `ตารางสถานะการบันทึกข้อมูลการเช็คชื่อ ประจำเดือน${data.monthName} ${data.year}`;
-
-    // Render table
-    window.filterAttReportStatus(currentAttReportFilter || 'all');
-  } catch (err) {
-    Swal.close();
-    showError('เกิดข้อผิดพลาดในการโหลดรายงาน: ' + err.message);
+    const fetchFunc = window.originalFetch || window.fetch;
+    const res = await fetchFunc(`${API_BASE_URL}/api/attendance/summary-report?month=${m}&year=${y}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.success) {
+        data = json;
+      }
+    }
+  } catch (backendErr) {
+    console.warn('Backend summary-report not ready, using client fallback:', backendErr);
   }
+
+  // 2. Fallback to client-side report generator
+  if (!data) {
+    try {
+      data = await generateClientSideAttendanceReport(m, y);
+    } catch (clientErr) {
+      console.error('Client report generation error:', clientErr);
+    }
+  }
+
+  Swal.close();
+
+  if (!data || !data.success) {
+    showError('ไม่สามารถดึงข้อมูลรายงานสถานะการบันทึกได้ กรุณาลองใหม่อีกครั้ง');
+    return;
+  }
+
+  currentAttReportMeta = data;
+  currentAttReportStats = data.stats;
+  currentAttReportData = data.days || [];
+
+  // Update KPI cards
+  const elWork = document.getElementById('kpi-att-workdays');
+  const elTotal = document.getElementById('kpi-att-totaldays');
+  const elRec = document.getElementById('kpi-att-recorded');
+  const elRate = document.getElementById('kpi-att-rate');
+  const elMis = document.getElementById('kpi-att-missing');
+  const elHol = document.getElementById('kpi-att-holidays');
+  const elTitle = document.getElementById('att-report-table-title');
+
+  if (elWork) elWork.textContent = `${data.stats.workDays} วัน`;
+  if (elTotal) elTotal.textContent = `รวมปฏิทิน ${data.stats.totalDays} วัน`;
+  if (elRec) elRec.textContent = `${data.stats.recordedDays} วัน`;
+  if (elRate) elRate.textContent = `ความสมบูรณ์ ${data.stats.completionRate}%`;
+  if (elMis) elMis.textContent = `${data.stats.missingDays} วัน`;
+  if (elHol) elHol.textContent = `${data.stats.holidayDays} วัน`;
+  if (elTitle) elTitle.textContent = `ตารางสถานะการบันทึกข้อมูลการเช็คชื่อ ประจำเดือน${data.monthName} ${data.year}`;
+
+  // Render table
+  window.filterAttReportStatus(currentAttReportFilter || 'all');
 }
+window.loadAttendanceSummaryReport = loadAttendanceSummaryReport;
+window.exportAttendanceReportToExcel = exportAttendanceReportToExcel;
 
 window.filterAttReportStatus = function(filter) {
   currentAttReportFilter = filter;
