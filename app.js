@@ -2980,12 +2980,50 @@ function renderAttendanceTable(dataList) {
   const tbody = document.getElementById('attendance-table-body');
   tbody.innerHTML = '';
 
+  // Calculate unsubmitted sick leave counts
+  const unsubmittedList = (currentAttendanceData || []).filter(u => u.unsubmittedSickInfo && u.unsubmittedSickInfo.count > 0);
+  const totalUnsubmitted = unsubmittedList.length;
+
+  const alertBanner = document.getElementById('attendance-sick-unsubmitted-alert');
+  const alertCountEl = document.getElementById('sick-unsubmitted-total-count');
+  const tabSick = document.getElementById('tab-filter-unsubmitted-sick');
+  const tabSickCount = document.getElementById('tab-sick-unsubmitted-count');
+
+  if (totalUnsubmitted > 0) {
+    if (alertBanner) alertBanner.style.display = 'flex';
+    if (alertCountEl) alertCountEl.textContent = totalUnsubmitted;
+    if (tabSick) tabSick.style.display = 'inline-block';
+    if (tabSickCount) tabSickCount.textContent = totalUnsubmitted;
+  } else {
+    if (alertBanner) alertBanner.style.display = 'none';
+    if (tabSick) tabSick.style.display = 'none';
+  }
+
   if (dataList.length === 0) {
     tbody.innerHTML = `<tr><td colspan="4" class="text-center" style="padding:24px; color:var(--neutral-400);">ไม่พบรายชื่อบุคลากร</td></tr>`;
     return;
   }
 
   dataList.forEach(user => {
+    let unsubmittedBadge = '';
+    if (user.unsubmittedSickInfo && user.unsubmittedSickInfo.count > 0) {
+      const info = user.unsubmittedSickInfo;
+      const elapsedText = info.daysElapsed === 0 ? 'วันนี้' : `ผ่านมาแล้ว ${info.daysElapsed} วัน`;
+      let badgeLabel = '';
+      if (info.count === 1) {
+        badgeLabel = `🚨 เคยแจ้งลาป่วยยังไม่ยื่นใบลา (${info.latestDateFormatted} • ${elapsedText})`;
+      } else {
+        badgeLabel = `🚨 เคยแจ้งลาป่วยยังไม่ยื่นใบลา ${info.count} วัน (ล่าสุด ${info.latestDateFormatted} • ${elapsedText})`;
+      }
+
+      unsubmittedBadge = `
+        <span class="badge-sick-unsubmitted blink-alert" 
+              onclick="showUnsubmittedSickModal('${(user.fullName || '').replace(/'/g, "\\'")}', '${(info.dates || []).join(', ')}', ${info.daysElapsed})" 
+              title="คลิกเพื่อดูรายละเอียดวันลาป่วยที่ยังไม่ได้ยื่นใบลา">
+          ${badgeLabel}
+        </span>
+      `;
+    }
     let leaveBadge = '-';
     if (user.activeLeave) {
       let badgeColor = 'var(--warning)';
@@ -3014,14 +3052,20 @@ function renderAttendanceTable(dataList) {
 
     tbody.innerHTML += `
       <tr>
-        <td style="font-weight: 500; text-align: left; padding-left: 20px;">
-          ${user.fullName}
-          <div style="font-size:0.75rem; color:var(--neutral-500); margin-top:2px;">
+        <td style="font-weight: 500; text-align: left; padding: 12px 16px 12px 20px;">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="font-weight:600; color:var(--neutral-800);">${user.fullName}</span>
+            ${unsubmittedBadge}
+          </div>
+          <div style="font-size:0.75rem; color:var(--neutral-500); margin-top:3px;">
             ${user.staffType || 'ไม่ระบุประเภท'}
           </div>
         </td>
         <td style="text-align: left; padding-left: 20px;">${user.position}</td>
-        <td id="leave-badge-col-${user.userId}">${leaveBadge}</td>
+        <td id="leave-badge-col-${user.userId}">
+          ${leaveBadge}
+          ${user.unsubmittedSickInfo ? `<div style="font-size:0.75rem; color:#dc2626; font-weight:600; margin-top:4px;">❗ รอเอกสารใบลาป่วย: ${user.unsubmittedSickInfo.latestDateFormatted}</div>` : ''}
+        </td>
         <td style="text-align: center;">
           <select class="form-input attendance-select" data-user-id="${user.userId}" style="padding: 6px 12px; font-size: 0.9rem; font-weight: bold; width: 100%; border-radius: 8px;">
             <option value="มาปฏิบัติงาน" ${user.status === 'มาปฏิบัติงาน' ? 'selected' : ''}>มาปฏิบัติงาน</option>
@@ -6947,4 +6991,48 @@ window.removeModalSpecialDay = async function(dateKey) {
     Swal.close();
     showError('เกิดข้อผิดพลาด: ' + err.message);
   }
+};
+
+
+
+// Show details modal for unsubmitted sick leave
+window.showUnsubmittedSickModal = function(fullName, datesStr, daysElapsed) {
+  const datesArr = datesStr.split(', ').map(d => formatDateThai(d));
+  const elapsedText = daysElapsed === 0 ? 'วันนี้' : `ผ่านมาแล้ว ${daysElapsed} วัน`;
+  Swal.fire({
+    title: '🚨 แจ้งเตือน: ยังไม่ยื่นใบลาป่วย',
+    html: `
+      <div style="text-align: left; font-size: 0.95rem; line-height: 1.6;">
+        <div style="margin-bottom: 8px;"><strong>ชื่อบุคลากร:</strong> ${fullName}</div>
+        <div style="margin-bottom: 8px; color: #dc2626;"><strong>สถานะ:</strong> เคยแจ้งลาป่วยในการเช็คชื่อ แต่ยังไม่พบเอกสารใบลาในระบบ</div>
+        <div style="margin-bottom: 8px;"><strong>วันที่เคยแจ้งลาป่วย:</strong> ${datesArr.join(', ')}</div>
+        <div style="margin-bottom: 12px; color: #b91c1c; font-weight: 600;"><strong>ระยะเวลา:</strong> ${elapsedText}</div>
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 14px; font-size: 0.88rem; color: #92400e;">
+          💡 <strong>คำแนะนำสำหรับงานบุคลากร:</strong> โปรดติดตามให้ผู้ปฏิบัติงานยื่นคำขอลาป่วยย้อนหลังในระบบ เพื่อให้อนุมัติตามระเบียบราชการต่อไป
+        </div>
+      </div>
+    `,
+    icon: 'warning',
+    confirmButtonText: 'รับทราบ',
+    confirmButtonColor: '#dc2626'
+  });
+};
+
+// Filter table to show only users with unsubmitted sick leave
+window.filterUnsubmittedSickOnly = function() {
+  document.querySelectorAll('.attendance-tabs .btn-tab').forEach(btn => {
+    btn.style.background = 'white';
+    btn.style.color = 'var(--neutral-700)';
+    btn.style.borderColor = 'var(--neutral-300)';
+    btn.classList.remove('active');
+  });
+  const tabBtn = document.getElementById('tab-filter-unsubmitted-sick');
+  if (tabBtn) {
+    tabBtn.style.background = '#be123c';
+    tabBtn.style.color = 'white';
+    tabBtn.style.borderColor = '#be123c';
+    tabBtn.classList.add('active');
+  }
+  const filtered = (currentAttendanceData || []).filter(u => u.unsubmittedSickInfo && u.unsubmittedSickInfo.count > 0);
+  renderAttendanceTable(filtered);
 };

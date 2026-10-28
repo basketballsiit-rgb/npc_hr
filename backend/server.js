@@ -1987,6 +1987,56 @@ app.get('/api/attendance', async (req, res) => {
     );
     const travelsMap = new Map(travels.map(t => [t.userId, t]));
 
+    // 3c. Fetch unsubmitted sick leaves (past 120 days up to today)
+    const nowUtc = new Date();
+    const thaiNow = new Date(nowUtc.getTime() + (7 * 60 * 60 * 1000));
+    const todayStr = thaiNow.toISOString().split('T')[0];
+
+    const [allSickAtt] = await db.query(
+      `SELECT userId, attendanceDate 
+       FROM attendance 
+       WHERE status = 'ลาป่วย' 
+         AND attendanceDate >= DATE_SUB(CURDATE(), INTERVAL 120 DAY)
+         AND attendanceDate <= CURDATE()
+       ORDER BY attendanceDate DESC`
+    );
+
+    const [allSickLeaves] = await db.query(
+      `SELECT userId, startDate, endDate, status 
+       FROM leave_data 
+       WHERE leaveType = 'ลาป่วย' 
+         AND status IN ('อนุมัติ', 'รอการอนุมัติ')
+         AND endDate >= DATE_SUB(CURDATE(), INTERVAL 150 DAY)`
+    );
+
+    const userSickLeavesMap = new Map();
+    allSickLeaves.forEach(l => {
+      const uId = l.userId;
+      if (!userSickLeavesMap.has(uId)) userSickLeavesMap.set(uId, []);
+      const s = normalizeDateToAD(l.startDate);
+      const e = normalizeDateToAD(l.endDate);
+      if (s && e) {
+        userSickLeavesMap.get(uId).push({ start: s, end: e, status: l.status });
+      }
+    });
+
+    const userUnsubmittedSickMap = new Map();
+    allSickAtt.forEach(att => {
+      const uId = att.userId;
+      const attDate = normalizeDateToAD(att.attendanceDate);
+      if (!attDate) return;
+
+      const leavesList = userSickLeavesMap.get(uId) || [];
+      const isCovered = leavesList.some(l => attDate >= l.start && attDate <= l.end);
+
+      if (!isCovered) {
+        if (!userUnsubmittedSickMap.has(uId)) {
+          userUnsubmittedSickMap.set(uId, []);
+        }
+        userUnsubmittedSickMap.get(uId).push(attDate);
+      }
+    });
+
     // 4. Combine data
     const result = users.map(user => {
       const savedRecord = attendanceMap.get(user.userId);
@@ -1994,6 +2044,26 @@ app.get('/api/attendance', async (req, res) => {
       const savedMemoNo = savedRecord ? savedRecord.memoNo : null;
       const activeLeave = leavesMap.get(user.userId);
       const activeTravel = travelsMap.get(user.userId);
+
+      const unsubmittedDates = userUnsubmittedSickMap.get(user.userId) || [];
+      let unsubmittedSickInfo = null;
+      if (unsubmittedDates.length > 0) {
+        unsubmittedDates.sort((a, b) => b.localeCompare(a));
+        const latestDate = unsubmittedDates[0];
+        const dObj = new Date(latestDate + 'T00:00:00Z');
+        const tObj = new Date(todayStr + 'T00:00:00Z');
+        const diffMs = tObj.getTime() - dObj.getTime();
+        const daysElapsed = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+
+        unsubmittedSickInfo = {
+          count: unsubmittedDates.length,
+          dates: unsubmittedDates,
+          datesFormatted: unsubmittedDates.map(d => formatDateThai(d)),
+          latestDate: latestDate,
+          latestDateFormatted: formatDateThai(latestDate),
+          daysElapsed: daysElapsed
+        };
+      }
       
       let defaultStatus = 'มาปฏิบัติงาน';
       if (savedStatus) {
@@ -2029,7 +2099,8 @@ app.get('/api/attendance', async (req, res) => {
           travelId: activeTravel.travelId,
           subject: activeTravel.subject,
           status: activeTravel.status
-        } : null
+        } : null,
+        unsubmittedSickInfo: unsubmittedSickInfo
       };
     });
 
