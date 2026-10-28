@@ -1996,7 +1996,7 @@ app.get('/api/attendance', async (req, res) => {
       `SELECT userId, attendanceDate 
        FROM attendance 
        WHERE status = 'ลาป่วย' 
-         AND attendanceDate >= DATE_SUB(CURDATE(), INTERVAL 120 DAY)
+         AND attendanceDate >= DATE_SUB(CURDATE(), INTERVAL 45 DAY)
          AND attendanceDate <= CURDATE()
        ORDER BY attendanceDate DESC`
     );
@@ -2006,7 +2006,7 @@ app.get('/api/attendance', async (req, res) => {
        FROM leave_data 
        WHERE leaveType = 'ลาป่วย' 
          AND status IN ('อนุมัติ', 'รอการอนุมัติ')
-         AND endDate >= DATE_SUB(CURDATE(), INTERVAL 150 DAY)`
+         AND endDate >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)`
     );
 
     const userSickLeavesMap = new Map();
