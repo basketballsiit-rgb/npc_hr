@@ -1914,7 +1914,6 @@ async function loadUserManagementPage() {
       tb.innerHTML += `
         <tr>
           <td style="font-weight: 600; font-size: 0.825rem; white-space: nowrap;">${x.fullName}</td>
-          <td style="font-size: 0.825rem; white-space: nowrap;">${x.staffType || '-'}</td>
           <td style="font-size: 0.825rem; white-space: nowrap;">${x.username}</td>
           <td style="font-size: 0.825rem; white-space: nowrap;">
             ${x.email ? `<span style="color:#0284c7; font-weight:600; display:inline-flex; align-items:center; gap:4px;">📧 ${x.email}</span>` : `<span style="color:#94a3b8; font-size:11px; font-style:italic;">⚪ ยังไม่มีอีเมล</span>`}
