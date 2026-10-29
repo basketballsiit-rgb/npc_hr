@@ -302,6 +302,259 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+// ============================================================================
+// KEYCLOAK SSO AUTHENTICATION (Integrated with NPC Google Workspace SSO)
+// ============================================================================
+
+// 1. Initiate Keycloak Login Redirect
+app.get('/api/auth/kc-login', (req, res) => {
+  const kcAuthUrl = 'https://service.npc.ac.th/realms/NPC-SSO/protocol/openid-connect/auth';
+  const clientId = process.env.KC_CLIENT_ID || 'apr-app';
+
+  // Detect protocol and host
+  const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  const protocol = isHttps ? 'https' : 'http';
+  const host = req.headers['x-forwarded-host'] || req.get('host');
+
+  // Callback URL on this server
+  const redirectUri = host.includes('service.npc.ac.th')
+    ? 'https://service.npc.ac.th/npc_eleve_backend/api/auth/kc-callback'
+    : `${protocol}://${host}/api/auth/kc-callback`;
+
+  const state = req.query.redirect || '/npc_hr/';
+
+  const query = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'openid email profile',
+    kc_idp_hint: 'google',
+    state: state
+  });
+
+  res.redirect(`${kcAuthUrl}?${query.toString()}`);
+});
+
+// 2. Handle Keycloak OAuth2 Callback
+app.get('/api/auth/kc-callback', async (req, res) => {
+  const code = req.query.code;
+  const state = req.query.state || '/npc_hr/';
+
+  // Detect protocol and host for redirectUri match
+  const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  const protocol = isHttps ? 'https' : 'http';
+  const host = req.headers['x-forwarded-host'] || req.get('host');
+  const redirectUri = host.includes('service.npc.ac.th')
+    ? 'https://service.npc.ac.th/npc_eleve_backend/api/auth/kc-callback'
+    : `${protocol}://${host}/api/auth/kc-callback`;
+
+  // Target frontend redirect URL
+  const frontendOrigin = host.includes('service.npc.ac.th')
+    ? 'https://service.npc.ac.th'
+    : `${protocol}://${host.replace(':5000', '')}`;
+  const targetRedirect = state.startsWith('http') ? state : `${frontendOrigin}${state.startsWith('/') ? state : '/' + state}`;
+
+  if (!code) {
+    return res.status(400).send(`
+      <div style="font-family:sans-serif; text-align:center; padding-top:60px;">
+        <h3>เกิดข้อผิดพลาด: ไม่พบ Authorization Code จาก Keycloak</h3>
+        <p><a href="${targetRedirect}">กลับสู่หน้าหลัก</a></p>
+      </div>
+    `);
+  }
+
+  const clientId = process.env.KC_CLIENT_ID || 'apr-app';
+  const clientSecret = process.env.KC_CLIENT_SECRET || 'okTBeJblJmeNL8szsuNija3t6OqkZSx9';
+  const kcTokenUrl = 'https://service.npc.ac.th/realms/NPC-SSO/protocol/openid-connect/token';
+  const kcUserInfoUrl = 'https://service.npc.ac.th/realms/NPC-SSO/protocol/openid-connect/userinfo';
+
+  try {
+    // A. Exchange code for access token
+    const tokenParams = new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: clientId,
+      client_secret: clientSecret,
+      code: code,
+      redirect_uri: redirectUri
+    });
+
+    const tokenRes = await fetch(kcTokenUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: tokenParams.toString()
+    });
+
+    const tokenData = await tokenRes.json();
+    if (!tokenRes.ok || !tokenData.access_token) {
+      console.error('Keycloak token exchange error:', tokenData);
+      return res.status(500).send(`
+        <div style="font-family:sans-serif; text-align:center; padding-top:60px;">
+          <h3>ไม่สามารถยืนยันตัวตนกับ Keycloak ได้</h3>
+          <p style="color:#ef4444;">${tokenData.error_description || tokenData.error || 'Token retrieval failed'}</p>
+          <p><a href="${targetRedirect}">กลับสู่หน้าหลัก</a></p>
+        </div>
+      `);
+    }
+
+    const accessToken = tokenData.access_token;
+
+    // B. Fetch user info
+    const userRes = await fetch(kcUserInfoUrl, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    const userInfo = await userRes.json();
+
+    const email = (userInfo.email || userInfo.preferred_username || '').trim().toLowerCase();
+    if (!email) {
+      return res.status(400).send(`
+        <div style="font-family:sans-serif; text-align:center; padding-top:60px;">
+          <h3>ไม่สามารถระบุอีเมลผู้ใช้งานจากระบบได้</h3>
+          <p><a href="${targetRedirect}">กลับสู่หน้าหลัก</a></p>
+        </div>
+      `);
+    }
+
+    // C. Lookup user in eleve_db users table
+    let [rows] = await db.query('SELECT * FROM users WHERE email = ? OR username = ?', [email, email]);
+    let user = rows[0];
+
+    // If not found by email or username, try matching by Thai full name
+    if (!user) {
+      const first = (userInfo.given_name || userInfo.firstName || '').trim();
+      const last = (userInfo.family_name || userInfo.lastName || '').trim();
+      const full = (userInfo.name || `${first} ${last}`).trim();
+
+      if (first || full) {
+        const [allUsers] = await db.query('SELECT * FROM users');
+        const normFull = normalizeThaiNameForSync(full);
+        const normFirst = normalizeThaiNameForSync(first);
+        const normLast = normalizeThaiNameForSync(last);
+
+        for (const u of allUsers) {
+          const uNorm = normalizeThaiNameForSync(u.fullName);
+          if (normFull && uNorm === normFull) {
+            user = u;
+            break;
+          }
+          if (normFirst && normLast && normFirst.length >= 2 && normLast.length >= 2) {
+            if (uNorm.includes(normFirst) && uNorm.includes(normLast)) {
+              user = u;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // D. Auto-provision if user still doesn't exist
+    if (!user) {
+      const first = (userInfo.given_name || userInfo.firstName || '').trim();
+      const last = (userInfo.family_name || userInfo.lastName || '').trim();
+      const fullName = (userInfo.name || `${first} ${last}`).trim() || email;
+      const position = userInfo.position ? (Array.isArray(userInfo.position) ? userInfo.position[0] : userInfo.position) : 'บุคลากร';
+      const userId = crypto.randomUUID();
+      const tempPass = bcrypt.hashSync(crypto.randomUUID(), 10);
+
+      await db.query(
+        'INSERT INTO users (userId, fullName, position, username, email, password, role, status, staffType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [userId, fullName, position, email, email, tempPass, 'user', 'approved', 'ข้าราชการ']
+      );
+
+      const [newRows] = await db.query('SELECT * FROM users WHERE userId = ?', [userId]);
+      user = newRows[0];
+    } else if (!user.email) {
+      // Update email in database if was missing
+      await db.query('UPDATE users SET email = ? WHERE userId = ?', [email, user.userId]);
+      user.email = email;
+    }
+
+    // E. Look up APR staff ID
+    let aprStaffId = null;
+    try {
+      const [staffRows] = await db.query(
+        'SELECT id FROM APR.staffs WHERE (staff_code = ? OR staff_code = ?) AND is_active = 1',
+        [user.username, email]
+      );
+      if (staffRows.length > 0) aprStaffId = staffRows[0].id;
+    } catch(e) {}
+
+    // F. Construct user session object
+    const userPayload = {
+      userId: user.userId,
+      fullName: user.fullName,
+      position: user.position,
+      username: user.username,
+      email: user.email || email,
+      role: user.role,
+      lineUserId: user.lineUserId,
+      staffType: user.staffType,
+      aprStaffId: aprStaffId
+    };
+
+    // Auto sync LINE User ID to SmartFlow if available
+    if (user.lineUserId && user.fullName) {
+      syncUserLineIdToSmartFlow(user.fullName, user.lineUserId).catch(err => {
+        console.error('[SmartFlow] Auto sync user lineId on SSO login error:', err.message);
+      });
+    }
+
+    const userDataJson = JSON.stringify(userPayload);
+    const srsUserDataJson = JSON.stringify({
+      id: aprStaffId || user.userId,
+      staff_code: user.email || user.username,
+      full_name: user.fullName,
+      role: user.role
+    });
+
+    // Send redirection page that writes localStorage and redirects back
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="th">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>กำลังเข้าสู่ระบบ...</title>
+        <style>
+          body { font-family: 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f8fafc; color: #1e293b; }
+          .card { background: white; padding: 36px 44px; border-radius: 20px; box-shadow: 0 10px 30px -5px rgba(0,0,0,0.1); text-align: center; max-width: 90%; width: 360px; }
+          .spinner { width: 44px; height: 44px; border: 4px solid #e2e8f0; border-top-color: #0284c7; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+          @keyframes spin { to { transform: rotate(360deg); } }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="spinner"></div>
+          <h3 style="margin: 0 0 8px; font-weight: 700; color: #0f172a;">เข้าสู่ระบบสำเร็จ</h3>
+          <p style="margin: 0; color: #64748b; font-size: 14px;">กำลังนำท่านเข้าสู่ระบบ...</p>
+        </div>
+        <script>
+          try {
+            const u = ${userDataJson};
+            localStorage.setItem('currentUser', JSON.stringify(u));
+            sessionStorage.setItem('currentUser', JSON.stringify(u));
+            const srs = ${srsUserDataJson};
+            localStorage.setItem('srs_user', JSON.stringify(srs));
+          } catch(e) {
+            console.error('Storage error:', e);
+          }
+          window.location.href = ${JSON.stringify(targetRedirect)};
+        </script>
+      </body>
+      </html>
+    `);
+  } catch (err) {
+    console.error('Keycloak callback error:', err);
+    res.status(500).send(`
+      <div style="font-family:sans-serif; text-align:center; padding-top:60px;">
+        <h3>เกิดข้อผิดพลาดในการเชื่อมต่อ Keycloak SSO</h3>
+        <p style="color:#ef4444;">${err.message}</p>
+        <p><a href="${targetRedirect}">กลับสู่หน้าหลัก</a></p>
+      </div>
+    `);
+  }
+});
+
+
 // Reset Password via Username & LINE User ID verification
 app.post('/api/auth/reset-password', async (req, res) => {
   const { username, lineUserId, newPassword } = req.body;

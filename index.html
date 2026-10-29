@@ -6,7 +6,7 @@
   <title>ระบบบริหารงานบุคลากร - วิทยาลัยสารพัดช่างน่าน</title>
   
   <!-- Custom Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=8.0">
+  <link rel="stylesheet" href="style.css?v=12.0">
   
   <!-- External Libraries (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -2314,18 +2314,20 @@
       <div class="login-card-title">Login</div>
       
       <!-- SSO Login Button (Keycloak / Google Workspace) -->
-      <button type="button" class="login-sso-btn" onclick="startKeycloakLogin()" title="เข้าสู่ระบบด้วยอีเมลวิทยาลัยผ่าน Keycloak">
-        <svg width="20" height="20" viewBox="0 0 24 24">
+      <button type="button" id="btn-keycloak-sso" class="login-sso-btn" onclick="startKeycloakLogin(event)" style="background:#ffffff; color:#1e293b; border:1px solid rgba(255,255,255,0.4); width:100%; padding:13px 20px; font-size:0.95rem; font-weight:700; border-radius:50px; cursor:pointer; box-shadow:0 4px 15px rgba(0,0,0,0.15); transition:all 0.2s cubic-bezier(0.4,0,0.2,1); display:flex; justify-content:center; align-items:center; gap:12px; margin-bottom:14px; text-decoration:none;" onmouseover="this.style.background='#f8fafc'; this.style.transform='translateY(-2px)';" onmouseout="this.style.background='#ffffff'; this.style.transform='translateY(0)';">
+        <svg width="22" height="22" viewBox="0 0 24 24" style="flex-shrink:0;">
           <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
           <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24z"/>
           <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.17 0 9.98 0 12s.45 3.83 1.25 5.42l4.03-3.15z"/>
           <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
         </svg>
-        <span>เข้าสู่ระบบด้วยบัญชีวิทยาลัย (SSO)</span>
+        <span style="letter-spacing: 0.2px;">เข้าสู่ระบบด้วยบัญชีวิทยาลัย (SSO)</span>
       </button>
 
-      <div class="login-divider">
-        <span>หรือเข้าสู่ระบบด้วยรหัสผ่าน</span>
+      <div class="login-divider" style="display:flex; align-items:center; text-align:center; margin:14px 0 16px 0; color:rgba(255,255,255,0.85); font-size:0.8rem; font-weight:500;">
+        <div style="flex:1; border-bottom:1px solid rgba(255,255,255,0.3);"></div>
+        <span style="padding:0 12px; letter-spacing:0.3px;">หรือเข้าสู่ระบบด้วยรหัสผ่าน</span>
+        <div style="flex:1; border-bottom:1px solid rgba(255,255,255,0.3);"></div>
       </div>
 
       <form id="login-form" onsubmit="handleCustomLogin(event)">
@@ -2578,5 +2580,22 @@
 
   <!-- Load Custom JS logic -->
   <script src="app.js?v=72.0"></script>
+
+  <script>
+    window.startKeycloakLogin = function(e) {
+      if (e) e.preventDefault();
+      const btn = document.getElementById('btn-keycloak-sso');
+      if (btn) {
+        btn.style.opacity = '0.8';
+        btn.innerHTML = '<span style="font-size:0.9rem; font-weight:700;">⏳ กำลังเชื่อมต่อไปยัง Keycloak SSO...</span>';
+      }
+      const currentPath = window.location.pathname + window.location.search;
+      const apiBase = window.location.hostname !== 'service.npc.ac.th'
+        ? ('http://' + (window.location.hostname || 'localhost') + ':5000')
+        : 'https://service.npc.ac.th/npc_eleve_backend';
+      window.location.href = apiBase + '/api/auth/kc-login?redirect=' + encodeURIComponent(currentPath);
+    };
+  </script>
+
 </body>
 </html>
