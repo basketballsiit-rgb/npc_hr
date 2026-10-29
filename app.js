@@ -1771,6 +1771,9 @@ async function loadUserManagementPage() {
           <td style="font-weight: 600; font-size: 0.825rem; white-space: nowrap;">${x.fullName}</td>
           <td style="font-size: 0.825rem; white-space: nowrap;">${x.staffType || '-'}</td>
           <td style="font-size: 0.825rem; white-space: nowrap;">${x.username}</td>
+          <td style="font-size: 0.825rem; white-space: nowrap;">
+            ${x.email ? `<span style="color:#0284c7; font-weight:600; display:inline-flex; align-items:center; gap:4px;">📧 ${x.email}</span>` : `<span style="color:#94a3b8; font-size:11px; font-style:italic;">⚪ ยังไม่มีอีเมล</span>`}
+          </td>
           <td>
             ${x.lineUserId ? `
               <span class="badge" style="background: #e6fdf0; color: #15803d; border-color: #bbf7d0; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-size: 11px; padding: 3px 6px;">
@@ -1862,6 +1865,10 @@ window.editUser = (u) => {
           <input id="edit-pos" class="form-input" value="${u.position}" autocomplete="off">
         </div>
         <div>
+          <label class="form-label">อีเมลองค์กร (@npc.ac.th)</label>
+          <input id="edit-email" type="email" class="form-input" value="${u.email || ''}" placeholder="เช่น somchai@npc.ac.th" autocomplete="off">
+        </div>
+        <div>
           <label class="form-label">ประเภทบุคลากร</label>
           <select id="edit-type" class="form-input">
             <option value="" ${!u.staffType ? 'selected' : ''}>-- ไม่ระบุ --</option>
@@ -1901,6 +1908,7 @@ window.editUser = (u) => {
       return {
         fullName: document.getElementById('edit-fn').value,
         position: document.getElementById('edit-pos').value,
+        email: document.getElementById('edit-email').value.trim() || null,
         staffType: document.getElementById('edit-type').value || null,
         role: document.getElementById('edit-er').value,
         lineUserId: document.getElementById('edit-lid').value.trim() || null,
@@ -1948,6 +1956,10 @@ window.showAddUserModal = () => {
         <div>
           <label class="form-label">ตำแหน่ง <span style="color:var(--danger)">*</span></label>
           <input id="add-pos" class="form-input" placeholder="เช่น ครูวิทยฐานะชำนาญการ" autocomplete="off">
+        </div>
+        <div>
+          <label class="form-label">อีเมลองค์กร (@npc.ac.th)</label>
+          <input id="add-email" type="email" class="form-input" placeholder="เช่น somchai@npc.ac.th" autocomplete="off">
         </div>
         <div>
           <label class="form-label">ประเภทบุคลากร</label>
@@ -7035,4 +7047,120 @@ window.filterUnsubmittedSickOnly = function() {
   }
   const filtered = (currentAttendanceData || []).filter(u => u.unsubmittedSickInfo && u.unsubmittedSickInfo.count > 0);
   renderAttendanceTable(filtered);
+};
+
+
+// Sync emails from npcjob system with alert on unmatched names
+window.syncEmailsFromNpcJob = async () => {
+  const confirmResult = await Swal.fire({
+    title: 'ซิงค์อีเมลจากระบบ npcjob?',
+    html: `
+      <div style="text-align:left; font-size:0.9rem; color:#475569; line-height:1.6;">
+        <p>ระบบจะทำการดึงข้อมูลอีเมลองค์กร (<code>@npc.ac.th</code>) จากฐานข้อมูลระบบ <b>npcjob</b>:</p>
+        <ul style="margin:8px 0; padding-left:20px;">
+          <li><b>รายชื่อและนามสกุลตรงกัน:</b> นำเข้าและอัปเดตอีเมลเข้าสู่ระบบการลาทันที ✅</li>
+          <li><b>รายชื่อไม่ตรงกัน:</b> ระบบจะแจ้งเตือนและสรุปรายชื่อที่ไม่ตรงให้ทราบ ⚠️</li>
+        </ul>
+      </div>
+    `,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#0284c7',
+    confirmButtonText: '🔄 เริ่มซิงค์ข้อมูล',
+    cancelButtonText: 'ยกเลิก'
+  });
+
+  if (!confirmResult.isConfirmed) return;
+
+  showLoading('กำลังตรวจสอบและซิงค์ข้อมูลอีเมลจากฐานข้อมูล npcjob...');
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/users/sync-emails-from-npcjob`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const r = await res.json();
+    Swal.close();
+
+    if (!r.success) {
+      showError(r.message || 'เกิดข้อผิดพลาดในการซิงค์ข้อมูล');
+      return;
+    }
+
+    const matchedCount = r.matchedCount || 0;
+    const unmatchedNpc = r.unmatchedNpcJob || [];
+    const unmatchedEleve = r.unmatchedEleve || [];
+
+    if (unmatchedNpc.length === 0) {
+      await Swal.fire({
+        icon: 'success',
+        title: 'ซิงค์ข้อมูลสำเร็จครบถ้วน!',
+        html: `
+          <div style="text-align:center; font-size:0.95rem;">
+            <p style="font-size:1.1rem; color:#16a34a; font-weight:700; margin-bottom:12px;">✅ พบบุคลากรตรงกันทั้งหมด ${matchedCount} ท่าน</p>
+            <p style="color:#475569;">ระบบได้ทำการนำเข้าและบันทึกอีเมลองค์กรเข้าสู่ระบบการลาเรียบร้อยแล้ว โดยไม่มีรายชื่อตกหล่น</p>
+          </div>
+        `,
+        confirmButtonText: 'ตกลง'
+      });
+    } else {
+      // Build unmatched HTML table for alert
+      const rowsHtml = unmatchedNpc.map((u, idx) => `
+        <tr style="border-bottom:1px solid #f1f5f9;">
+          <td style="padding:8px 10px; font-weight:600; text-align:left; color:#1e293b;">${idx + 1}. ${u.fullName}</td>
+          <td style="padding:8px 10px; text-align:left; color:#0284c7; font-size:0.85rem;">${u.email}</td>
+          <td style="padding:8px 10px; text-align:center;"><span class="badge" style="background:#fee2e2; color:#b91c1c; font-size:11px; padding:2px 6px;">${u.reason}</span></td>
+        </tr>
+      `).join('');
+
+      await Swal.fire({
+        icon: 'warning',
+        title: 'ผลการซิงค์ข้อมูลอีเมล',
+        width: '740px',
+        html: `
+          <div style="text-align:left; font-size:0.9rem; line-height:1.5;">
+            <div style="background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d; padding:12px 16px; border-radius:10px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-weight:600;">✅ นำเข้าอีเมลสำเร็จ (ชื่อ-นามสกุลตรงกัน):</span>
+              <span style="font-size:1.2rem; font-weight:800;">${matchedCount} ท่าน</span>
+            </div>
+
+            <div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:12px 16px; border-radius:10px; margin-bottom:14px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                <span style="font-weight:700; font-size:0.95rem;">⚠️ แจ้งเตือน: พบ ${unmatchedNpc.length} รายชื่อใน npcjob ที่ไม่ตรงกับระบบการลา</span>
+                <span class="badge" style="background:#ef4444; color:white; font-size:11px; padding:2px 8px;">ไม่สามารถนำเข้าได้</span>
+              </div>
+              <p style="font-size:0.8rem; color:#7f1d1d; margin-bottom:10px;">*รายชื่อเหล่านี้มีอยู่ในระบบ npcjob แต่อาจสะกดชื่อ-นามสกุลไม่ตรงกัน หรือยังไม่มีบัญชีในระบบการลา กรุณาตรวจสอบ:</p>
+              
+              <div style="max-height:220px; overflow-y:auto; background:white; border-radius:8px; border:1px solid #fee2e2;">
+                <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+                  <thead>
+                    <tr style="background:#fef2f2; position:sticky; top:0;">
+                      <th style="padding:6px 10px; text-align:left; border-bottom:1px solid #fecaca;">ชื่อ-นามสกุล (npcjob)</th>
+                      <th style="padding:6px 10px; text-align:left; border-bottom:1px solid #fecaca;">อีเมล</th>
+                      <th style="padding:6px 10px; text-align:center; border-bottom:1px solid #fecaca;">สถานะ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${rowsHtml}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            ${unmatchedEleve.length > 0 ? `
+              <p style="font-size:0.8rem; color:#64748b; margin-top:6px;">
+                ℹ️ มีบุคลากรในระบบการลาอีก <b>${unmatchedEleve.length}</b> ท่าน ที่ยังไม่มีอีเมล (ไม่พบใน npcjob)
+              </p>
+            ` : ''}
+          </div>
+        `,
+        confirmButtonColor: '#0284c7',
+        confirmButtonText: 'รับทราบและปิด'
+      });
+    }
+
+    // Refresh users table to display new emails
+    loadUserManagementPage();
+  } catch (err) {
+    showError('เกิดข้อผิดพลาดในการเชื่อมต่อระบบ: ' + err.message);
+  }
 };

@@ -369,7 +369,7 @@ app.get('/api/auth/get-apr-id', async (req, res) => {
 // 2. User Management (Admin Only)
 app.get('/api/users', async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT userId, fullName, position, username, role, status, lineUserId, staffType, createdAt FROM users ORDER BY createdAt DESC');
+    const [rows] = await db.query('SELECT userId, fullName, position, username, email, role, status, lineUserId, staffType, createdAt FROM users ORDER BY createdAt DESC');
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -378,18 +378,18 @@ app.get('/api/users', async (req, res) => {
 
 app.put('/api/users/:userId', async (req, res) => {
   const { userId } = req.params;
-  const { fullName, position, password, role, staffType, lineUserId } = req.body;
+  const { fullName, position, password, role, staffType, lineUserId, email } = req.body;
   try {
     if (password && password.trim() !== '') {
       const hashedPassword = bcrypt.hashSync(password, 10);
       await db.query(
-        'UPDATE users SET fullName = ?, position = ?, password = ?, role = ?, staffType = ?, lineUserId = ? WHERE userId = ?',
-        [fullName, position, hashedPassword, role, staffType, lineUserId, userId]
+        'UPDATE users SET fullName = ?, position = ?, password = ?, role = ?, staffType = ?, lineUserId = ?, email = ? WHERE userId = ?',
+        [fullName, position, hashedPassword, role, staffType, lineUserId, email || null, userId]
       );
     } else {
       await db.query(
-        'UPDATE users SET fullName = ?, position = ?, role = ?, staffType = ?, lineUserId = ? WHERE userId = ?',
-        [fullName, position, role, staffType, lineUserId, userId]
+        'UPDATE users SET fullName = ?, position = ?, role = ?, staffType = ?, lineUserId = ?, email = ? WHERE userId = ?',
+        [fullName, position, role, staffType, lineUserId, email || null, userId]
       );
     }
     res.json({ success: true, message: 'อัปเดตข้อมูลสำเร็จ' });
@@ -420,7 +420,7 @@ app.post('/api/users/approve/:userId', async (req, res) => {
 
 // Add new user manually by admin
 app.post('/api/users', async (req, res) => {
-  const { fullName, position, username, password, role, status, staffType, lineUserId } = req.body;
+  const { fullName, position, username, email, password, role, status, staffType, lineUserId } = req.body;
   if (!fullName || !position || !username || !password) {
     return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน' });
   }
@@ -434,8 +434,8 @@ app.post('/api/users', async (req, res) => {
     const userId = crypto.randomUUID();
     const hashedPassword = bcrypt.hashSync(password, 10);
     await db.query(
-      'INSERT INTO users (userId, fullName, position, username, password, role, status, lineUserId, staffType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [userId, fullName, position, username, hashedPassword, role || 'user', status || 'approved', lineUserId || null, staffType || null]
+      'INSERT INTO users (userId, fullName, position, username, email, password, role, status, lineUserId, staffType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [userId, fullName, position, username, email || null, hashedPassword, role || 'user', status || 'approved', lineUserId || null, staffType || null]
     );
 
     res.json({ success: true, message: 'เพิ่มผู้ใช้งานใหม่สำเร็จ' });
@@ -445,6 +445,172 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
+
+
+// Helper for Thai name normalization for email sync
+function normalizeThaiNameForSync(str) {
+  if (!str) return '';
+  let s = String(str)
+    .replace(/[​-‍﻿]/g, '')
+    .trim();
+  // Strip common Thai titles at beginning
+  const titleRegex = /^(นาย|นางสาว|นาง|ว่าที่\s*ร้อยตรี|ว่าที่\s*ร\.ต\.|ว่าที่\s*ร\.ต\.หญิง|อาจารย์|ครู|ดร\.|ผศ\.|รศ\.)\s*/i;
+  s = s.replace(titleRegex, '');
+  // Remove spaces, dots, dashes
+  return s.replace(/[\s\.\-_]/g, '').toLowerCase();
+}
+
+// Endpoint: Sync emails from npcjob database
+app.post('/api/users/sync-emails-from-npcjob', async (req, res) => {
+  try {
+    // 1. Ensure email column exists in users table
+    try {
+      const [cols] = await db.query("SHOW COLUMNS FROM users LIKE 'email'");
+      if (cols.length === 0) {
+        await db.query("ALTER TABLE users ADD COLUMN email VARCHAR(150) DEFAULT NULL AFTER username");
+      }
+    } catch (colErr) {
+      console.warn("Notice checking/adding email column in users table:", colErr.message);
+    }
+
+    // 2. Fetch users from npcjob (Direct DB query or fallback to local SQL backup file)
+    let npcJobUsers = [];
+    try {
+      const [rows] = await db.query(
+        'SELECT id, prefix, firstname, lastname, username AS email, staff_type, line_user_id FROM npcjob.users WHERE username LIKE "%@%"'
+      );
+      npcJobUsers = rows;
+    } catch (dbErr) {
+      console.warn('Could not query npcjob DB directly, trying SQL backup file fallback:', dbErr.message);
+      const backupPath = path.join('C:', 'xampp', 'htdocs', 'npcjob', 'database_backup_closed_20260628_151124.sql');
+      if (fs.existsSync(backupPath)) {
+        const fileData = fs.readFileSync(backupPath, 'utf8');
+        const regex = /\('(\d+)',\s*'([^']*)',\s*'([^']*)',\s*'([^']*)',\s*'([^']*)',\s*'([^']*)',\s*'([^']*)',\s*'([^']*)',\s*'([^']*)',\s*([^,]*),\s*([^,]*),\s*([^,]*),\s*([^,]*),\s*(?:'([^']*)'|NULL)\)/g;
+        let match;
+        while ((match = regex.exec(fileData)) !== null) {
+          if (match[5] && match[5].includes('@')) {
+            npcJobUsers.push({
+              id: match[1],
+              prefix: match[2],
+              firstname: match[3],
+              lastname: match[4],
+              email: match[5],
+              staff_type: match[8],
+              line_user_id: match[14] || null
+            });
+          }
+        }
+      }
+      if (npcJobUsers.length === 0) {
+        return res.status(500).json({
+          success: false,
+          message: 'ไม่สามารถดึงข้อมูลจากระบบ npcjob ได้: ' + dbErr.message
+        });
+      }
+    }
+
+    // 3. Fetch all current users in eleve_db
+    const [eleveUsers] = await db.query(
+      'SELECT userId, fullName, position, username, email, lineUserId, staffType FROM users'
+    );
+
+    const matchedList = [];
+    const unmatchedNpcJob = [];
+    const usedEleveUserIds = new Set();
+
+    // 4. Match npcJobUsers with eleveUsers
+    for (const npc of npcJobUsers) {
+      const npcFirst = (npc.firstname || '').trim();
+      const npcLast = (npc.lastname || '').trim();
+      const npcPrefix = (npc.prefix || '').trim();
+      const npcFull = `${npcPrefix}${npcFirst} ${npcLast}`.trim();
+      const npcEmail = (npc.email || '').trim().toLowerCase();
+
+      const npcFirstNorm = normalizeThaiNameForSync(npcFirst);
+      const npcLastNorm = normalizeThaiNameForSync(npcLast);
+      const npcFullNorm = normalizeThaiNameForSync(`${npcFirst}${npcLast}`);
+
+      let matchedUser = null;
+
+      // Find match in eleveUsers
+      for (const eu of eleveUsers) {
+        const euNorm = normalizeThaiNameForSync(eu.fullName);
+        const euEmail = (eu.email || '').trim().toLowerCase();
+        const euUser = (eu.username || '').trim().toLowerCase();
+
+        // Check 1: Normalized full name exact match
+        if (npcFullNorm && euNorm === npcFullNorm) {
+          matchedUser = eu;
+          break;
+        }
+
+        // Check 2: Firstname and Lastname both contained in euNorm
+        if (npcFirstNorm && npcLastNorm && npcFirstNorm.length >= 2 && npcLastNorm.length >= 2) {
+          if (euNorm.includes(npcFirstNorm) && euNorm.includes(npcLastNorm)) {
+            matchedUser = eu;
+            break;
+          }
+        }
+
+        // Check 3: Email exact match with username or existing email
+        if (npcEmail && (euEmail === npcEmail || euUser === npcEmail)) {
+          matchedUser = eu;
+          break;
+        }
+      }
+
+      if (matchedUser) {
+        usedEleveUserIds.add(matchedUser.userId);
+        // Direct DB update for matched user
+        await db.query(
+          `UPDATE users SET 
+             email = ?,
+             lineUserId = CASE WHEN (lineUserId IS NULL OR lineUserId = '') AND ? IS NOT NULL THEN ? ELSE lineUserId END
+           WHERE userId = ?`,
+          [npc.email.trim(), npc.line_user_id || null, npc.line_user_id || null, matchedUser.userId]
+        );
+
+        matchedList.push({
+          userId: matchedUser.userId,
+          eleveFullName: matchedUser.fullName,
+          npcFullName: npcFull,
+          email: npc.email.trim(),
+          lineSynced: !matchedUser.lineUserId && !!npc.line_user_id
+        });
+      } else {
+        // Collect unmatched users in npcjob so system can alert the admin
+        unmatchedNpcJob.push({
+          id: npc.id,
+          prefix: npcPrefix,
+          firstname: npcFirst,
+          lastname: npcLast,
+          fullName: npcFull,
+          email: npc.email.trim(),
+          staffType: npc.staff_type || '-',
+          reason: 'ไม่พบชื่อและนามสกุลนี้ในฐานข้อมูลระบบการลา'
+        });
+      }
+    }
+
+    // 5. Query eleve users that still have no email
+    const [unmatchedEleveRows] = await db.query(
+      'SELECT userId, fullName, username, position, staffType FROM users WHERE email IS NULL OR email = ""'
+    );
+
+    res.json({
+      success: true,
+      message: 'ตรวจสอบและซิงค์ข้อมูลอีเมลเรียบร้อยแล้ว',
+      totalNpcJob: npcJobUsers.length,
+      matchedCount: matchedList.length,
+      matchedList: matchedList,
+      unmatchedNpcJob: unmatchedNpcJob,
+      unmatchedEleve: unmatchedEleveRows
+    });
+  } catch (err) {
+    console.error('Error syncing emails from npcjob:', err);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการซิงค์ข้อมูล: ' + err.message });
+  }
+});
 
 // Import users from Excel
 app.post('/api/users/import', async (req, res) => {
@@ -3334,6 +3500,17 @@ app.get('/api/activities/participants/:activityId', async (req, res) => {
       }
     } catch (colErr) {
       console.error("⚠️ Error checking/adding column 'memoNo':", colErr.message);
+    }
+
+    // Alter table to add email in users table if missing
+    try {
+      const [uCols] = await db.query("SHOW COLUMNS FROM users LIKE 'email'");
+      if (uCols.length === 0) {
+        await db.query("ALTER TABLE users ADD COLUMN email VARCHAR(150) DEFAULT NULL AFTER username");
+        console.log("✅ Added column 'email' to 'users' table successfully.");
+      }
+    } catch (colErr) {
+      console.error("⚠️ Error checking/adding column 'email' in users:", colErr.message);
     }
 
     // 2. travel_data

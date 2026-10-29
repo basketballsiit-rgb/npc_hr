@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
     fullName VARCHAR(100) NOT NULL,
     position VARCHAR(100) NOT NULL,
     username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(150) DEFAULT NULL,
     password VARCHAR(255) NOT NULL,
     role VARCHAR(20) DEFAULT 'user', -- 'admin', 'user'
     status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'approved'
