@@ -614,6 +614,12 @@ window.showSelfEditModal = () => {
   });
 };
 
+// Start Keycloak SSO Login
+window.startKeycloakLogin = function() {
+  const currentPath = window.location.pathname + window.location.search;
+  window.location.href = `${API_BASE_URL}/api/auth/kc-login?redirect=${encodeURIComponent(currentPath)}`;
+};
+
 window.handleCustomLogin = async (e) => {
   e.preventDefault();
   const u = document.getElementById('login-u').value;

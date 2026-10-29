@@ -241,7 +241,7 @@ app.post('/api/auth/login', async (req, res) => {
   }
 
   try {
-    const [rows] = await db.query('SELECT * FROM users WHERE username = ?', [username]);
+    const [rows] = await db.query('SELECT * FROM users WHERE username = ? OR email = ?', [username, username]);
     if (rows.length === 0) {
       return res.json({ success: false, message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' });
     }
@@ -289,6 +289,7 @@ app.post('/api/auth/login', async (req, res) => {
         fullName: user.fullName,
         position: user.position,
         username: user.username,
+        email: user.email,
         role: user.role,
         lineUserId: user.lineUserId,
         staffType: user.staffType,

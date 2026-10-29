@@ -1386,6 +1386,57 @@ select.form-input {
   transform: translateY(0);
 }
 
+.login-sso-btn {
+  background: #ffffff;
+  color: #1e293b;
+  border: none;
+  width: 100%;
+  padding: 13px 20px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: 50px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.login-sso-btn:hover {
+  background: #f8fafc;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.22);
+  transform: translateY(-2px);
+  color: #0284c7;
+}
+
+.login-sso-btn:active {
+  transform: translateY(0);
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 18px 0 18px 0;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.login-divider span {
+  padding: 0 12px;
+}
+
 .login-forgot-link {
   display: block;
   text-align: center;
