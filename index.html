@@ -89,7 +89,6 @@
 
           <div id="auth-buttons" class="auth-area">
             <button id="login-btn" class="btn btn-login">เข้าสู่ระบบ</button>
-            <button id="register-btn" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.875rem;">ลงทะเบียน</button>
           </div>
           <div id="user-menu" class="hidden">
             <!-- Populated dynamically after login by app.js -->
@@ -666,7 +665,31 @@
           <button type="button" onclick="showPage('leave-form-page'); prepareLeaveForm();" class="btn-sub-nav active" data-sub-page="leave-form-page">✍️ ยื่นใบลาใหม่</button>
           <button type="button" onclick="showPage('history-page'); loadHistory();" class="btn-sub-nav" data-sub-page="history-page">📋 ประวัติการลา</button>
         </div>
-        <h1 style="font-size:1.8rem; font-weight:700; color:var(--neutral-800); text-align:center; margin-bottom:32px;">แบบฟอร์มขออนุญาตลา</h1>
+        <h1 style="font-size:1.8rem; font-weight:700; color:var(--neutral-800); text-align:center; margin-bottom:24px;">แบบฟอร์มขออนุญาตลา</h1>
+
+        <!-- Admin Mode: Act on Behalf of Staff Banner (Visible ONLY to Admin) -->
+        <div id="admin-leave-on-behalf-card" class="glass-card hidden" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 2px dashed #3b82f6; padding: 16px 20px; border-radius: 14px; margin-bottom: 24px; box-shadow: 0 4px 14px rgba(59,130,246,0.12);">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="font-size: 1.8rem; line-height: 1;">👑</span>
+              <div>
+                <div style="font-weight: 700; color: #1e40af; font-size: 0.98rem; display: flex; align-items: center; gap: 6px;">
+                  สิทธิ์ผู้ดูแลระบบ (Admin) — ยื่นใบลาแทนบุคลากร
+                  <span class="badge" style="background:#2563eb; color:white; font-size:10px; padding:2px 7px; border-radius:6px; font-weight:600;">เฉพาะแอดมิน</span>
+                </div>
+                <div style="font-size: 0.82rem; color: #2563eb; margin-top: 3px;">
+                  เลือกบุคลากรที่ต้องการยื่นใบลาแทน (เช่น ผู้อำนวยการ หรือครู/เจ้าหน้าที่) ระบบจะดึงสถิติและยื่นในนามของบุคคลนั้นทันที
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; min-width: 300px; flex: 1; max-width: 480px;">
+              <label for="admin-select-leave-user" style="font-size: 0.9rem; font-weight: 700; color: #1e3a8a; white-space: nowrap;">ยื่นในนามของ:</label>
+              <select id="admin-select-leave-user" class="form-input" style="background: white; border: 2px solid #3b82f6; font-weight: 700; color: #1e3a8a; cursor: pointer; padding: 8px 12px; border-radius: 8px;" onchange="onAdminChangeLeaveApplicant(this.value)">
+                <!-- Dynamically populated with all staff -->
+              </select>
+            </div>
+          </div>
+        </div>
         
         <form id="leave-request-form" class="glass-card border-accent" style="display:flex; flex-direction:column; gap:28px;">
           
@@ -2579,7 +2602,7 @@
   </div>
 
   <!-- Load Custom JS logic -->
-  <script src="app.js?v=72.0"></script>
+  <script src="app.js?v=73.0"></script>
 
   <script>
     window.startKeycloakLogin = function(e) {

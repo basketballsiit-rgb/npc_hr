@@ -254,7 +254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Authentication buttons
   document.getElementById('login-btn').addEventListener('click', showLoginModal);
-  document.getElementById('register-btn').addEventListener('click', showRegisterModal);
+  const regBtn = document.getElementById('register-btn'); if (regBtn) regBtn.addEventListener('click', showRegisterModal);
 
   // Close login modal when clicking outside
   const loginModalEl = document.getElementById('login-modal');
@@ -1032,6 +1032,7 @@ async function loadDashboardData() {
 }
 
 // --- Leave Request Form ---
+let currentLeaveApplicant = null;
 
 async function prepareLeaveForm() {
   if (!currentUser) return showLoginModal();
@@ -1039,16 +1040,62 @@ async function prepareLeaveForm() {
   // Reset Form
   document.getElementById('leave-request-form').reset();
   signaturePad.clear();
+
+  // Admin Mode: Allow Admin to submit leave on behalf of any staff
+  const adminCard = document.getElementById('admin-leave-on-behalf-card');
+  const userSelect = document.getElementById('admin-select-leave-user');
+  let applicant = currentUser;
+
+  if (currentUser.role === 'admin' && adminCard && userSelect) {
+    adminCard.classList.remove('hidden');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/users`);
+      const allUsers = await res.json();
+
+      userSelect.innerHTML = '';
+
+      // Option 1: Admin themselves
+      const optSelf = document.createElement('option');
+      optSelf.value = currentUser.userId;
+      optSelf.textContent = `👤 ตัวเอง (แอดมิน: ${currentUser.fullName})`;
+      userSelect.appendChild(optSelf);
+
+      // Other staff members sorted by Thai name
+      allUsers
+        .filter(u => u.userId !== currentUser.userId)
+        .sort((a, b) => (a.fullName || '').localeCompare(b.fullName || '', 'th'))
+        .forEach(u => {
+          const opt = document.createElement('option');
+          opt.value = u.userId;
+          opt.textContent = `${u.fullName} (${u.position || 'บุคลากร'})`;
+          userSelect.appendChild(opt);
+        });
+
+      if (currentLeaveApplicant) {
+        userSelect.value = currentLeaveApplicant.userId;
+        applicant = currentLeaveApplicant;
+      } else {
+        userSelect.value = currentUser.userId;
+        applicant = currentUser;
+      }
+    } catch (e) {
+      console.warn('Could not populate users in admin leave on-behalf:', e);
+    }
+  } else if (adminCard) {
+    adminCard.classList.add('hidden');
+    currentLeaveApplicant = null;
+    applicant = currentUser;
+  }
   
-  // Prefill School Name and Details
+  // Prefill School Name and Details for applicant
   document.getElementById('form-school-name').value = settings.schoolName || 'วิทยาลัยสารพัดช่างน่าน';
   document.getElementById('form-request-date').value = new Date().toISOString().split('T')[0];
-  document.getElementById('form-user-name').value = currentUser.fullName;
-  document.getElementById('form-user-position').value = currentUser.position;
+  document.getElementById('form-user-name').value = applicant.fullName;
+  document.getElementById('form-user-position').value = applicant.position || '-';
 
   // Retrieve last approved leave to auto fill history table
   try {
-    const res = await fetch(`${API_BASE_URL}/api/leaves/last-approved/${currentUser.userId}`);
+    const res = await fetch(`${API_BASE_URL}/api/leaves/last-approved/${applicant.userId}`);
     const l = await res.json();
     
     const sel = document.getElementById('form-last-leave-type');
@@ -1139,8 +1186,9 @@ function calculateLastLeaveDays() {
 }
 
 // Update Leave Statistics Table in the Form
-async function updateLeaveStatsTable() {
+async function updateLeaveStatsTable(targetUserId = null) {
   if (!currentUser) return;
+  const effectiveUid = targetUserId || (currentLeaveApplicant ? currentLeaveApplicant.userId : currentUser.userId);
   
   const t = document.getElementById('form-leave-type').value;
   const currDays = parseFloat(document.getElementById('form-total-days').value) || 0;
@@ -1155,7 +1203,7 @@ async function updateLeaveStatsTable() {
   const beforeDate = `${fiscalEndYear}-09-30`;
   
   try {
-    const res = await fetch(`${API_BASE_URL}/api/leaves/stats/${currentUser.userId}?beforeDate=${beforeDate}`);
+    const res = await fetch(`${API_BASE_URL}/api/leaves/stats/${effectiveUid}?beforeDate=${beforeDate}`);
     const stats = await res.json();
     
     // 1. Sick Leave (ลาป่วย)
@@ -1194,6 +1242,93 @@ async function updateLeaveStatsTable() {
 }
 
 // Submit Leave Request
+
+// Handler when Admin changes the leave applicant in the dropdown
+window.onAdminChangeLeaveApplicant = async function(targetUserId) {
+  if (!currentUser || currentUser.role !== 'admin') return;
+  showLoading('กำลังโหลดข้อมูลบุคลากร...');
+  try {
+    if (targetUserId === currentUser.userId) {
+      currentLeaveApplicant = null;
+    } else {
+      const res = await fetch(`${API_BASE_URL}/api/users`);
+      const allUsers = await res.json();
+      currentLeaveApplicant = allUsers.find(u => u.userId === targetUserId) || null;
+    }
+
+    const applicant = currentLeaveApplicant || currentUser;
+    document.getElementById('form-user-name').value = applicant.fullName;
+    document.getElementById('form-user-position').value = applicant.position || '-';
+
+    // Reload last approved leave for this applicant
+    try {
+      const lastRes = await fetch(`${API_BASE_URL}/api/leaves/last-approved/${applicant.userId}`);
+      const l = await lastRes.json();
+      const sel = document.getElementById('form-last-leave-type');
+      if (l) {
+        let found = false;
+        const targetText = "ได้ " + l.leaveType;
+        for (let i = 0; i < sel.options.length; i++) {
+          if (sel.options[i].text === targetText) {
+            sel.selectedIndex = i;
+            found = true;
+            break;
+          }
+        }
+        if (!found) sel.value = l.leaveType;
+        document.getElementById('form-last-start-date').value = l.startDate ? l.startDate.split('T')[0] : '';
+        document.getElementById('form-last-end-date').value = l.endDate ? l.endDate.split('T')[0] : '';
+        document.getElementById('form-last-total-days').value = l.totalDays;
+      } else {
+        sel.value = "ไม่ได้ลาในรอบครึ่งปีก่อน";
+        document.getElementById('form-last-start-date').value = '';
+        document.getElementById('form-last-end-date').value = '';
+        document.getElementById('form-last-total-days').value = '0';
+      }
+    } catch (e) {
+      console.warn('Could not load last approved leave:', e);
+    }
+
+    // Update leave stats table for this applicant
+    await updateLeaveStatsTable(applicant.userId);
+    Swal.close();
+  } catch (err) {
+    showError('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + err.message);
+  }
+};
+
+// Shortcut from User Management page: Admin applies leave on behalf of a user
+window.adminApplyLeaveForUser = async function(userId) {
+  if (!currentUser || currentUser.role !== 'admin') {
+    return showError('สิทธิ์นี้เฉพาะผู้ดูแลระบบเท่านั้น');
+  }
+  showLoading('กำลังเตรียมแบบฟอร์มยื่นใบลาแทน...');
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/users`);
+    const allUsers = await res.json();
+    const targetUser = allUsers.find(u => u.userId === userId);
+    if (!targetUser) {
+      Swal.close();
+      return showError('ไม่พบข้อมูลบุคลากรที่เลือก');
+    }
+
+    currentLeaveApplicant = targetUser;
+    showPage('leave-form-page');
+    await prepareLeaveForm();
+    Swal.close();
+    
+    Swal.fire({
+      icon: 'info',
+      title: 'ยื่นใบลาแทนบุคลากร',
+      html: `<div style="text-align:center;">กำลังดำเนินการยื่นใบลาในนามของ:<br><b style="font-size:1.15rem; color:#0284c7;">${targetUser.fullName}</b><br><span style="color:#64748b;">(${targetUser.position || 'บุคลากร'})</span></div>`,
+      timer: 2000,
+      showConfirmButton: false
+    });
+  } catch (err) {
+    showError('เกิดข้อผิดพลาด: ' + err.message);
+  }
+};
+
 async function handleLeaveSubmit(e) {
   e.preventDefault();
   
@@ -1203,8 +1338,12 @@ async function handleLeaveSubmit(e) {
 
   const frontendUrl = getCleanFrontendUrl();
 
+  const applicant = (currentUser.role === 'admin' && currentLeaveApplicant) ? currentLeaveApplicant : currentUser;
+  const submittedByAdmin = (currentUser.role === 'admin' && currentLeaveApplicant && currentLeaveApplicant.userId !== currentUser.userId) ? currentUser.fullName : null;
+
   const leavePayload = {
-    currentUser,
+    currentUser: applicant,
+    submittedByAdmin: submittedByAdmin,
     schoolName: document.getElementById('form-school-name').value,
     requestDate: document.getElementById('form-request-date').value,
     leaveType: document.getElementById('form-leave-type').value,
@@ -1792,8 +1931,9 @@ async function loadUserManagementPage() {
             `}
           </td>
           <td>
-            <div style="display:flex; gap:8px;">
+            <div style="display:flex; gap:8px; align-items:center;">
               ${x.status === 'pending' ? `<button onclick="approveUser('${x.userId}')" class="btn btn-primary btn-sm" style="padding:4px 8px; font-size: 11px; background:#10b981; box-shadow:none;">อนุมัติ</button>` : ''}
+              <button onclick="adminApplyLeaveForUser('${x.userId}')" class="btn btn-sm" style="padding:4px 8px; font-size: 11px; background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-weight:600; white-space:nowrap;" title="ยื่นใบลาแทนบุคลากรท่านนี้">✍️ ยื่นลาแทน</button>
               <button onclick='editUser(${JSON.stringify(x)})' class="btn btn-outline btn-sm" style="padding:4px 8px; font-size: 11px;">แก้ไข</button>
               <button onclick="deleteUser('${x.userId}')" class="btn btn-secondary btn-sm" style="padding:4px 8px; font-size: 11px; background:#f43f5e; box-shadow:none;">ลบ</button>
             </div>
