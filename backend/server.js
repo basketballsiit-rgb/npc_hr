@@ -2231,8 +2231,16 @@ app.delete('/api/holidays/:holidayDate', async (req, res) => {
 
 // Get Leave Summary Report
 app.post('/api/reports/summary', async (req, res) => {
-  const { startDate, endDate } = req.body;
+  const { startDate, endDate, fiscalYear } = req.body;
   try {
+    let sDate = startDate;
+    let eDate = endDate;
+    if (!sDate && !eDate && fiscalYear && !isNaN(parseInt(fiscalYear))) {
+      const targetFY_BE = parseInt(fiscalYear);
+      sDate = `${targetFY_BE - 544}-10-01`;
+      eDate = `${targetFY_BE - 543}-09-30`;
+    }
+
     let query = `
       SELECT 
         userId, fullName, position,
@@ -2243,16 +2251,16 @@ app.post('/api/reports/summary', async (req, res) => {
     `;
     const params = [];
 
-    if (startDate) {
+    if (sDate) {
       query += ' AND startDate >= ?';
-      params.push(normalizeDateToAD(startDate));
+      params.push(normalizeDateToAD(sDate));
     }
-    if (endDate) {
+    if (eDate) {
       query += ' AND startDate <= ?';
-      params.push(normalizeDateToAD(endDate));
+      params.push(normalizeDateToAD(eDate));
     }
 
-    query += ' GROUP BY userId, fullName, position';
+    query += ' GROUP BY userId, fullName, position ORDER BY totalDays DESC, totalLeaves DESC';
     const [rows] = await db.query(query, params);
     res.json(rows);
   } catch (err) {
@@ -2260,12 +2268,32 @@ app.post('/api/reports/summary', async (req, res) => {
   }
 });
 
-// Get All Leave Report Data for Excel export
+// Get All Leave Report Data for Excel export and table view (supports filtering)
 app.get('/api/reports/all', async (req, res) => {
+  const { startDate, endDate, fiscalYear } = req.query;
   try {
-    const [rows] = await db.query(
-      'SELECT fullName, position, requestDate, leaveType, startDate, endDate, totalDays, status, pdfUrl FROM leave_data ORDER BY requestDate DESC, createdAt DESC, startDate DESC'
-    );
+    let sDate = startDate;
+    let eDate = endDate;
+    if (!sDate && !eDate && fiscalYear && !isNaN(parseInt(fiscalYear))) {
+      const targetFY_BE = parseInt(fiscalYear);
+      sDate = `${targetFY_BE - 544}-10-01`;
+      eDate = `${targetFY_BE - 543}-09-30`;
+    }
+
+    let query = 'SELECT fullName, position, requestDate, leaveType, startDate, endDate, totalDays, status, pdfUrl FROM leave_data WHERE 1=1';
+    const params = [];
+
+    if (sDate) {
+      query += ' AND startDate >= ?';
+      params.push(normalizeDateToAD(sDate));
+    }
+    if (eDate) {
+      query += ' AND startDate <= ?';
+      params.push(normalizeDateToAD(eDate));
+    }
+
+    query += ' ORDER BY requestDate DESC, createdAt DESC, startDate DESC';
+    const [rows] = await db.query(query, params);
     rows.forEach(r => {
       if (r.requestDate) r.requestDate = normalizeDateToAD(r.requestDate);
       if (r.startDate) r.startDate = normalizeDateToAD(r.startDate);

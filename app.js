@@ -1721,53 +1721,169 @@ window.openApprovalModal = (l) => {
 
 // --- Report Page ---
 
+// Helper: Populate Fiscal Year dropdown on Report Page
+function populateReportFiscalYearDropdown() {
+  const select = document.getElementById('report-fiscal-year-select');
+  if (!select) return;
+
+  const currentVal = select.value;
+  select.innerHTML = '';
+
+  let years = [];
+  if (settings && settings.fiscal_years) {
+    years = settings.fiscal_years.split(',').map(y => y.trim()).filter(Boolean);
+  }
+
+  if (years.length === 0) {
+    const today = new Date();
+    const tYear = today.getFullYear();
+    const tMonth = today.getMonth() + 1;
+    let currentFY = tYear + 543;
+    if (tMonth >= 10) {
+      currentFY += 1;
+    }
+    years = [String(currentFY), String(currentFY - 1), String(currentFY - 2)];
+  }
+
+  years.sort((a, b) => parseInt(b) - parseInt(a));
+
+  // Option 1: Custom date range option
+  const optCustom = document.createElement('option');
+  optCustom.value = 'custom';
+  optCustom.textContent = '✏️ กำหนดช่วงวันที่เอง (ระบุวัน)';
+  select.appendChild(optCustom);
+
+  // Fiscal years options
+  years.forEach(yr => {
+    const opt = document.createElement('option');
+    opt.value = yr;
+    const startBE = parseInt(yr) - 1;
+    opt.textContent = `📅 ปีงบประมาณ ${yr} (1 ต.ค. ${startBE} - 30 ก.ย. ${yr})`;
+    select.appendChild(opt);
+  });
+
+  // Default selection
+  let selectedYear = '';
+  if (currentVal && (years.includes(currentVal) || currentVal === 'custom')) {
+    selectedYear = currentVal;
+  } else if (settings && settings.default_fiscal_year && years.includes(settings.default_fiscal_year)) {
+    selectedYear = settings.default_fiscal_year;
+  } else {
+    selectedYear = years[0];
+  }
+  select.value = selectedYear;
+
+  // Apply dates if a fiscal year is selected
+  if (selectedYear !== 'custom') {
+    applyFiscalYearDates(selectedYear);
+  }
+}
+
+// Helper: Apply fiscal year start/end dates to inputs
+function applyFiscalYearDates(fy) {
+  if (!fy || fy === 'custom') return;
+  const targetBE = parseInt(fy);
+  if (isNaN(targetBE)) return;
+  const startAD = `${targetBE - 544}-10-01`;
+  const endAD = `${targetBE - 543}-09-30`;
+  const sInput = document.getElementById('print-start-date');
+  const eInput = document.getElementById('print-end-date');
+  if (sInput) sInput.value = startAD;
+  if (eInput) eInput.value = endAD;
+}
+
+// Handler when user changes fiscal year select
+window.onReportFiscalYearChange = async function() {
+  const select = document.getElementById('report-fiscal-year-select');
+  if (!select) return;
+  const val = select.value;
+  if (val !== 'custom') {
+    applyFiscalYearDates(val);
+  }
+  await loadReportTableData();
+};
+
+// Handler when user manually modifies start or end date
+window.onReportCustomDateChange = async function() {
+  const select = document.getElementById('report-fiscal-year-select');
+  if (select) {
+    select.value = 'custom';
+  }
+  await loadReportTableData();
+};
+
+// Load Report Page main entry point
 async function loadReportPage() {
   if (!currentUser) return;
-  showLoading('กำลังโหลดรายงาน...');
-  
+  populateReportFiscalYearDropdown();
+  await loadReportTableData();
+}
+
+// Load Report table data based on current date range / fiscal year
+async function loadReportTableData() {
+  const s = document.getElementById('print-start-date') ? document.getElementById('print-start-date').value : '';
+  const e = document.getElementById('print-end-date') ? document.getElementById('print-end-date').value : '';
+  const tb = document.getElementById('report-table-body');
+  if (!tb) return;
+
+  tb.innerHTML = '<tr><td colspan="6" class="text-center" style="color:var(--neutral-400); padding:24px;">⏳ กำลังโหลดข้อมูล...</td></tr>';
+
   try {
-    const res = await fetch(`${API_BASE_URL}/api/reports/all`);
+    let url = `${API_BASE_URL}/api/reports/all`;
+    const params = [];
+    if (s) params.push(`startDate=${encodeURIComponent(s)}`);
+    if (e) params.push(`endDate=${encodeURIComponent(e)}`);
+    if (params.length) url += `?${params.join('&')}`;
+
+    const res = await fetch(url);
     const data = await res.json();
-    
-    Swal.close();
-    
-    const tb = document.getElementById('report-table-body');
     tb.innerHTML = '';
-    
+
     if (!data || !data.length) {
-      tb.innerHTML = `<tr><td colspan="6" class="text-center" style="color:var(--neutral-400); padding:24px;">ไม่มีข้อมูลประวัติคำขอทั้งหมดในระบบ</td></tr>`;
-    } else {
-      data.forEach(l => {
-        tb.innerHTML += `
-          <tr>
-            <td style="font-weight: 500;">${l.fullName}</td>
-            <td>${l.leaveType}</td>
-            <td>${formatDate(l.startDate)} - ${formatDate(l.endDate)}</td>
-            <td style="text-align: center; font-weight: bold;">${l.totalDays}</td>
-            <td>${renderBadge(l.status)}</td>
-            <td>
-              ${l.pdfUrl ? `<a href="${l.pdfUrl}" target="_blank" style="color:var(--primary); font-weight:600;">พิมพ์ใบลา</a>` : '-'}
-            </td>
-          </tr>
-        `;
-      });
+      tb.innerHTML = '<tr><td colspan="6" class="text-center" style="color:var(--neutral-400); padding:24px;">ไม่พบข้อมูลประวัติคำขอลาในช่วงเวลาที่เลือก</td></tr>';
+      return;
     }
+
+    data.forEach(l => {
+      tb.innerHTML += `
+        <tr>
+          <td style="font-weight: 500;">${l.fullName}</td>
+          <td>${l.leaveType}</td>
+          <td>${formatDate(l.startDate)} - ${formatDate(l.endDate)}</td>
+          <td style="text-align: center; font-weight: bold;">${l.totalDays}</td>
+          <td>${renderBadge(l.status)}</td>
+          <td>
+            ${l.pdfUrl ? `<a href="${l.pdfUrl}" target="_blank" style="color:var(--primary); font-weight:600;">พิมพ์ใบลา</a>` : '-'}
+          </td>
+        </tr>
+      `;
+    });
   } catch (err) {
-    showError('ไม่สามารถโหลดข้อมูลรายงานได้: ' + err.message);
+    tb.innerHTML = `<tr><td colspan="6" class="text-center" style="color:var(--danger); padding:24px;">เกิดข้อผิดพลาดในการโหลดข้อมูล: ${err.message}</td></tr>`;
   }
 }
 
 // Export excel report
 async function handleExportExcel() {
+  const s = document.getElementById('print-start-date') ? document.getElementById('print-start-date').value : '';
+  const e = document.getElementById('print-end-date') ? document.getElementById('print-end-date').value : '';
+  const fySelect = document.getElementById('report-fiscal-year-select');
+  const fyVal = fySelect && fySelect.value !== 'custom' ? `_ปีงบประมาณ_${fySelect.value}` : '';
+
   showLoading('กำลังดึงข้อมูลเพื่อส่งออกไฟล์ Excel...');
   try {
-    const res = await fetch(`${API_BASE_URL}/api/reports/all`);
+    let url = `${API_BASE_URL}/api/reports/all`;
+    const params = [];
+    if (s) params.push(`startDate=${encodeURIComponent(s)}`);
+    if (e) params.push(`endDate=${encodeURIComponent(e)}`);
+    if (params.length) url += `?${params.join('&')}`;
+
+    const res = await fetch(url);
     const data = await res.json();
     
     Swal.close();
     
     if (data && data.length) {
-      // Map to Thai excel column headers
       const formatted = data.map((item, index) => ({
         "ลำดับ": index + 1,
         "ชื่อ-นามสกุล": item.fullName,
@@ -1785,7 +1901,6 @@ async function handleExportExcel() {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "ประวัติการลา");
       
-      // Auto fit column width
       const max_len = formatted.reduce((acc, row) => {
         Object.keys(row).forEach((k, i) => {
           const w = String(row[k]).length;
@@ -1795,9 +1910,9 @@ async function handleExportExcel() {
       }, []);
       ws['!cols'] = max_len.map(w => ({ w: Math.min(w + 3, 30) }));
 
-      XLSX.writeFile(wb, `รายงานสรุปการลา_${new Date().toISOString().split('T')[0]}.xlsx`);
+      XLSX.writeFile(wb, `รายงานสรุปการลา${fyVal}_${new Date().toISOString().split('T')[0]}.xlsx`);
     } else {
-      showError('ไม่พบข้อมูลสำหรับจัดทำรายงาน Excel');
+      showError('ไม่พบข้อมูลสำหรับจัดทำรายงาน Excel ในช่วงเวลาที่เลือก');
     }
   } catch (err) {
     showError(err.message);
@@ -1808,20 +1923,22 @@ async function handleExportExcel() {
 async function handlePrintReport() {
   const s = document.getElementById('print-start-date').value;
   const e = document.getElementById('print-end-date').value;
-  
+  const fySelect = document.getElementById('report-fiscal-year-select');
+  const fy = fySelect && fySelect.value !== 'custom' ? fySelect.value : null;
+
   showLoading('กำลังคำนวณสรุป...');
   try {
     const res = await fetch(`${API_BASE_URL}/api/reports/summary`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ startDate: s, endDate: e })
+      body: JSON.stringify({ startDate: s, endDate: e, fiscalYear: fy })
     });
     const data = await res.json();
     
     Swal.close();
     
     if (!data || !data.length) {
-      return showError('ไม่พบข้อมูลการลาในช่วงวันที่เลือก');
+      return showError('ไม่พบข้อมูลการลาในช่วงเวลาที่เลือก');
     }
     
     // Prepare HTML content for printing
@@ -1830,22 +1947,27 @@ async function handlePrintReport() {
       <head>
         <title>รายงานสรุปสถิติการลาบุคคล</title>
         <style>
-          body { font-family: 'Sarabun', sans-serif; padding: 20px; }
-          h2 { text-align: center; margin-bottom: 5px; }
-          .sub { text-align: center; margin-bottom: 25px; font-size: 14px; color: #555; }
+          body { font-family: 'Sarabun', sans-serif; padding: 20px; color: #1e293b; }
+          h2 { text-align: center; margin-bottom: 5px; font-size: 20px; font-weight: 700; }
+          .sub { text-align: center; margin-bottom: 25px; font-size: 14px; color: #475569; line-height: 1.6; }
           table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-          th, td { border: 1px solid #000; padding: 8px 12px; text-align: left; }
-          th { background-color: #f2f2f2; font-weight: bold; }
+          th, td { border: 1px solid #94a3b8; padding: 8px 12px; text-align: left; }
+          th { background-color: #f1f5f9; font-weight: bold; color: #0f172a; }
           .text-center { text-align: center; }
           .text-right { text-align: right; }
+          @media print {
+            body { padding: 0; }
+            th { background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; }
+          }
         </style>
       </head>
       <body>
         <h2>รายงานสรุปสถิติการอนุมัติการลา (รายบุคคล)</h2>
         <div class="sub">
           วิทยาลัยสารพัดช่างน่าน <br>
+          ${fy ? `<b style="font-size:15px; color:#0f172a;">ประจำปีงบประมาณ พ.ศ. ${fy}</b><br>` : ''}
           ${s ? `ตั้งแต่วันที่ ${formatDateThai(s)}` : ''} ${e ? `ถึงวันที่ ${formatDateThai(e)}` : ''} 
-          (เฉพาะรายการที่ได้รับการอนุมัติ)
+          <br><span style="font-size:12px; color:#64748b;">(เฉพาะรายการที่ได้รับการอนุมัติ)</span>
         </div>
         <table>
           <thead>
@@ -1853,8 +1975,8 @@ async function handlePrintReport() {
               <th class="text-center" style="width: 50px;">ที่</th>
               <th>ชื่อ-นามสกุล</th>
               <th>ตำแหน่ง</th>
-              <th class="text-center" style="width: 100px;">จำนวนครั้งลา</th>
-              <th class="text-center" style="width: 100px;">รวมจำนวน (วัน)</th>
+              <th class="text-center" style="width: 110px;">จำนวนครั้งลา</th>
+              <th class="text-center" style="width: 120px;">รวมจำนวน (วัน)</th>
             </tr>
           </thead>
           <tbody>
@@ -1865,7 +1987,7 @@ async function handlePrintReport() {
         <tr>
           <td class="text-center">${index + 1}</td>
           <td style="font-weight: 600;">${item.fullName}</td>
-          <td>${item.position}</td>
+          <td>${item.position || '-'}</td>
           <td class="text-center">${item.totalLeaves}</td>
           <td class="text-center" style="font-weight: bold;">${item.totalDays}</td>
         </tr>
@@ -1875,7 +1997,7 @@ async function handlePrintReport() {
     html += `
           </tbody>
         </table>
-        <div style="margin-top:40px; text-align:right; font-size:12px; color:#666;">
+        <div style="margin-top:35px; text-align:right; font-size:12px; color:#64748b;">
           พิมพ์รายงานเมื่อวันที่: ${new Date().toLocaleString('th-TH')}
         </div>
       </body>

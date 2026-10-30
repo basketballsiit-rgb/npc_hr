@@ -1019,18 +1019,36 @@
         
         <!-- Summary by range -->
         <div class="glass-card" style="margin-bottom: 32px;">
-          <h3 style="font-size:1.1rem; font-weight:600; margin-bottom:16px;">จัดพิมพ์รายงานสรุปสถิติจำนวนวันลาสะสม</h3>
-          <div class="form-row" style="align-items: flex-end;">
-            <div class="form-group">
-              <label class="form-label">ตั้งแต่วันที่</label>
-              <input type="date" id="print-start-date" class="form-input">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
+            <h3 style="font-size:1.15rem; font-weight:700; color:var(--neutral-800); margin:0; display:flex; align-items:center; gap:8px;">
+              <span>📊</span> จัดพิมพ์รายงานสรุปสถิติจำนวนวันลาสะสม
+            </h3>
+            <span class="badge" style="background:#e0f2fe; color:#0369a1; font-size:11px; font-weight:600; padding:4px 10px; border-radius:6px; border:1px solid #bae6fd;">
+              💡 สามารถเลือกเป็นปีงบประมาณ หรือกำหนดช่วงวันที่เองได้
+            </span>
+          </div>
+          
+          <div class="form-row" style="align-items: flex-end; gap:16px; flex-wrap:wrap;">
+            <div class="form-group" style="flex: 1.3; min-width: 230px;">
+              <label class="form-label" style="font-weight:600; color:var(--neutral-700); display:flex; align-items:center; gap:6px;">
+                <span>📅</span> เลือกปีงบประมาณ
+              </label>
+              <select id="report-fiscal-year-select" class="form-input" style="font-weight:700; color:#0284c7; background:white; border:1.5px solid #93c5fd; cursor:pointer;" onchange="onReportFiscalYearChange()">
+                <!-- Populated dynamically -->
+              </select>
             </div>
-            <div class="form-group">
-              <label class="form-label">ถึงวันที่</label>
-              <input type="date" id="print-end-date" class="form-input">
+            <div class="form-group" style="flex: 1; min-width: 160px;">
+              <label class="form-label" style="font-weight:600; color:var(--neutral-700);">ตั้งแต่วันที่</label>
+              <input type="date" id="print-start-date" class="form-input" onchange="onReportCustomDateChange()">
             </div>
-            <div class="form-group">
-              <button id="print-report-btn" class="btn btn-outline" style="width:100%; height:46px;">🖨️ เปิดรายงานสรุปเพื่อจัดพิมพ์</button>
+            <div class="form-group" style="flex: 1; min-width: 160px;">
+              <label class="form-label" style="font-weight:600; color:var(--neutral-700);">ถึงวันที่</label>
+              <input type="date" id="print-end-date" class="form-input" onchange="onReportCustomDateChange()">
+            </div>
+            <div class="form-group" style="flex: 1.2; min-width: 220px;">
+              <button id="print-report-btn" class="btn btn-primary" style="width:100%; height:46px; display:inline-flex; align-items:center; justify-content:center; gap:8px; font-weight:700;">
+                🖨️ เปิดรายงานสรุปเพื่อจัดพิมพ์
+              </button>
             </div>
           </div>
         </div>
@@ -2601,7 +2619,7 @@
   </div>
 
   <!-- Load Custom JS logic -->
-  <script src="app.js?v=74.0"></script>
+  <script src="app.js?v=75.0"></script>
 
   <script>
     window.startKeycloakLogin = function(e) {
