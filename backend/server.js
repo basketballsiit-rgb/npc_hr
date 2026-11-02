@@ -1207,20 +1207,49 @@ app.all('/api/admin/sync-sheets', async (req, res) => {
   }
 });
 
-// Get Last Approved Leave for a User
+// Get Last Approved Leave for a User in the Fiscal Year
 app.get('/api/leaves/last-approved/:userId', async (req, res) => {
   const { userId } = req.params;
+  const rawBeforeDate = req.query.beforeDate || req.query.date || new Date().toISOString().split('T')[0];
+  const excludeLeaveId = req.query.excludeLeaveId || req.query.leaveId;
+  const reqFiscalYear = req.query.fiscalYear;
+
   try {
+    const fyRange = reqFiscalYear ? getFiscalYearRange(reqFiscalYear) : getFiscalYearRange(rawBeforeDate);
+    const adBeforeDate = normalizeDateToAD(rawBeforeDate);
+
+    let maxDateAD = fyRange.fiscalEndAD;
+    if (adBeforeDate && adBeforeDate <= fyRange.fiscalEndAD) {
+      maxDateAD = adBeforeDate;
+    }
+
+    let maxDateBE = fyRange.fiscalEndBE;
+    const matchBE = maxDateAD.match(/^(\d{4})-(.*)$/);
+    if (matchBE) {
+      maxDateBE = `${parseInt(matchBE[1]) + 543}-${matchBE[2]}`;
+    }
+
     const userIds = await getUserIdsForUser(userId);
-    const [rows] = await db.query(
-      `SELECT leaveType, startDate, endDate, totalDays 
-       FROM leave_data 
-       WHERE userId IN (${userIds.map(() => '?').join(', ')}) 
-         AND status = 'อนุมัติ' 
-       ORDER BY startDate DESC 
-       LIMIT 1`,
-      userIds
-    );
+    let query = `
+      SELECT leaveId, leaveType, startDate, endDate, totalDays 
+      FROM leave_data 
+      WHERE userId IN (${userIds.map(() => '?').join(', ')}) 
+        AND status = 'อนุมัติ' 
+        AND (
+          (startDate >= ? AND startDate <= ?) OR
+          (startDate >= ? AND startDate <= ?)
+        )
+    `;
+    const params = [...userIds, fyRange.fiscalStartAD, maxDateAD, fyRange.fiscalStartBE, maxDateBE];
+
+    if (excludeLeaveId) {
+      query += ' AND leaveId != ?';
+      params.push(excludeLeaveId);
+    }
+
+    query += ' ORDER BY startDate DESC, createdAt DESC LIMIT 1';
+
+    const [rows] = await db.query(query, params);
     if (rows.length > 0) {
       const leave = rows[0];
       if (leave.startDate) leave.startDate = normalizeDateToAD(leave.startDate);
@@ -1230,6 +1259,7 @@ app.get('/api/leaves/last-approved/:userId', async (req, res) => {
       res.json(null);
     }
   } catch (err) {
+    console.error('Error fetching last approved leave:', err);
     res.status(500).json({ error: err.message });
   }
 });

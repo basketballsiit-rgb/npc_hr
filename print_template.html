@@ -479,15 +479,29 @@
         }
         document.getElementById('subject-name').textContent = leave.subject || '....................................';
         
-        // Format last leave text dynamically
-        if (leave.lastLeaveStartDate && leave.lastLeaveEndDate) {
-          const lastType = leave.lastLeaveType || 'ลาป่วย';
-          const lastTotal = parseFloat(leave.lastLeaveTotalDays) || 0;
-          document.getElementById('last-leave-type').textContent = lastType;
-          document.getElementById('last-leave-start').textContent = formatDateThai(leave.lastLeaveStartDate);
-          document.getElementById('last-leave-end').textContent = formatDateThai(leave.lastLeaveEndDate);
-          document.getElementById('last-leave-days').textContent = lastTotal.toFixed(1).replace('.0', '');
-        } else {
+        // Format last leave text dynamically within the same fiscal year
+        try {
+          const lastRes = await fetch(`${API_BASE_URL}/api/leaves/last-approved/${leave.userId}?beforeDate=${leave.startDate}&excludeLeaveId=${leave.leaveId}`);
+          let lastLeave = null;
+          if (lastRes.ok) {
+            lastLeave = await lastRes.json();
+          }
+
+          if (lastLeave && lastLeave.startDate && lastLeave.endDate) {
+            const cleanType = (lastLeave.leaveType || '').replace(/^ได้\s*/, '').trim();
+            const lastTotal = parseFloat(lastLeave.totalDays) || 0;
+            document.getElementById('last-leave-type').textContent = cleanType;
+            document.getElementById('last-leave-start').textContent = formatDateThai(lastLeave.startDate);
+            document.getElementById('last-leave-end').textContent = formatDateThai(lastLeave.endDate);
+            document.getElementById('last-leave-days').textContent = lastTotal.toFixed(1).replace('.0', '');
+          } else {
+            document.getElementById('last-leave-type').textContent = '....................................';
+            document.getElementById('last-leave-start').textContent = '....................................';
+            document.getElementById('last-leave-end').textContent = '....................................';
+            document.getElementById('last-leave-days').textContent = '......';
+          }
+        } catch (lastErr) {
+          console.error('Error formatting last leave:', lastErr);
           document.getElementById('last-leave-type').textContent = '....................................';
           document.getElementById('last-leave-start').textContent = '....................................';
           document.getElementById('last-leave-end').textContent = '....................................';

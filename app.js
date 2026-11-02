@@ -321,6 +321,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const handleDateOrTypeChange = async () => {
     await calculateLeaveDays();
     await updateLeaveStatsTable();
+    await loadLastApprovedLeave();
   };
   [sd, ed, lt].forEach(el => el.addEventListener('change', handleDateOrTypeChange));
   document.querySelectorAll('input[name="dayType"]').forEach(el => {
@@ -1093,39 +1094,7 @@ async function prepareLeaveForm() {
   document.getElementById('form-user-name').value = applicant.fullName;
   document.getElementById('form-user-position').value = applicant.position || '-';
 
-  // Retrieve last approved leave to auto fill history table
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/leaves/last-approved/${applicant.userId}`);
-    const l = await res.json();
-    
-    const sel = document.getElementById('form-last-leave-type');
-    if (l) {
-      // Find and select matching leave type
-      let found = false;
-      const targetText = "ได้ " + l.leaveType;
-      for (let i = 0; i < sel.options.length; i++) {
-        if (sel.options[i].text === targetText) {
-          sel.selectedIndex = i;
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        sel.value = l.leaveType;
-      }
-      
-      document.getElementById('form-last-start-date').value = l.startDate ? l.startDate.split('T')[0] : '';
-      document.getElementById('form-last-end-date').value = l.endDate ? l.endDate.split('T')[0] : '';
-      document.getElementById('form-last-total-days').value = l.totalDays;
-    } else {
-      sel.value = "ไม่ได้ลาในรอบครึ่งปีก่อน";
-      document.getElementById('form-last-start-date').value = '';
-      document.getElementById('form-last-end-date').value = '';
-      document.getElementById('form-last-total-days').value = '0';
-    }
-  } catch (err) {
-    console.error('Error loading last leave data:', err);
-  }
+  await loadLastApprovedLeave();
 
   // Update leave stats table
   await updateLeaveStatsTable();
@@ -1184,6 +1153,47 @@ function calculateLastLeaveDays() {
     document.getElementById('form-last-total-days').value = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
   }
 }
+
+// Retrieve last approved leave to auto fill history table within current fiscal year
+async function loadLastApprovedLeave(targetUserId = null) {
+  if (!currentUser) return;
+  const applicant = targetUserId ? (currentLeaveApplicant || currentUser) : (currentLeaveApplicant || currentUser);
+  const sInput = document.getElementById('form-start-date');
+  const refDate = (sInput && sInput.value) ? sInput.value : new Date().toISOString().split('T')[0];
+  const editLeaveId = document.getElementById('form-leave-id') ? document.getElementById('form-leave-id').value : '';
+
+  try {
+    const url = `${API_BASE_URL}/api/leaves/last-approved/${applicant.userId}?beforeDate=${refDate}${editLeaveId ? `&excludeLeaveId=${editLeaveId}` : ''}`;
+    const res = await fetch(url);
+    const l = await res.json();
+    const sel = document.getElementById('form-last-leave-type');
+
+    if (l) {
+      let found = false;
+      const cleanType = (l.leaveType || '').replace(/^ได้\s*/, '').trim();
+      const targetText = "ได้ " + cleanType;
+      for (let i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].text === targetText || sel.options[i].value === l.leaveType) {
+          sel.selectedIndex = i;
+          found = true;
+          break;
+        }
+      }
+      if (!found) sel.value = l.leaveType;
+      document.getElementById('form-last-start-date').value = l.startDate ? l.startDate.split('T')[0] : '';
+      document.getElementById('form-last-end-date').value = l.endDate ? l.endDate.split('T')[0] : '';
+      document.getElementById('form-last-total-days').value = l.totalDays;
+    } else {
+      sel.value = "ไม่ได้ลาในรอบครึ่งปีก่อน";
+      document.getElementById('form-last-start-date').value = '';
+      document.getElementById('form-last-end-date').value = '';
+      document.getElementById('form-last-total-days').value = '0';
+    }
+  } catch (err) {
+    console.error('Error loading last leave data:', err);
+  }
+}
+window.loadLastApprovedLeave = loadLastApprovedLeave;
 
 // Update Leave Statistics Table in the Form
 async function updateLeaveStatsTable(targetUserId = null) {
@@ -1271,34 +1281,7 @@ window.onAdminChangeLeaveApplicant = async function(targetUserId) {
     document.getElementById('form-user-name').value = applicant.fullName;
     document.getElementById('form-user-position').value = applicant.position || '-';
 
-    // Reload last approved leave for this applicant
-    try {
-      const lastRes = await fetch(`${API_BASE_URL}/api/leaves/last-approved/${applicant.userId}`);
-      const l = await lastRes.json();
-      const sel = document.getElementById('form-last-leave-type');
-      if (l) {
-        let found = false;
-        const targetText = "ได้ " + l.leaveType;
-        for (let i = 0; i < sel.options.length; i++) {
-          if (sel.options[i].text === targetText) {
-            sel.selectedIndex = i;
-            found = true;
-            break;
-          }
-        }
-        if (!found) sel.value = l.leaveType;
-        document.getElementById('form-last-start-date').value = l.startDate ? l.startDate.split('T')[0] : '';
-        document.getElementById('form-last-end-date').value = l.endDate ? l.endDate.split('T')[0] : '';
-        document.getElementById('form-last-total-days').value = l.totalDays;
-      } else {
-        sel.value = "ไม่ได้ลาในรอบครึ่งปีก่อน";
-        document.getElementById('form-last-start-date').value = '';
-        document.getElementById('form-last-end-date').value = '';
-        document.getElementById('form-last-total-days').value = '0';
-      }
-    } catch (e) {
-      console.warn('Could not load last approved leave:', e);
-    }
+    await loadLastApprovedLeave(applicant.userId);
 
     // Update leave stats table for this applicant
     await updateLeaveStatsTable(applicant.userId);
