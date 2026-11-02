@@ -1203,8 +1203,17 @@ async function updateLeaveStatsTable(targetUserId = null) {
   const beforeDate = `${fiscalEndYear}-09-30`;
   
   try {
-    const res = await fetch(`${API_BASE_URL}/api/leaves/stats/${effectiveUid}?beforeDate=${beforeDate}`);
+    const sInput = document.getElementById('form-start-date');
+    const refDate = (sInput && sInput.value) ? sInput.value : beforeDate;
+    const editLeaveId = document.getElementById('form-leave-id') ? document.getElementById('form-leave-id').value : '';
+    const queryUrl = `${API_BASE_URL}/api/leaves/stats/${effectiveUid}?beforeDate=${refDate}${editLeaveId ? `&excludeLeaveId=${editLeaveId}` : ''}`;
+    const res = await fetch(queryUrl);
     const stats = await res.json();
+
+    if (stats.fiscalYear) {
+      const fyEl = document.getElementById('form-stats-fiscal-year');
+      if (fyEl) fyEl.textContent = stats.fiscalYear;
+    }
     
     // 1. Sick Leave (ลาป่วย)
     const prevSickCount = stats["ป่วย"].count;
@@ -1219,8 +1228,9 @@ async function updateLeaveStatsTable(targetUserId = null) {
     // 2. Personal Leave (ลากิจส่วนตัว)
     const prevPersCount = stats["กิจ"].count;
     const prevPersDays = stats["กิจ"].days;
-    const currPersCount = t === 'ลากิจส่วนตัว' && currDays > 0 ? 1 : 0;
-    const currPersDays = t === 'ลากิจส่วนตัว' ? currDays : 0;
+    const isPers = (t === 'ลากิจส่วนตัว' || t === 'ลากิจ');
+    const currPersCount = isPers && currDays > 0 ? 1 : 0;
+    const currPersDays = isPers ? currDays : 0;
     
     document.getElementById('stats-personal-prev').textContent = `${prevPersCount} ครั้ง / ${prevPersDays.toFixed(1).replace('.0', '')} วัน`;
     document.getElementById('stats-personal-curr').textContent = `${currPersCount} ครั้ง / ${currPersDays.toFixed(1).replace('.0', '')} วัน`;
@@ -1229,8 +1239,9 @@ async function updateLeaveStatsTable(targetUserId = null) {
     // 3. Maternity Leave (ลาคลอดบุตร)
     const prevMatCount = stats["คลอด"].count;
     const prevMatDays = stats["คลอด"].days;
-    const currMatCount = t === 'ลาคลอดบุตร' && currDays > 0 ? 1 : 0;
-    const currMatDays = t === 'ลาคลอดบุตร' ? currDays : 0;
+    const isMat = (t === 'ลาคลอดบุตร' || t === 'ลาคลอด');
+    const currMatCount = isMat && currDays > 0 ? 1 : 0;
+    const currMatDays = isMat ? currDays : 0;
     
     document.getElementById('stats-maternity-prev').textContent = `${prevMatCount} ครั้ง / ${prevMatDays.toFixed(1).replace('.0', '')} วัน`;
     document.getElementById('stats-maternity-curr').textContent = `${currMatCount} ครั้ง / ${currMatDays.toFixed(1).replace('.0', '')} วัน`;
@@ -1734,15 +1745,19 @@ function populateReportFiscalYearDropdown() {
     years = settings.fiscal_years.split(',').map(y => y.trim()).filter(Boolean);
   }
 
+  const today = new Date();
+  const tYear = today.getFullYear();
+  const tMonth = today.getMonth() + 1;
+  let currentFY = tYear + 543;
+  if (tMonth >= 10) {
+    currentFY += 1;
+  }
+  const currentFYStr = String(currentFY);
+
   if (years.length === 0) {
-    const today = new Date();
-    const tYear = today.getFullYear();
-    const tMonth = today.getMonth() + 1;
-    let currentFY = tYear + 543;
-    if (tMonth >= 10) {
-      currentFY += 1;
-    }
-    years = [String(currentFY), String(currentFY - 1), String(currentFY - 2)];
+    years = [currentFYStr, String(currentFY - 1), String(currentFY - 2)];
+  } else if (!years.includes(currentFYStr)) {
+    years.unshift(currentFYStr);
   }
 
   years.sort((a, b) => parseInt(b) - parseInt(a));
@@ -6717,15 +6732,19 @@ function populateDashboardFiscalYearDropdown() {
     years = settings.fiscal_years.split(',').map(y => y.trim()).filter(Boolean);
   }
 
+  const today = new Date();
+  const tYear = today.getFullYear();
+  const tMonth = today.getMonth() + 1;
+  let currentFY = tYear + 543;
+  if (tMonth >= 10) {
+    currentFY += 1;
+  }
+  const currentFYStr = String(currentFY);
+
   if (years.length === 0) {
-    const today = new Date();
-    const tYear = today.getFullYear();
-    const tMonth = today.getMonth() + 1;
-    let currentFY = tYear + 543;
-    if (tMonth >= 10) {
-      currentFY += 1;
-    }
-    years = [String(currentFY), String(currentFY - 1), String(currentFY - 2)];
+    years = [currentFYStr, String(currentFY - 1), String(currentFY - 2)];
+  } else if (!years.includes(currentFYStr)) {
+    years.unshift(currentFYStr);
   }
 
   years.sort((a, b) => parseInt(b) - parseInt(a));
@@ -6758,15 +6777,19 @@ function populateHistoryFiscalYearDropdown() {
     years = settings.fiscal_years.split(',').map(y => y.trim()).filter(Boolean);
   }
 
+  const today = new Date();
+  const tYear = today.getFullYear();
+  const tMonth = today.getMonth() + 1;
+  let currentFY = tYear + 543;
+  if (tMonth >= 10) {
+    currentFY += 1;
+  }
+  const currentFYStr = String(currentFY);
+
   if (years.length === 0) {
-    const today = new Date();
-    const tYear = today.getFullYear();
-    const tMonth = today.getMonth() + 1;
-    let currentFY = tYear + 543;
-    if (tMonth >= 10) {
-      currentFY += 1;
-    }
-    years = [String(currentFY), String(currentFY - 1), String(currentFY - 2)];
+    years = [currentFYStr, String(currentFY - 1), String(currentFY - 2)];
+  } else if (!years.includes(currentFYStr)) {
+    years.unshift(currentFYStr);
   }
 
   years.sort((a, b) => parseInt(b) - parseInt(a));

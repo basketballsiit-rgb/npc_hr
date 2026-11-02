@@ -270,7 +270,7 @@
       <!-- Left Column (48% width) -->
       <div style="width: 48%; padding-right: 2%; border-right: 1px solid #000; display: flex; flex-direction: column; justify-content: space-between; min-height: 240px;">
         <div>
-          <div class="bold text-center" style="margin-bottom: 6px;">สถิติการลาในปีงบประมาณนี้</div>
+          <div class="bold text-center" style="margin-bottom: 6px;">สถิติการลาในปีงบประมาณ <span id="print-stats-fiscal-year">นี้</span></div>
           <table class="doc-last-leave">
             <thead>
               <tr style="font-weight: bold;">
@@ -501,7 +501,7 @@
 
         // Fetch and populate stats table
         try {
-          const statsRes = await fetch(`${API_BASE_URL}/api/leaves/stats/${leave.userId}?beforeDate=${leave.startDate}`);
+          const statsRes = await fetch(`${API_BASE_URL}/api/leaves/stats/${leave.userId}?beforeDate=${leave.startDate}&excludeLeaveId=${leave.leaveId}`);
           if (!statsRes.ok) {
             throw new Error('ไม่สามารถดึงข้อมูลสถิติการลาได้');
           }
@@ -516,6 +516,11 @@
           const currSickCount = t === 'ลาป่วย' && currDays > 0 ? 1 : 0;
           const currSickDays = t === 'ลาป่วย' ? currDays : 0;
 
+          if (stats.fiscalYear) {
+            const fyEl = document.getElementById('print-stats-fiscal-year');
+            if (fyEl) fyEl.textContent = stats.fiscalYear;
+          }
+
           document.getElementById('print-stats-sick-prev').textContent = `${prevSickCount} ครั้ง / ${prevSickDays.toFixed(1).replace('.0', '')} วัน`;
           document.getElementById('print-stats-sick-curr').textContent = `${currSickCount} ครั้ง / ${currSickDays.toFixed(1).replace('.0', '')} วัน`;
           document.getElementById('print-stats-sick-total').textContent = `${prevSickCount + currSickCount} ครั้ง / ${(prevSickDays + currSickDays).toFixed(1).replace('.0', '')} วัน`;
@@ -523,8 +528,9 @@
           // 2. Personal Leave (ลากิจ)
           const prevPersCount = stats["กิจ"].count;
           const prevPersDays = stats["กิจ"].days;
-          const currPersCount = t === 'ลากิจส่วนตัว' && currDays > 0 ? 1 : 0;
-          const currPersDays = t === 'ลากิจส่วนตัว' ? currDays : 0;
+          const isPers = (t === 'ลากิจส่วนตัว' || t === 'ลากิจ');
+          const currPersCount = isPers && currDays > 0 ? 1 : 0;
+          const currPersDays = isPers ? currDays : 0;
 
           document.getElementById('print-stats-personal-prev').textContent = `${prevPersCount} ครั้ง / ${prevPersDays.toFixed(1).replace('.0', '')} วัน`;
           document.getElementById('print-stats-personal-curr').textContent = `${currPersCount} ครั้ง / ${currPersDays.toFixed(1).replace('.0', '')} วัน`;
@@ -533,8 +539,9 @@
           // 3. Maternity Leave (ลาคลอด)
           const prevMatCount = stats["คลอด"].count;
           const prevMatDays = stats["คลอด"].days;
-          const currMatCount = t === 'ลาคลอดบุตร' && currDays > 0 ? 1 : 0;
-          const currMatDays = t === 'ลาคลอดบุตร' ? currDays : 0;
+          const isMat = (t === 'ลาคลอดบุตร' || t === 'ลาคลอด');
+          const currMatCount = isMat && currDays > 0 ? 1 : 0;
+          const currMatDays = isMat ? currDays : 0;
 
           document.getElementById('print-stats-maternity-prev').textContent = `${prevMatCount} ครั้ง / ${prevMatDays.toFixed(1).replace('.0', '')} วัน`;
           document.getElementById('print-stats-maternity-curr').textContent = `${currMatCount} ครั้ง / ${currMatDays.toFixed(1).replace('.0', '')} วัน`;

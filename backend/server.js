@@ -156,6 +156,68 @@ function normalizeDateToAD(dateStr) {
   return dateStr;
 }
 
+// Helper to compute Thai fiscal year bounds (1 Oct Y-1 to 30 Sep Y)
+function getFiscalYearRange(dateOrYear) {
+  let startYearAD, endYearAD, fiscalYearBE;
+
+  if (typeof dateOrYear === 'number' || (typeof dateOrYear === 'string' && /^\d{4}$/.test(dateOrYear.trim()))) {
+    const fy = parseInt(dateOrYear);
+    if (fy > 2400) {
+      fiscalYearBE = fy;
+      endYearAD = fy - 543;
+      startYearAD = endYearAD - 1;
+    } else {
+      endYearAD = fy;
+      startYearAD = fy - 1;
+      fiscalYearBE = fy + 543;
+    }
+  } else {
+    const adDateStr = normalizeDateToAD(dateOrYear) || new Date().toISOString().split('T')[0];
+    const match = String(adDateStr).match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (match) {
+      const y = parseInt(match[1]);
+      const m = parseInt(match[2]);
+      if (m >= 10) { // Oct, Nov, Dec -> fiscal year starts Oct 1 of this year, ends Sep 30 next year
+        startYearAD = y;
+        endYearAD = y + 1;
+        fiscalYearBE = y + 1 + 543;
+      } else { // Jan to Sep -> fiscal year starts Oct 1 of previous year, ends Sep 30 this year
+        startYearAD = y - 1;
+        endYearAD = y;
+        fiscalYearBE = y + 543;
+      }
+    } else {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = now.getMonth() + 1;
+      if (m >= 10) {
+        startYearAD = y;
+        endYearAD = y + 1;
+        fiscalYearBE = y + 1 + 543;
+      } else {
+        startYearAD = y - 1;
+        endYearAD = y;
+        fiscalYearBE = y + 543;
+      }
+    }
+  }
+
+  const fiscalStartAD = `${startYearAD}-10-01`;
+  const fiscalEndAD = `${endYearAD}-09-30`;
+  const fiscalStartBE = `${startYearAD + 543}-10-01`;
+  const fiscalEndBE = `${endYearAD + 543}-09-30`;
+
+  return {
+    fiscalYearBE,
+    startYearAD,
+    endYearAD,
+    fiscalStartAD,
+    fiscalEndAD,
+    fiscalStartBE,
+    fiscalEndBE
+  };
+}
+
 // Helper to get all userIds for a person, matching by normalized name
 async function getUserIdsForUser(userId) {
   try {
@@ -1176,70 +1238,66 @@ app.get('/api/leaves/last-approved/:userId', async (req, res) => {
 app.get('/api/leaves/stats/:userId', async (req, res) => {
   const { userId } = req.params;
   const rawBeforeDate = req.query.beforeDate || new Date().toISOString().split('T')[0];
+  const excludeLeaveId = req.query.excludeLeaveId || req.query.leaveId;
+  const reqFiscalYear = req.query.fiscalYear;
   
   try {
+    // Determine the fiscal year range from either explicit fiscalYear or beforeDate
+    const fyRange = reqFiscalYear ? getFiscalYearRange(reqFiscalYear) : getFiscalYearRange(rawBeforeDate);
     const adBeforeDate = normalizeDateToAD(rawBeforeDate);
-    const d = new Date(adBeforeDate);
-    if (isNaN(d.getTime())) {
-      return res.status(400).json({ error: 'Invalid beforeDate parameter' });
+
+    // Filter up to beforeDate (or fiscal year end date, whichever comes first)
+    let maxDateAD = fyRange.fiscalEndAD;
+    if (adBeforeDate && adBeforeDate <= fyRange.fiscalEndAD) {
+      maxDateAD = adBeforeDate;
     }
-    
-    // Format beforeDate to local YYYY-MM-DD in Asia/Bangkok time zone to prevent timezone shifts
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Asia/Bangkok',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-    const cleanBeforeDateAD = formatter.format(d);
-    
-    // Parse year/month from local date string to correctly determine fiscal year start
-    const [localYearStr, localMonthStr, localDayStr] = cleanBeforeDateAD.split('-');
-    const yearAD = parseInt(localYearStr);
-    const month = parseInt(localMonthStr) - 1; // 0-indexed month
-    
-    let startYearAD;
-    if (month >= 9) { // Oct - Dec
-      startYearAD = yearAD;
-    } else { // Jan - Sep
-      startYearAD = yearAD - 1;
+
+    let maxDateBE = fyRange.fiscalEndBE;
+    const matchBE = maxDateAD.match(/^(\d{4})-(.*)$/);
+    if (matchBE) {
+      maxDateBE = `${parseInt(matchBE[1]) + 543}-${matchBE[2]}`;
     }
-    const fiscalStartAD = `${startYearAD}-10-01`;
-    
-    // Compute B.E. equivalents for compatibility with B.E. records in DB
-    const fiscalStartBE = `${startYearAD + 543}-10-01`;
-    const cleanBeforeDateBE = `${yearAD + 543}-${localMonthStr}-${localDayStr}`;
-    
-    // Fetch all approved leaves for the user in the current fiscal year before this date
+
+    // Fetch all approved leaves for the user in this fiscal year up to beforeDate (excluding this leave if specified)
     const userIds = await getUserIdsForUser(userId);
-    const [rows] = await db.query(
-      `SELECT leaveType, totalDays 
-       FROM leave_data 
-       WHERE userId IN (${userIds.map(() => '?').join(', ')}) 
-         AND status = 'อนุมัติ' 
-         AND (
-           (startDate >= ? AND startDate <= ?) OR
-           (startDate >= ? AND startDate <= ?)
-         )`,
-      [...userIds, fiscalStartAD, cleanBeforeDateAD, fiscalStartBE, cleanBeforeDateBE]
-    );
+    let query = `
+      SELECT leaveId, leaveType, totalDays, startDate 
+      FROM leave_data 
+      WHERE userId IN (${userIds.map(() => '?').join(', ')}) 
+        AND status = 'อนุมัติ' 
+        AND (
+          (startDate >= ? AND startDate <= ?) OR
+          (startDate >= ? AND startDate <= ?)
+        )
+    `;
+    const params = [...userIds, fyRange.fiscalStartAD, maxDateAD, fyRange.fiscalStartBE, maxDateBE];
+
+    if (excludeLeaveId) {
+      query += ' AND leaveId != ?';
+      params.push(excludeLeaveId);
+    }
+
+    const [rows] = await db.query(query, params);
 
     const stats = {
       "ป่วย": { count: 0, days: 0 },
       "กิจ": { count: 0, days: 0 },
-      "คลอด": { count: 0, days: 0 }
+      "คลอด": { count: 0, days: 0 },
+      "fiscalYear": fyRange.fiscalYearBE,
+      "fiscalStart": fyRange.fiscalStartAD,
+      "fiscalEnd": fyRange.fiscalEndAD
     };
 
     rows.forEach(row => {
-      const type = row.leaveType;
+      const type = (row.leaveType || '').trim();
       const days = parseFloat(row.totalDays) || 0;
       if (type === 'ลาป่วย') {
         stats["ป่วย"].count += 1;
         stats["ป่วย"].days += days;
-      } else if (type === 'ลากิจส่วนตัว') {
+      } else if (type === 'ลากิจส่วนตัว' || type === 'ลากิจ') {
         stats["กิจ"].count += 1;
         stats["กิจ"].days += days;
-      } else if (type === 'ลาคลอดบุตร') {
+      } else if (type === 'ลาคลอดบุตร' || type === 'ลาคลอด') {
         stats["คลอด"].count += 1;
         stats["คลอด"].days += days;
       }
@@ -1247,6 +1305,7 @@ app.get('/api/leaves/stats/:userId', async (req, res) => {
 
     res.json(stats);
   } catch (err) {
+    console.error('Error fetching leave stats:', err);
     res.status(500).json({ error: err.message });
   }
 });
