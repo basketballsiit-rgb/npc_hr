@@ -582,13 +582,9 @@
           document.getElementById('personnel-date-month').textContent = appMonth;
           document.getElementById('personnel-date-year').textContent = appYear;
 
-          if (leave.status === 'อนุมัติ') {
-            document.getElementById('print-approve-check').textContent = '✓';
-            document.getElementById('print-reject-check').innerHTML = '&nbsp;';
-          } else if (leave.status === 'ไม่อนุมัติ') {
-            document.getElementById('print-approve-check').innerHTML = '&nbsp;';
-            document.getElementById('print-reject-check').textContent = '✓';
-          }
+          // ส่วนคำสั่ง (อนุญาต / ไม่อนุญาต) ของท่านผู้อำนวยการ เว้นว่างไว้เสมอ ไม่ใส่เครื่องหมายใดๆ ให้ท่านผู้อำนวยการเป็นผู้ดำเนินการทำเครื่องหมายด้วยตนเอง
+          document.getElementById('print-approve-check').innerHTML = '&nbsp;';
+          document.getElementById('print-reject-check').innerHTML = '&nbsp;';
         }
 
         // Hide loader and show content
