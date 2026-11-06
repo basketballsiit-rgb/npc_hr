@@ -1,0 +1,65 @@
+/* Official Thai Government Standard Font: TH Sarabun New & TH Sarabun PSK */
+@font-face {
+  font-family: 'TH Sarabun New';
+  src: local('TH Sarabun New'),
+       local('THSarabunNew'),
+       url('THSarabunNew.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TH Sarabun New';
+  src: local('TH Sarabun New Bold'),
+       local('THSarabunNew-Bold'),
+       url('THSarabunNew-Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TH Sarabun New';
+  src: local('TH Sarabun New Italic'),
+       local('THSarabunNew-Italic'),
+       url('THSarabunNew-Italic.ttf') format('truetype');
+  font-weight: normal;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TH Sarabun New';
+  src: local('TH Sarabun New Bold Italic'),
+       local('THSarabunNew-BoldItalic'),
+       url('THSarabunNew-BoldItalic.ttf') format('truetype');
+  font-weight: bold;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Also map TH Sarabun PSK to the same bundled font for full compatibility */
+@font-face {
+  font-family: 'TH Sarabun PSK';
+  src: local('TH Sarabun PSK'),
+       local('THSarabunPSK'),
+       local('TH Sarabun New'),
+       local('THSarabunNew'),
+       url('THSarabunNew.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TH Sarabun PSK';
+  src: local('TH Sarabun PSK Bold'),
+       local('THSarabunPSK-Bold'),
+       local('TH Sarabun New Bold'),
+       local('THSarabunNew-Bold'),
+       url('THSarabunNew-Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}

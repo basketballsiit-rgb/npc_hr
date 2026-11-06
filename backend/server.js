@@ -21,6 +21,8 @@ if (!fs.existsSync(uploadDir)) {
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
+// Serve embedded fonts statically
+app.use('/fonts', express.static(path.join(__dirname, '..', 'fonts')));
 
 // --- Helper Functions ---
 

@@ -4,45 +4,47 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ใบขออนุมัติเดินทางไปราชการ - วิทยาลัยสารพัดช่างน่าน</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="fonts/fonts.css">
   <style>
     @font-face {
       font-family: 'TH Sarabun New';
       src: local('TH Sarabun New'),
-           url('https://cdn.jsdelivr.net/gh/orrawin/font-th-sarabun-new@master/THSarabunNew.woff2') format('woff2'),
-           url('https://cdn.jsdelivr.net/gh/orrawin/font-th-sarabun-new@master/THSarabunNew.woff') format('woff'),
-           url('https://cdn.jsdelivr.net/gh/orrawin/font-th-sarabun-new@master/THSarabunNew.ttf') format('truetype');
+           local('THSarabunNew'),
+           url('fonts/THSarabunNew.ttf') format('truetype');
       font-weight: normal;
       font-style: normal;
+      font-display: swap;
     }
     @font-face {
       font-family: 'TH Sarabun New';
-      src: local('TH Sarabun New Bold'), local('TH Sarabun New-Bold'),
-           url('https://cdn.jsdelivr.net/gh/orrawin/font-th-sarabun-new@master/THSarabunNew-Bold.woff2') format('woff2'),
-           url('https://cdn.jsdelivr.net/gh/orrawin/font-th-sarabun-new@master/THSarabunNew-Bold.woff') format('woff'),
-           url('https://cdn.jsdelivr.net/gh/orrawin/font-th-sarabun-new@master/THSarabunNew-Bold.ttf') format('truetype');
+      src: local('TH Sarabun New Bold'),
+           local('THSarabunNew-Bold'),
+           url('fonts/THSarabunNew-Bold.ttf') format('truetype');
       font-weight: bold;
       font-style: normal;
+      font-display: swap;
     }
     @font-face {
       font-family: 'TH Sarabun PSK';
       src: local('TH Sarabun PSK'),
-           url('https://cdn.jsdelivr.net/gh/orrawin/font-th-sarabun-new@master/THSarabunNew.woff2') format('woff2'),
-           url('https://cdn.jsdelivr.net/gh/orrawin/font-th-sarabun-new@master/THSarabunNew.woff') format('woff'),
-           url('https://cdn.jsdelivr.net/gh/orrawin/font-th-sarabun-new@master/THSarabunNew.ttf') format('truetype');
+           local('THSarabunPSK'),
+           local('TH Sarabun New'),
+           local('THSarabunNew'),
+           url('fonts/THSarabunNew.ttf') format('truetype');
       font-weight: normal;
       font-style: normal;
+      font-display: swap;
     }
     @font-face {
       font-family: 'TH Sarabun PSK';
-      src: local('TH Sarabun PSK Bold'), local('TH Sarabun PSK-Bold'),
-           url('https://cdn.jsdelivr.net/gh/orrawin/font-th-sarabun-new@master/THSarabunNew-Bold.woff2') format('woff2'),
-           url('https://cdn.jsdelivr.net/gh/orrawin/font-th-sarabun-new@master/THSarabunNew-Bold.woff') format('woff'),
-           url('https://cdn.jsdelivr.net/gh/orrawin/font-th-sarabun-new@master/THSarabunNew-Bold.ttf') format('truetype');
+      src: local('TH Sarabun PSK Bold'),
+           local('THSarabunPSK-Bold'),
+           local('TH Sarabun New Bold'),
+           local('THSarabunNew-Bold'),
+           url('fonts/THSarabunNew-Bold.ttf') format('truetype');
       font-weight: bold;
       font-style: normal;
+      font-display: swap;
     }
 
     body {
@@ -1410,6 +1412,9 @@
 
         // Auto print if parameter auto=true is present
         if (urlParams.get('auto') === 'true') {
+          if (document.fonts && document.fonts.ready) {
+            await document.fonts.ready;
+          }
           setTimeout(() => {
             window.print();
           }, 800);
