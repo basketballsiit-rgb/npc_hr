@@ -1646,7 +1646,7 @@
                   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
                     <div>
                       <span style="font-weight:600; color:#334155; font-size:0.95rem;">👥 ผู้ร่วมเดินทางไปราชการเพิ่มเติม (ถ้ามี)</span>
-                      <div style="font-size:0.78rem; color:#64748b; margin-top:2px;">ระบุตำแหน่งและประเภทตำแหน่ง (เช่น นักเรียน/นักศึกษา, พนักงานขับรถ) เพื่อให้ระบบคำนวณค่าเบี้ยเลี้ยงและค่าที่พักตามอัตราที่ตั้งค่าไว้</div>
+                      <div style="font-size:0.78rem; color:#64748b; margin-top:2px;">ระบุตำแหน่งและประเภทตำแหน่ง (เช่น ครู, เจ้าหน้าที่, นักเรียน/นักศึกษา) ส่วนพนักงานขับรถยนต์ให้ระบุในช่องพนักงานขับรถยนต์ด้านล่าง</div>
                     </div>
                     <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-left:auto;">
                       <select id="travel-quick-add-staff" class="form-input form-input-sm" style="min-width:220px; font-size:0.83rem; padding:6px 10px; border-radius:6px; border:1px solid #cbd5e1;" onchange="onQuickSelectStaff(this)">
@@ -1654,7 +1654,6 @@
                       </select>
                       <button type="button" class="btn btn-outline btn-xs" onclick="openStaffSelectionModal()" style="display:inline-flex; align-items:center; gap:4px; font-size:0.82rem; padding:6px 10px; border-radius:6px; font-weight:500;">📋 เลือกหลายคน</button>
                       <button type="button" class="btn btn-outline btn-xs" onclick="addTravelerRow('', 'นักเรียน/นักศึกษา', 'student', true)" style="display:inline-flex; align-items:center; gap:4px; font-size:0.82rem; padding:6px 10px; border-radius:6px; font-weight:500; border-color:#0284c7; color:#0284c7; background:#f0f9ff;">🎓 เพิ่มนักเรียน/นักศึกษา</button>
-                      <button type="button" class="btn btn-outline btn-xs" onclick="addTravelerRow('', 'พนักงานขับรถ', 'driver', true)" style="display:inline-flex; align-items:center; gap:4px; font-size:0.82rem; padding:6px 10px; border-radius:6px; font-weight:500; border-color:#d97706; color:#b45309; background:#fffbeb;">🚐 เพิ่มพนักงานขับรถ</button>
                       <button type="button" class="btn btn-outline btn-xs" onclick="addTravelerRow('', '', 'staff', true)" style="display:inline-flex; align-items:center; gap:4px; font-size:0.82rem; padding:6px 10px; border-radius:6px; font-weight:500;">✏️ เพิ่มแถวเอง</button>
                     </div>
                   </div>
@@ -1754,13 +1753,24 @@
                         <input type="text" id="travel-gov-vehicle-plate" class="form-input form-input-sm" placeholder="เว้นว่างได้ เช่น นข 1234 น่าน">
                       </div>
                       <div class="form-group" style="margin-bottom:0;">
-                        <label class="form-label" style="font-size:0.82rem;">พนักงานขับรถยนต์</label>
-                        <input type="text" id="travel-vehicle-driver" class="form-input form-input-sm" placeholder="ระบุชื่อพนักงานขับรถ...">
+                        <label class="form-label" style="font-size:0.82rem;">🚐 พนักงานขับรถยนต์ (แยกจากรายชื่อผู้ร่วมเดินทาง)</label>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                          <select id="travel-driver-quick-select" class="form-input form-input-sm" style="flex:1 1 140px; background:#fff; font-size:0.8rem; padding:6px 8px;" onchange="onSelectGovDriverQuick(this)">
+                            <option value="">-- เลือกจากรายชื่อ --</option>
+                          </select>
+                          <input type="text" id="travel-vehicle-driver" list="travel-staff-datalist" class="form-input form-input-sm" style="flex:1.4 1 160px;" placeholder="หรือพิมพ์ชื่อพนักงานขับรถ..." oninput="onGovDriverChanged()">
+                        </div>
                       </div>
                       <div class="form-group" style="margin-bottom:0;">
                         <label class="form-label" style="font-size:0.82rem;">ผู้ควบคุมรถยนต์</label>
                         <input type="text" id="travel-vehicle-supervisor" class="form-input form-input-sm" placeholder="ระบุชื่อผู้ควบคุม...">
                       </div>
+                    </div>
+                    <div style="margin-top:10px; padding-top:8px; border-top:1px dashed #93c5fd; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                      <label style="display:inline-flex; align-items:center; gap:6px; font-size:0.82rem; font-weight:600; color:#1e40af; cursor:pointer; margin:0;">
+                        <input type="checkbox" id="travel-driver-claim-expenses" checked onchange="onGovDriverChanged()" style="width:16px; height:16px; accent-color:#2563eb; cursor:pointer;">
+                        คำนวณเบี้ยเลี้ยงและค่าที่พักของพนักงานขับรถด้วย (ตามอัตราตำแหน่งพนักงานขับรถที่ตั้งค่าไว้)
+                      </label>
                     </div>
                   </div>
 
@@ -2770,7 +2780,7 @@
   </div>
 
   <!-- Load Custom JS logic -->
-  <script src="app.js?v=80.0"></script>
+  <script src="app.js?v=81.0"></script>
 
   <script>
     window.startKeycloakLogin = function(e) {

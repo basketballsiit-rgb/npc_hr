@@ -4099,6 +4099,48 @@ function populateTravelQuickSelect() {
       sel.appendChild(opt);
     });
   }
+  populateTravelDriverQuickSelect();
+}
+
+function populateTravelDriverQuickSelect() {
+  const dSel = document.getElementById('travel-driver-quick-select');
+  if (!dSel) return;
+  const prev = dSel.value;
+  dSel.innerHTML = '<option value="">-- เลือกจากรายชื่อ --</option>';
+  if (!_allStaffCache || _allStaffCache.length === 0) return;
+  const drivers = [];
+  const others = [];
+  _allStaffCache.forEach(u => {
+    if (!u || !u.fullName) return;
+    if (inferTravelerCategory(u.position || '', u.staffType || '') === 'driver') {
+      drivers.push(u);
+    } else {
+      others.push(u);
+    }
+  });
+  if (drivers.length > 0) {
+    const og = document.createElement('optgroup');
+    og.label = '🚐 พนักงานขับรถ';
+    drivers.forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u.fullName;
+      opt.textContent = u.position ? `${u.fullName} (${u.position})` : u.fullName;
+      og.appendChild(opt);
+    });
+    dSel.appendChild(og);
+  }
+  if (others.length > 0) {
+    const og2 = document.createElement('optgroup');
+    og2.label = '👥 บุคลากรอื่นๆ';
+    others.forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u.fullName;
+      opt.textContent = u.position ? `${u.fullName} (${u.position})` : u.fullName;
+      og2.appendChild(opt);
+    });
+    dSel.appendChild(og2);
+  }
+  if (prev) dSel.value = prev;
 }
 
 window.onQuickSelectStaff = (selectElem) => {
@@ -4813,6 +4855,35 @@ window.toggleVehicleFields = () => {
       addPersonalCarRow(reqName, '');
     }
   }
+  if (typeof syncTravelExpenseGroups === 'function') {
+    syncTravelExpenseGroups();
+  }
+  updateVehicleAssignmentSummary();
+};
+
+function getGovCarDriverInfo() {
+  const useGov = !!document.getElementById('travel-vtype-gov')?.checked;
+  const driverName = (document.getElementById('travel-vehicle-driver')?.value || '').trim();
+  const claimEl = document.getElementById('travel-driver-claim-expenses');
+  const claimChecked = claimEl ? claimEl.checked : true;
+  return {
+    useGov,
+    driverName,
+    includeDriverExpenses: useGov && !!driverName && claimChecked
+  };
+}
+
+window.onSelectGovDriverQuick = (sel) => {
+  if (!sel || !sel.value) return;
+  const inp = document.getElementById('travel-vehicle-driver');
+  if (inp) inp.value = sel.value;
+  onGovDriverChanged();
+};
+
+window.onGovDriverChanged = () => {
+  if (typeof syncTravelExpenseGroups === 'function') {
+    syncTravelExpenseGroups();
+  }
   updateVehicleAssignmentSummary();
 };
 
@@ -4902,6 +4973,11 @@ window.updateVehicleAssignmentSummary = () => {
     }
   }
   if (useGov) {
+    const drvInfo = getGovCarDriverInfo();
+    if (drvInfo.driverName) {
+      const claimBadge = drvInfo.includeDriverExpenses ? 'รวมเบิกเบี้ยเลี้ยง/ค่าที่พัก' : 'ไม่รวมเบิกเบี้ยเลี้ยง/ค่าที่พัก';
+      lines.push(`<div>🚐 <strong>พนักงานขับรถยนต์ราชการ:</strong> ${escapeHtml(drvInfo.driverName)} <span style="color:#1d4ed8; font-size:0.78rem;">(${claimBadge})</span></div>`);
+    }
     if (remainingTravelers.length > 0) {
       const remNames = remainingTravelers.map(t => t.name).join(', ');
       lines.push(`<div>🚌 <strong>เดินทางด้วยรถของทางราชการ (${remainingTravelers.length} คน):</strong> ${escapeHtml(remNames)}</div>`);
@@ -5149,12 +5225,23 @@ function calcAllowanceRateForRatio(fullRate, ratio, customRate = 0) {
 
 function getTab1CategoryCounts() {
   const counts = {};
+  const existingNames = new Set();
+  const reqName = (document.getElementById('travel-requester-name')?.value || '').trim();
+  if (reqName) existingNames.add(reqName);
   const reqCat = document.getElementById('travel-requester-category')?.value || 'teacher';
   counts[reqCat] = (counts[reqCat] || 0) + 1;
   document.querySelectorAll('.travel-traveler-row').forEach(row => {
+    const name = (row.querySelector('.traveler-name')?.value || '').trim();
+    if (name) existingNames.add(name);
     const cat = row.querySelector('.traveler-category')?.value || 'teacher';
     counts[cat] = (counts[cat] || 0) + 1;
   });
+  if (typeof getGovCarDriverInfo === 'function') {
+    const drv = getGovCarDriverInfo();
+    if (drv.includeDriverExpenses && !existingNames.has(drv.driverName)) {
+      counts['driver'] = (counts['driver'] || 0) + 1;
+    }
+  }
   return counts;
 }
 
@@ -5775,6 +5862,12 @@ async function initTravelPage() {
   if (pCarsList) pCarsList.innerHTML = '';
   const govPlateInp = document.getElementById('travel-gov-vehicle-plate');
   if (govPlateInp) govPlateInp.value = '';
+  const drvInp = document.getElementById('travel-vehicle-driver');
+  if (drvInp) drvInp.value = '';
+  const drvSel = document.getElementById('travel-driver-quick-select');
+  if (drvSel) drvSel.value = '';
+  const drvClaim = document.getElementById('travel-driver-claim-expenses');
+  if (drvClaim) drvClaim.checked = true;
   toggleVehicleFields();
 
   // Load staff cache, populate quick select and datalist
@@ -6255,10 +6348,9 @@ window.openEditTravelForm = async (travelId) => {
           window.addTravelerRow(tr.name || '', tr.position || '', trCat);
         });
       }
-      syncTravelExpenseGroups(true);
     }
 
-    // Restore mixed vehicle checkboxes & personal cars list
+    // Restore mixed vehicle checkboxes, driver & personal cars list BEFORE syncing expense groups
     const vTypeStr = String(t.vehicleType || 'public');
     const vTypesArr = Array.isArray(details.vehicleTypes) ? details.vehicleTypes : [];
     const isGovEdit = vTypesArr.includes('gov') || vTypeStr.includes('gov');
@@ -6272,6 +6364,10 @@ window.openEditTravelForm = async (travelId) => {
     if (document.getElementById('travel-gov-vehicle-plate')) {
       document.getElementById('travel-gov-vehicle-plate').value = details.govVehiclePlate || (isGovEdit && !isPersEdit ? (details.vehiclePlate || '') : '');
     }
+    const drvClaimEdit = document.getElementById('travel-driver-claim-expenses');
+    if (drvClaimEdit) drvClaimEdit.checked = details.includeDriverExpenses !== false;
+    const drvQuickEdit = document.getElementById('travel-driver-quick-select');
+    if (drvQuickEdit) drvQuickEdit.value = details.vehicleDriver || '';
     const pCarsEditEl = document.getElementById('travel-personal-cars-list');
     if (pCarsEditEl) {
       pCarsEditEl.innerHTML = '';
@@ -6284,6 +6380,7 @@ window.openEditTravelForm = async (travelId) => {
       }
     }
     toggleVehicleFields();
+    syncTravelExpenseGroups(true);
 
     // Restore allowance group overrides if saved
     if (details.allowance && Array.isArray(details.allowance.breakdown)) {
@@ -6616,8 +6713,9 @@ async function handleTravelSubmit(e) {
     govVehiclePlate,
     personalCars,
     vehiclePlate: (vState.usePersonal && personalCars.length > 0) ? personalCars.map(c => c.plate).filter(Boolean).join(', ') : govVehiclePlate,
-    vehicleDriver: vState.useGov ? (document.getElementById('travel-vehicle-driver')?.value || '') : '',
-    vehicleSupervisor: vState.useGov ? (document.getElementById('travel-vehicle-supervisor')?.value || '') : '',
+    vehicleDriver: vState.useGov ? (document.getElementById('travel-vehicle-driver')?.value?.trim() || '') : '',
+    includeDriverExpenses: getGovCarDriverInfo().includeDriverExpenses,
+    vehicleSupervisor: vState.useGov ? (document.getElementById('travel-vehicle-supervisor')?.value?.trim() || '') : '',
     travelers,
     allowanceDaysList,
     routes,
@@ -6954,8 +7052,12 @@ window.openClearanceModal = (reportId, travelId, budget) => {
     try { reqDetails = JSON.parse(report.travelRequestDetails); } catch(e) {}
   }
 
+  const separateDriverName = (reqDetails && reqDetails.vehicleDriver && reqDetails.includeDriverExpenses !== false) ? String(reqDetails.vehicleDriver).trim() : '';
+  const driverAlreadyInList = separateDriverName && (reporterName.trim() === separateDriverName || travelers.some(t => (t.name || '').trim() === separateDriverName));
+  const hasSeparateDriver = !!separateDriverName && !driverAlreadyInList;
+
   if (reqDetails && (reqDetails.expenseType === 'claim' || reqDetails.expenseType === 'project-claim')) {
-    const pCount = 1 + (reqDetails.travelers ? reqDetails.travelers.length : 0);
+    const pCount = 1 + (reqDetails.travelers ? reqDetails.travelers.length : 0) + (hasSeparateDriver ? 1 : 0);
     
     // Calculate govCarCost & personal car compensation per owner
     let govCarCost = 0;
@@ -7032,6 +7134,12 @@ window.openClearanceModal = (reportId, travelId, budget) => {
       const tPos = t.position || getTravelCategoryLabel(tCat);
       addTravelerClearanceRow(t.name, tPos, tAllow, tRent, tVeh, 0);
     });
+    // 3. Add separate government car driver if claiming expenses
+    if (hasSeparateDriver) {
+      const dAllow = hasAllowBreakdown ? (allowByCat['driver'] ?? accAllow) : accAllow;
+      const dRent = hasRentBreakdown ? (rentByCat['driver'] ?? accRent) : accRent;
+      addTravelerClearanceRow(separateDriverName, 'พนักงานขับรถ', dAllow, dRent, 0, 0);
+    }
   } else {
     // 1. Add main reporter
     addTravelerClearanceRow(reporterName, 'ผู้รายงาน', 0, 0, 0, 0);

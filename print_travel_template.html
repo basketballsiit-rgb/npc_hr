@@ -369,6 +369,14 @@
               </div>
             </div>
 
+            <!-- Row 5b: Gov car driver (shown when driver is specified) -->
+            <div id="memo-driver-row" style="display: none; align-items: center; margin-top: 2px;">
+              <div style="min-width: 260px; flex-shrink: 0;"></div>
+              <div style="display: flex; align-items: center; flex-grow: 1; white-space: nowrap;">
+                พนักงานขับรถยนต์ <span id="memo-driver" class="underline-dotted" style="min-width: 250px; display: inline-block; text-align: center;">............................................................</span>
+              </div>
+            </div>
+
             <!-- Row 6: Personal car -->
             <div style="display: flex; align-items: center; margin-top: 4px;">
               <div style="min-width: 260px; flex-shrink: 0;"></div>
@@ -377,9 +385,8 @@
               </div>
             </div>
 
-            <!-- Hidden placeholders to maintain JS compatibility -->
+            <!-- Hidden placeholder for supervisor compatibility -->
             <div style="display: none;">
-              <span id="memo-driver"></span>
               <span id="memo-supervisor"></span>
             </div>
 
@@ -915,10 +922,19 @@
           staff: 'เจ้าหน้าที่'
         };
         const travelersNames = [];
+        const extractedDrivers = [];
+        const explicitDriver = (details.vehicleDriver || '').trim();
+        if (explicitDriver) extractedDrivers.push(explicitDriver);
         if (details.travelers && details.travelers.length > 0) {
           details.travelers.forEach(tr => {
-            const posLabel = tr.position || (tr.category ? CAT_SHORT_LABELS[tr.category] : '');
-            travelersNames.push(posLabel ? `${tr.name} (${posLabel})` : tr.name);
+            const trName = (tr.name || '').trim();
+            const isDriverRow = tr.category === 'driver' || (tr.position && (tr.position.includes('ขับรถ') || tr.position.includes('พขร')));
+            if (isDriverRow) {
+              if (trName && !extractedDrivers.includes(trName)) extractedDrivers.push(trName);
+            } else if (trName && trName !== explicitDriver) {
+              const posLabel = tr.position || (tr.category ? CAT_SHORT_LABELS[tr.category] : '');
+              travelersNames.push(posLabel ? `${trName} (${posLabel})` : trName);
+            }
           });
         }
         const hasTravelers = travelersNames.length > 0;
@@ -1022,7 +1038,10 @@
         }
         setFieldVal('memo-plate-gov', govPlateDisplay);
         setFieldVal('memo-plate-personal', personalPlateDisplay);
-        setFieldVal('memo-driver', useGovCar ? details.vehicleDriver : '');
+        const driverDisplay = extractedDrivers.join(', ');
+        const driverRowEl = document.getElementById('memo-driver-row');
+        if (driverRowEl) driverRowEl.style.display = driverDisplay ? 'flex' : 'none';
+        setFieldVal('memo-driver', driverDisplay);
         setFieldVal('memo-supervisor', useGovCar ? details.vehicleSupervisor : '');
         
         // Director approval state
@@ -1086,9 +1105,12 @@
         setFieldVal('est-prov-temp', extractThaiProvince(t.destination), '........................................');
         setFieldVal('est-prov-perm', '', '........................................');
 
-        // Render 5 Travelers rows
+        // Render 5 Travelers rows (include separate gov car driver if claiming expenses)
         const travelers = details.travelers || [];
         const allTravelers = [{ name: t.fullName, position: reqPos, category: details.requesterCategory }, ...travelers];
+        if (explicitDriver && details.includeDriverExpenses !== false && !allTravelers.some(x => (x.name || '').trim() === explicitDriver)) {
+          allTravelers.push({ name: explicitDriver, position: 'พนักงานขับรถ', category: 'driver' });
+        }
         for (let i = 1; i <= 5; i++) {
           const tr = allTravelers[i - 1];
           let nameVal = tr ? tr.name : '';
