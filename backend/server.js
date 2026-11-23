@@ -24,7 +24,23 @@ app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 // Serve embedded fonts statically
 app.use('/fonts', express.static(path.join(__dirname, '..', 'fonts')));
 
+// Lightweight health check endpoint (used by frontend auto-recovery and uptime checks)
+app.get('/api/health', (req, res) => {
+  res.json({ ok: true, uptime: Math.floor(process.uptime()), timestamp: new Date().toISOString() });
+});
+
 // --- Helper Functions ---
+
+// Fetch wrapper with timeout so slow external APIs (Google Sheets, LINE, SmartFlow) cannot hang sockets
+async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 // Save Base64 signature image as file
 function saveSignature(base64Data, filename) {
@@ -82,14 +98,14 @@ async function sendLinePushMessage(to, messageText) {
   const payload = { "to": to, "messages": [{ "type": "text", "text": messageText }] };
   
   try {
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
-    });
+    }, 10000);
     const result = await res.json();
     console.log(`LINE Push Message sent to ${to}. Result:`, result);
   } catch (e) {
@@ -113,14 +129,14 @@ async function sendLineFlexMessage(to, flexContent, altText) {
   };
   
   try {
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
-    });
+    }, 10000);
     const result = await res.json();
     console.log(`LINE Flex Message sent to ${to}. Result:`, result);
   } catch (e) {
@@ -378,7 +394,7 @@ app.get('/api/auth/kc-login', (req, res) => {
   // Detect protocol and host
   const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
   const protocol = isHttps ? 'https' : 'http';
-  const host = req.headers['x-forwarded-host'] || req.get('host');
+  const host = req.headers['x-forwarded-host'] || req.get('host') || 'service.npc.ac.th';
 
   // Callback URL on this server
   const redirectUri = host.includes('service.npc.ac.th')
@@ -407,7 +423,7 @@ app.get('/api/auth/kc-callback', async (req, res) => {
   // Detect protocol and host for redirectUri match
   const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
   const protocol = isHttps ? 'https' : 'http';
-  const host = req.headers['x-forwarded-host'] || req.get('host');
+  const host = req.headers['x-forwarded-host'] || req.get('host') || 'service.npc.ac.th';
   const redirectUri = host.includes('service.npc.ac.th')
     ? 'https://service.npc.ac.th/npc_eleve_backend/api/auth/kc-callback'
     : `${protocol}://${host}/api/auth/kc-callback`;
@@ -1117,11 +1133,18 @@ function parseGoogleSheetDate(val) {
 }
 
 // Sync missing leave data from Google Sheets into MySQL
+let isSheetsSyncing = false;
 async function syncLeaveDataFromSheets() {
+  if (isSheetsSyncing) {
+    console.log('[SheetsSync] Skipping overlapping sync run.');
+    return { success: true, skipped: true, insertedLeaves: 0, updatedLeaves: 0 };
+  }
+  isSheetsSyncing = true;
+  try {
   const SPREADSHEET_ID = '1umPxyEeETaaZH35OqRSpJYv215ku1RhI7hZc82_O8sA';
   const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=LeaveData&headers=1`;
   console.log('[SheetsSync] Fetching LeaveData from Google Sheet...');
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url, {}, 20000);
   if (!response.ok) throw new Error(`Google Sheets fetch failed: ${response.statusText}`);
   const text = await response.text();
   const jsonStart = text.indexOf('google.visualization.Query.setResponse(');
@@ -1196,6 +1219,9 @@ async function syncLeaveDataFromSheets() {
 
   console.log(`[SheetsSync] Completed. Inserted: ${insertedCount}, Updated: ${updatedCount}`);
   return { success: true, insertedLeaves: insertedCount, updatedLeaves: updatedCount, totalRows: rows.length, insertedItems };
+  } finally {
+    isSheetsSyncing = false;
+  }
 }
 
 // Endpoint: Manual trigger sync leave data from Google Sheets
@@ -2273,6 +2299,10 @@ app.delete('/api/special-days/:dateKey', async (req, res) => {
     await db.query('DELETE FROM special_days WHERE dateKey = ?', [adDate]);
     await db.query('DELETE FROM holidays WHERE holidayDate = ?', [adDate]);
     res.json({ success: true, message: 'ลบข้อมูลสำเร็จ' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
 
 // Clear/Delete attendance records for a specific date
 app.delete('/api/attendance', async (req, res) => {
@@ -2290,11 +2320,6 @@ app.delete('/api/attendance', async (req, res) => {
     });
   } catch (err) {
     console.error('Error deleting attendance for date:', err);
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-  } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
@@ -3308,7 +3333,7 @@ async function syncTravelLoanToSmartFlow(travelId) {
     const targetUrl = `${SMARTFLOW_API_URL}/travel-loans`;
     console.log(`[SmartFlow Sync] Sending travel loan for ${travelId} to ${targetUrl}...`);
 
-    const res = await fetch(targetUrl, {
+    const res = await fetchWithTimeout(targetUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -3316,7 +3341,7 @@ async function syncTravelLoanToSmartFlow(travelId) {
         'X-API-Key': SMARTFLOW_API_TOKEN
       },
       body: JSON.stringify(payload)
-    });
+    }, 10000);
 
     const resJson = await res.json().catch(() => ({}));
     if (res.ok && resJson.success) {
@@ -3353,7 +3378,7 @@ async function syncTravelClearanceToSmartFlow(clearanceId) {
     const targetUrl = `${SMARTFLOW_API_URL}/travel-loans/clearance`;
     console.log(`[SmartFlow Sync] Sending clearance for ${clearanceId} to ${targetUrl}...`);
 
-    const res = await fetch(targetUrl, {
+    const res = await fetchWithTimeout(targetUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -3361,7 +3386,7 @@ async function syncTravelClearanceToSmartFlow(clearanceId) {
         'X-API-Key': SMARTFLOW_API_TOKEN
       },
       body: JSON.stringify(payload)
-    });
+    }, 10000);
 
     const resJson = await res.json().catch(() => ({}));
     if (res.ok && resJson.success) {
@@ -3443,9 +3468,13 @@ app.post('/api/travel/approve', async (req, res) => {
 
 // Manual trigger for SmartFlow Travel Loan Sync
 app.post('/api/travel/:travelId/smartflow-sync', async (req, res) => {
-  const { travelId } = req.params;
-  const result = await syncTravelLoanToSmartFlow(travelId);
-  res.json(result);
+  try {
+    const { travelId } = req.params;
+    const result = await syncTravelLoanToSmartFlow(travelId);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Check SmartFlow Connectivity Status
@@ -3455,9 +3484,9 @@ const SMARTFLOW_PUBLIC_URL = 'https://service.npc.ac.th/npc_smartflow/api/v1';
 app.get('/api/smartflow/status', async (req, res) => {
   try {
     const pingUrl = `${SMARTFLOW_API_URL}/travel-loans/ping`;
-    const pingRes = await fetch(pingUrl, {
+    const pingRes = await fetchWithTimeout(pingUrl, {
       headers: { 'Authorization': `Bearer ${SMARTFLOW_API_TOKEN}` }
-    });
+    }, 5000);
     const data = await pingRes.json().catch(() => ({}));
     res.json({ online: pingRes.ok, smartflowUrl: SMARTFLOW_PUBLIC_URL, internalUrl: SMARTFLOW_API_URL, response: data });
   } catch (err) {
@@ -3525,9 +3554,13 @@ async function syncAllUsersLineIdToSmartFlow() {
 
 // Endpoint: Manual trigger single user Line ID sync
 app.post('/api/smartflow/sync-user-line', async (req, res) => {
-  const { fullName, lineUserId } = req.body;
-  const result = await syncUserLineIdToSmartFlow(fullName, lineUserId);
-  res.json(result);
+  try {
+    const { fullName, lineUserId } = req.body || {};
+    const result = await syncUserLineIdToSmartFlow(fullName, lineUserId);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Endpoint: Lookup single user Line ID by name or username from npc_eleve
@@ -3592,8 +3625,12 @@ app.get('/api/users/lookup-line', async (req, res) => {
 
 // Endpoint: Bulk sync all users with Line ID to SmartFlow (supports both POST and GET)
 app.all('/api/smartflow/sync-all-line-users', async (req, res) => {
-  const result = await syncAllUsersLineIdToSmartFlow();
-  res.json(result);
+  try {
+    const result = await syncAllUsersLineIdToSmartFlow();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // --- 2. Travel Report APIs ---
@@ -3730,9 +3767,13 @@ app.post('/api/travel-clearance/approve', async (req, res) => {
 
 // Manual trigger for SmartFlow Clearance Sync
 app.post('/api/travel-clearance/:clearanceId/smartflow-sync', async (req, res) => {
-  const { clearanceId } = req.params;
-  const result = await syncTravelClearanceToSmartFlow(clearanceId);
-  res.json(result);
+  try {
+    const { clearanceId } = req.params;
+    const result = await syncTravelClearanceToSmartFlow(clearanceId);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 app.post('/api/training', async (req, res) => {
@@ -3932,13 +3973,24 @@ app.get('/api/activities/participants/:activityId', async (req, res) => {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
-    // Ensure columns support large JSON / base64 images (LONGTEXT)
+    // Ensure columns support large JSON / base64 images (LONGTEXT) without acquiring unnecessary DDL locks on every restart
     try {
-      await db.query(`ALTER TABLE travel_reports MODIFY COLUMN details LONGTEXT NULL`);
-      await db.query(`ALTER TABLE travel_reports MODIFY COLUMN reportDetail LONGTEXT NULL`);
-      await db.query(`ALTER TABLE travel_reports MODIFY COLUMN benefits LONGTEXT NULL`);
-      await db.query(`ALTER TABLE travel_data MODIFY COLUMN details LONGTEXT NULL`);
-      await db.query(`ALTER TABLE travel_clearances MODIFY COLUMN details LONGTEXT NULL`);
+      const longtextTargets = [
+        ['travel_reports', 'details'],
+        ['travel_reports', 'reportDetail'],
+        ['travel_reports', 'benefits'],
+        ['travel_data', 'details'],
+        ['travel_clearances', 'details']
+      ];
+      for (const [tbl, col] of longtextTargets) {
+        const [colRows] = await db.query(
+          `SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+          [tbl, col]
+        );
+        if (colRows.length > 0 && String(colRows[0].DATA_TYPE || '').toLowerCase() !== 'longtext') {
+          await db.query(`ALTER TABLE \`${tbl}\` MODIFY COLUMN \`${col}\` LONGTEXT NULL`);
+        }
+      }
       await db.query(`UPDATE travel_data SET status = 'รับทราบ' WHERE status = 'รอการอนุมัติ'`);
     } catch (alterErr) {
       console.log('Notice on modifying columns to LONGTEXT:', alterErr.message);
@@ -4010,18 +4062,41 @@ app.get('/api/activities/participants/:activityId', async (req, res) => {
   }
 })();
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  repairZeroDaysLeaves();
-  syncOfficialThaiHolidays();
-  syncLeaveDataFromSheets().then(res => {
-    if (res.insertedLeaves > 0) {
-      console.log(`[SheetsSync Auto] Imported ${res.insertedLeaves} missing leave records from Google Sheets.`);
-    }
-  }).catch(err => {
-    console.warn('[SheetsSync Auto] Warning:', err.message);
+// Global Express JSON error handler (prevents uncaught route errors from dropping connections)
+app.use((err, req, res, next) => {
+  console.error('[Express Error]', req.method, req.originalUrl, err && err.stack ? err.stack : err);
+  if (res.headersSent) return next(err);
+  res.status(err && err.status ? err.status : 500).json({
+    success: false,
+    error: err && err.message ? err.message : 'Internal Server Error'
   });
+});
+
+// Process-level stability guards so transient async/network errors do not kill the server into HTTP 502
+process.on('unhandledRejection', (reason) => {
+  console.error('[Process unhandledRejection]', reason && reason.stack ? reason.stack : reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[Process uncaughtException]', err && err.stack ? err.stack : err);
+});
+
+// Start Server
+const server = app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+
+  // Defer startup maintenance jobs slightly so HTTP traffic is served immediately after restart
+  setTimeout(() => {
+    repairZeroDaysLeaves().catch(err => console.warn('[RepairZeroDays] Warning:', err.message));
+    syncOfficialThaiHolidays().catch(err => console.warn('[HolidaysSync] Warning:', err.message));
+    syncLeaveDataFromSheets().then(res => {
+      if (res && res.insertedLeaves > 0) {
+        console.log(`[SheetsSync Auto] Imported ${res.insertedLeaves} missing leave records from Google Sheets.`);
+      }
+    }).catch(err => {
+      console.warn('[SheetsSync Auto] Warning:', err.message);
+    });
+  }, 3000);
 
   // Periodically sync missing leave data from Google Sheets every 5 minutes
   setInterval(() => {
@@ -4034,6 +4109,17 @@ app.listen(PORT, () => {
     });
   }, 5 * 60 * 1000);
 });
+
+// Graceful shutdown for PM2 restarts
+const gracefulShutdown = (signal) => {
+  console.log(`[Process] Received ${signal}, closing HTTP server gracefully...`);
+  server.close(() => {
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(0), 5000).unref();
+};
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 async function repairZeroDaysLeaves() {
   try {

@@ -10,39 +10,81 @@ const API_BASE_URL = window.location.hostname !== 'service.npc.ac.th'
   : 'https://service.npc.ac.th/npc_eleve_backend'; // Replace with your production Node.js API domain
 
 // ---------------------------------------------------------------
-// Global fetch interceptor — converts 502/HTML responses to clear errors
+// Global fetch interceptor — auto-retries transient 502/503/504 & handles banner recovery
 // ---------------------------------------------------------------
 let _serverDown = false;
+let _serverRecoveryTimer = null;
 const originalFetch = window.fetch;
 window.originalFetch = originalFetch;
+
 window.fetch = async function(...args) {
-  try {
-    const res = await originalFetch(...args);
-    const urlStr = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url ? args[0].url : '');
-    
-    // Only intercept API requests to avoid static assets
-    if (urlStr.includes('/api/')) {
-      const contentType = res.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
-        if (res.status >= 500) {
-          showServerDownBanner(res.status);
+  const urlStr = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url ? args[0].url : '');
+  const isApi = urlStr.includes('/api/');
+  const method = ((args[1] && args[1].method) || (args[0] && typeof args[0] === 'object' && args[0].method) || 'GET').toUpperCase();
+  const isBackgroundPoll = urlStr.includes('/api/smartflow/status') || urlStr.includes('/api/health');
+  // Automatically retry idempotent GET requests when backend briefly restarts (502/503/504 or transient network drop)
+  const retryDelays = (isApi && method === 'GET' && !urlStr.includes('/api/health')) ? [1200, 2200, 3200] : [];
+
+  for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
+    try {
+      const res = await originalFetch(...args);
+
+      if (isApi) {
+        const contentType = res.headers.get('content-type') || '';
+        const isTransientGateway = res.status === 502 || res.status === 503 || res.status === 504;
+        const isNonJsonError = !contentType.includes('application/json');
+
+        if (isNonJsonError || isTransientGateway) {
+          if ((isTransientGateway || res.status >= 500) && attempt < retryDelays.length) {
+            await new Promise(r => setTimeout(r, retryDelays[attempt]));
+            continue;
+          }
+          if (res.status >= 500 && !isBackgroundPoll) {
+            showServerDownBanner(res.status);
+          }
+          throw new Error(`เซิร์ฟเวอร์ไม่พร้อมใช้งาน (HTTP ${res.status}) — กรุณาลองใหม่อีกครั้งในภายหลัง`);
         }
-        throw new Error(`เซิร์ฟเวอร์ไม่พร้อมใช้งาน (HTTP ${res.status}) — กรุณาลองใหม่อีกครั้งในภายหลัง`);
+
+        if (_serverDown && res.ok) {
+          hideServerDownBanner();
+        }
       }
-      if (!_serverDown && res.ok) hideServerDownBanner();
-    }
-    return res;
-  } catch (err) {
-    const urlStr = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url ? args[0].url : '');
-    if (urlStr.includes('/api/')) {
-      if (err.name === 'TypeError') {
-        showServerDownBanner(0);
+      return res;
+    } catch (err) {
+      if (isApi && err.name === 'TypeError') {
+        if (attempt < retryDelays.length) {
+          await new Promise(r => setTimeout(r, retryDelays[attempt]));
+          continue;
+        }
+        if (!isBackgroundPoll) {
+          showServerDownBanner(0);
+        }
         throw new Error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ — กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต');
       }
+      throw err;
     }
-    throw err;
   }
 };
+
+function startServerRecoveryCheck() {
+  if (_serverRecoveryTimer) return;
+  _serverRecoveryTimer = setInterval(async () => {
+    if (!_serverDown) {
+      clearInterval(_serverRecoveryTimer);
+      _serverRecoveryTimer = null;
+      return;
+    }
+    try {
+      const res = await originalFetch(`${API_BASE_URL}/api/health`, { cache: 'no-store' });
+      const ct = res.headers.get('content-type') || '';
+      if (res.ok && ct.includes('application/json')) {
+        hideServerDownBanner();
+      }
+    } catch (_) {
+      // Still restarting; check again on next interval
+    }
+  }, 5000);
+}
 
 function showServerDownBanner(code) {
   if (_serverDown) return;
@@ -52,14 +94,19 @@ function showServerDownBanner(code) {
     banner = document.createElement('div');
     banner.id = 'server-down-banner';
     banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#dc2626;color:#fff;text-align:center;padding:10px 16px;font-size:0.88rem;font-weight:600;display:flex;justify-content:center;align-items:center;gap:12px;';
-    banner.innerHTML = `⚠️ ระบบหลังบ้านไม่พร้อมใช้งาน${code ? ' (HTTP ' + code + ')' : ''} — กรุณารอสักครู่แล้วรีเฟรชหน้าใหม่
+    banner.innerHTML = `⚠️ ระบบหลังบ้านกำลังรีสตาร์ทหรือไม่พร้อมใช้งาน${code ? ' (HTTP ' + code + ')' : ''} — ระบบกำลังเชื่อมต่อใหม่อัตโนมัติ
       <button onclick="location.reload()" style="background:#fff;color:#dc2626;border:none;border-radius:4px;padding:4px 12px;cursor:pointer;font-weight:700;margin-left:8px;">🔄 รีเฟรช</button>`;
     document.body.prepend(banner);
   }
+  startServerRecoveryCheck();
 }
 
 function hideServerDownBanner() {
   _serverDown = false;
+  if (_serverRecoveryTimer) {
+    clearInterval(_serverRecoveryTimer);
+    _serverRecoveryTimer = null;
+  }
   const banner = document.getElementById('server-down-banner');
   if (banner) banner.remove();
 }
@@ -401,9 +448,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     Swal.close();
   } catch (err) {
-    showError("เกิดข้อผิดพลาดในการเชื่อมต่อหลังบ้าน: " + err.message);
-    updateUIAfterLogout();
-    loadDashboardData();
+    const storedUser = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
+    if (storedUser) {
+      try {
+        currentUser = JSON.parse(storedUser);
+        updateUIAfterLogin();
+      } catch (_) {
+        updateUIAfterLogout();
+      }
+    } else {
+      updateUIAfterLogout();
+    }
+    Swal.fire({
+      icon: 'error',
+      title: 'เชื่อมต่อระบบหลังบ้านไม่สำเร็จ',
+      text: err.message || 'เซิร์ฟเวอร์ไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่อีกครั้ง',
+      confirmButtonText: 'ลองเชื่อมต่อใหม่',
+      showCancelButton: true,
+      cancelButtonText: 'ปิด',
+      confirmButtonColor: '#4f46e5'
+    }).then((result) => {
+      if (result.isConfirmed) location.reload();
+    });
   }
 });
 

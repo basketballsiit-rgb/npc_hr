@@ -32,5 +32,11 @@ jobs:
             git pull origin main
             npm install
           fi
-          pm2 restart all || pm2 restart npc_hr || pm2 start backend/server.js --name npc_hr
+          if pm2 describe npc_hr >/dev/null 2>&1; then
+            pm2 restart npc_hr
+          elif pm2 describe npc_eleve_backend >/dev/null 2>&1; then
+            pm2 restart npc_eleve_backend
+          else
+            pm2 restart all || pm2 start backend/server.js --name npc_hr
+          fi
           pm2 save
