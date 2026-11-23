@@ -32,10 +32,11 @@ jobs:
             git pull origin main
             npm install
           fi
-          if pm2 describe npc_hr >/dev/null 2>&1; then
-            pm2 restart npc_hr
-          elif pm2 describe npc_eleve_backend >/dev/null 2>&1; then
-            pm2 restart npc_eleve_backend
+          TARGET_IDS=$(pm2 jlist 2>/dev/null | node -e "const fs=require('fs'); try{ const list=JSON.parse(fs.readFileSync(0,'utf8')); const ids=list.filter(p=>/npc_hr|npc_eleve|eleve/i.test((p.name||'')+' '+(p.pm2_env&&p.pm2_env.pm_exec_path||''))).map(p=>p.pm_id); console.log(ids.join(' ')); }catch(e){}")
+          if [ -n "$TARGET_IDS" ]; then
+            for id in $TARGET_IDS; do
+              pm2 restart "$id"
+            done
           else
             pm2 restart all || pm2 start backend/server.js --name npc_hr
           fi
