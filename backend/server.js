@@ -2082,12 +2082,24 @@ app.get('/api/dashboard', async (req, res) => {
   }
 });
 
+// Default Travel Expense Rates by Position Category
+const DEFAULT_TRAVEL_EXPENSE_RATES = {
+  executive: { label: 'ผู้บริหาร', allowanceRate: 270, lodgingLumpSum: 1200, lodgingActualMax: 2200 },
+  teacher: { label: 'ข้าราชการครู/พนักงานราชการครู/ครูพิเศษสอน', allowanceRate: 240, lodgingLumpSum: 800, lodgingActualMax: 1500 },
+  student: { label: 'นักเรียน/นักศึกษา', allowanceRate: 150, lodgingLumpSum: 500, lodgingActualMax: 600 },
+  driver: { label: 'พนักงานขับรถ', allowanceRate: 240, lodgingLumpSum: 800, lodgingActualMax: 1500 },
+  staff: { label: 'เจ้าหน้าที่', allowanceRate: 240, lodgingLumpSum: 800, lodgingActualMax: 1500 }
+};
+
 // 5. Settings Routes
 app.get('/api/settings', async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM settings');
     const settingsObj = {};
     rows.forEach(r => settingsObj[r.settingKey] = r.settingValue);
+    if (!settingsObj.travel_expense_rates) {
+      settingsObj.travel_expense_rates = JSON.stringify(DEFAULT_TRAVEL_EXPENSE_RATES);
+    }
     res.json(settingsObj);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -2098,9 +2110,10 @@ app.post('/api/settings', async (req, res) => {
   const settingsData = req.body; // Key-Value pair object
   try {
     for (const [key, val] of Object.entries(settingsData)) {
+      const strVal = (val !== null && typeof val === 'object') ? JSON.stringify(val) : String(val);
       await db.query(
         'INSERT INTO settings (settingKey, settingValue) VALUES (?, ?) ON DUPLICATE KEY UPDATE settingValue = ?',
-        [key, String(val), String(val)]
+        [key, strVal, strVal]
       );
     }
     res.json({ success: true, message: 'บันทึกการตั้งค่าสำเร็จ' });

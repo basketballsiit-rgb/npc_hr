@@ -661,8 +661,8 @@
             <td style="border: 1px solid #000; padding: 4px; text-align: left; vertical-align: top;">
               <div>ค่าเบี้ยเลี้ยงในการเดินทาง</div>
               <div id="est-allowance-calc" style="font-size: 15pt; margin-top: 2px;">อัตราเบี้ยเลี้ยง x จำนวนวัน</div>
-              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
-              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
+              <div class="est-allowance-dots" style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
+              <div class="est-allowance-dots" style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
             </td>
             <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
             <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
@@ -675,8 +675,8 @@
             <td style="border: 1px solid #000; padding: 4px; text-align: left; vertical-align: top;">
               <div>ค่าเช่าที่พัก</div>
               <div id="est-rent-calc" style="font-size: 15pt; margin-top: 2px;">อัตราค่าเช่าที่พัก x จำนวนวัน</div>
-              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
-              <div style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
+              <div class="est-rent-dots" style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
+              <div class="est-rent-dots" style="margin-top: 2px; font-size: 15pt;">......................................................................................</div>
             </td>
             <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
             <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;"></td>
@@ -906,11 +906,19 @@
         // Optional document number ("ที่")
         setFieldVal('memo-doc-no', t.docNo || '');
 
-        // Co-travelers list
+        // Co-travelers list (include position e.g. นักเรียน/นักศึกษา, พนักงานขับรถ)
+        const CAT_SHORT_LABELS = {
+          executive: 'ผู้บริหาร',
+          teacher: 'ครู',
+          student: 'นักเรียน/นักศึกษา',
+          driver: 'พนักงานขับรถ',
+          staff: 'เจ้าหน้าที่'
+        };
         const travelersNames = [];
         if (details.travelers && details.travelers.length > 0) {
           details.travelers.forEach(tr => {
-            travelersNames.push(tr.name);
+            const posLabel = tr.position || (tr.category ? CAT_SHORT_LABELS[tr.category] : '');
+            travelersNames.push(posLabel ? `${tr.name} (${posLabel})` : tr.name);
           });
         }
         const hasTravelers = travelersNames.length > 0;
@@ -1064,11 +1072,11 @@
 
         // Render 5 Travelers rows
         const travelers = details.travelers || [];
-        const allTravelers = [{ name: t.fullName, position: reqPos }, ...travelers];
+        const allTravelers = [{ name: t.fullName, position: reqPos, category: details.requesterCategory }, ...travelers];
         for (let i = 1; i <= 5; i++) {
           const tr = allTravelers[i - 1];
           let nameVal = tr ? tr.name : '';
-          const posVal = tr ? (tr.position || 'ครู') : '';
+          const posVal = tr ? (tr.position || (tr.category ? CAT_SHORT_LABELS[tr.category] : '') || 'ครู') : '';
           
           if (i === 5 && allTravelers.length > 5) {
             nameVal = nameVal ? nameVal + ' ฯลฯ' : '';
@@ -1097,57 +1105,109 @@
         let displayBudget = parseFloat(t.budget) > 0 ? parseFloat(t.budget) : estTotalPage2;
 
         const peopleCount = 1 + (details.travelers ? details.travelers.length : 0);
+        const fmtShortNum = (n) => {
+          const v = Math.round((parseFloat(n) || 0) * 100) / 100;
+          return Number.isInteger(v) ? v.toLocaleString('en-US') : v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        };
         
-        // Allowance calculation text
-        let allowanceText = '';
-        const allowanceDays = details.allowance ? details.allowance.days : 0;
-        const allowanceRateVal = details.allowance ? details.allowance.rate : 0;
-        if (details.allowanceDaysList && details.allowanceDaysList.length > 0) {
-          const rateGroups = {};
-          details.allowanceDaysList.forEach(item => {
-            const r = item.rate;
-            rateGroups[r] = (rateGroups[r] || 0) + 1;
-          });
-          const groupTexts = Object.keys(rateGroups).map(rate => {
-            const days = rateGroups[rate];
-            return `(${peopleCount} คน x ${rate} บาท x ${days} วัน)`;
-          });
-          allowanceText = groupTexts.join(' + ');
+        // Allowance calculation text (supports multi-position breakdown)
+        let allowanceHtml = '';
+        let allowLineCount = 1;
+        const allowBreakdown = (details.allowance && Array.isArray(details.allowance.breakdown))
+          ? details.allowance.breakdown.filter(b => (parseFloat(b.people) || 0) > 0 && (parseFloat(b.total) || 0) > 0)
+          : [];
+
+        if (allowBreakdown.length > 0) {
+          allowLineCount = allowBreakdown.length;
+          if (allowBreakdown.length === 1) {
+            const b = allowBreakdown[0];
+            const lbl = CAT_SHORT_LABELS[b.category] || b.label || '';
+            allowanceHtml = `อัตราเบี้ยเลี้ยง (${lbl} ${b.people} คน : ${b.daySummary || `${fmtShortNum(b.fullRate)} บ.`})`;
+          } else {
+            allowanceHtml = allowBreakdown.map(b => {
+              const lbl = CAT_SHORT_LABELS[b.category] || b.label || '';
+              return `<div>• ${lbl} (${b.people} คน): ${b.daySummary || `${fmtShortNum(b.fullRate)} บ.`} = ${fmtShortNum(b.total)} บ.</div>`;
+            }).join('');
+          }
+        } else if (details.allowance && Array.isArray(details.allowance.breakdown)) {
+          allowanceHtml = 'อัตราเบี้ยเลี้ยง (ไม่ขอเบิกค่าเบี้ยเลี้ยง)';
         } else {
-          let fallbackRate = allowanceRateVal || (allowanceDays ? Math.round(displayAllowance / (allowanceDays * peopleCount)) : 0);
-          let inferredPeople = peopleCount;
-          let inferredDays = allowanceDays || 1;
-          
-          // Smart inference for older records with empty travelers array
-          if (displayAllowance > 0) {
-            const possibleRates = [240, 160, 80];
-            for (let r of possibleRates) {
-              if (displayAllowance % r === 0) {
-                const peopleDaysProduct = displayAllowance / r;
-                const sDate = new Date(t.startDate);
-                const eDate = new Date(t.endDate);
-                const durationDays = Math.ceil(Math.abs(eDate - sDate) / (1000 * 60 * 60 * 24)) + 1;
-                
-                if (peopleDaysProduct <= durationDays) {
-                  inferredPeople = 1;
-                  inferredDays = peopleDaysProduct;
-                } else {
-                  inferredDays = durationDays;
-                  inferredPeople = Math.round(peopleDaysProduct / durationDays);
+          let allowanceText = '';
+          const allowanceDays = details.allowance ? details.allowance.days : 0;
+          const allowanceRateVal = details.allowance ? details.allowance.rate : 0;
+          if (details.allowanceDaysList && details.allowanceDaysList.length > 0) {
+            const rateGroups = {};
+            details.allowanceDaysList.forEach(item => {
+              const r = item.rate;
+              rateGroups[r] = (rateGroups[r] || 0) + 1;
+            });
+            const groupTexts = Object.keys(rateGroups).map(rate => {
+              const days = rateGroups[rate];
+              return `(${peopleCount} คน x ${rate} บาท x ${days} วัน)`;
+            });
+            allowanceText = groupTexts.join(' + ');
+          } else {
+            let fallbackRate = allowanceRateVal || (allowanceDays ? Math.round(displayAllowance / (allowanceDays * peopleCount)) : 0);
+            let inferredPeople = peopleCount;
+            let inferredDays = allowanceDays || 1;
+            if (displayAllowance > 0) {
+              const possibleRates = [270, 240, 160, 150, 80];
+              for (let r of possibleRates) {
+                if (displayAllowance % r === 0) {
+                  const peopleDaysProduct = displayAllowance / r;
+                  const sDate = new Date(t.startDate);
+                  const eDate = new Date(t.endDate);
+                  const durationDays = Math.ceil(Math.abs(eDate - sDate) / (1000 * 60 * 60 * 24)) + 1;
+                  if (peopleDaysProduct <= durationDays) {
+                    inferredPeople = 1;
+                    inferredDays = peopleDaysProduct;
+                  } else {
+                    inferredDays = durationDays;
+                    inferredPeople = Math.round(peopleDaysProduct / durationDays);
+                  }
+                  fallbackRate = r;
+                  break;
                 }
-                fallbackRate = r;
-                break;
               }
             }
+            allowanceText = `(${inferredPeople} คน x ${fallbackRate} บาท x ${inferredDays} วัน)`;
           }
-          allowanceText = `(${inferredPeople} คน x ${fallbackRate} บาท x ${inferredDays} วัน)`;
+          allowanceHtml = `อัตราเบี้ยเลี้ยง ${allowanceText}`;
         }
 
-        // Rent calculation text
-        const rentDays = details.rent ? details.rent.days : 0;
-        const rentRateVal = details.rent ? details.rent.rate : 0;
-        const rentRate = rentRateVal || (rentDays ? Math.round(displayRent / (rentDays * peopleCount)) : 0);
-        const rentText = `(${peopleCount} คน x ${rentRate} บาท x ${rentDays} วัน)`;
+        // Rent calculation text (supports multi-position breakdown + lump_sum/actual mode)
+        let rentHtml = '';
+        let rentRemark = '-';
+        let rentLineCount = 1;
+        const rentBreakdown = (details.rent && Array.isArray(details.rent.breakdown))
+          ? details.rent.breakdown.filter(b => (parseFloat(b.people) || 0) > 0 && (parseFloat(b.nights) || 0) > 0 && (parseFloat(b.total) || 0) > 0)
+          : [];
+
+        if (rentBreakdown.length > 0) {
+          rentLineCount = rentBreakdown.length;
+          const modeLabels = [...new Set(rentBreakdown.map(b => b.modeLabel || (b.mode === 'actual' ? 'จ่ายตามจริง' : 'เหมาจ่าย')))];
+          rentRemark = modeLabels.join(' / ');
+          if (rentBreakdown.length === 1) {
+            const b = rentBreakdown[0];
+            const lbl = CAT_SHORT_LABELS[b.category] || b.label || '';
+            const mLbl = b.modeLabel || (b.mode === 'actual' ? 'จ่ายตามจริง' : 'เหมาจ่าย');
+            rentHtml = `อัตราค่าเช่าที่พัก [${mLbl}] (${lbl} ${b.people} คน x ${fmtShortNum(b.rate)} บาท x ${b.nights} คืน)`;
+          } else {
+            rentHtml = rentBreakdown.map(b => {
+              const lbl = CAT_SHORT_LABELS[b.category] || b.label || '';
+              const mLbl = b.modeLabel || (b.mode === 'actual' ? 'จ่ายตามจริง' : 'เหมาจ่าย');
+              return `<div>• ${lbl} [${mLbl}]: ${b.people} คน x ${fmtShortNum(b.rate)} บ. x ${b.nights} คืน = ${fmtShortNum(b.total)} บ.</div>`;
+            }).join('');
+          }
+        } else if (details.rent && Array.isArray(details.rent.breakdown)) {
+          rentHtml = 'อัตราค่าเช่าที่พัก (ไม่ขอเบิกค่าที่พัก)';
+          rentRemark = '-';
+        } else {
+          const rentDays = details.rent ? details.rent.days : 0;
+          const rentRateVal = details.rent ? details.rent.rate : 0;
+          const rentRate = rentRateVal || (rentDays ? Math.round(displayRent / (rentDays * peopleCount)) : 0);
+          rentHtml = `อัตราค่าเช่าที่พัก (${peopleCount} คน x ${rentRate} บาท x ${rentDays} วัน)`;
+        }
 
         const isNoClaim = !details.expenseType || details.expenseType === 'no-claim' || details.expenseType === 'no-claim-origin';
 
@@ -1167,8 +1227,25 @@
           document.getElementById('est-remark-rent').textContent = remarkText;
           document.getElementById('est-remark-other').textContent = remarkText;
         } else {
-          document.getElementById('est-allowance-calc').textContent = `อัตราเบี้ยเลี้ยง ${allowanceText}`;
-          document.getElementById('est-rent-calc').textContent = `อัตราค่าเช่าที่พัก ${rentText}`;
+          const allowCalcEl = document.getElementById('est-allowance-calc');
+          const rentCalcEl = document.getElementById('est-rent-calc');
+          allowCalcEl.innerHTML = allowanceHtml;
+          rentCalcEl.innerHTML = rentHtml;
+          if (allowLineCount >= 3) {
+            allowCalcEl.style.fontSize = '13.5pt';
+            allowCalcEl.style.lineHeight = '1.2';
+          }
+          if (rentLineCount >= 3) {
+            rentCalcEl.style.fontSize = '13.5pt';
+            rentCalcEl.style.lineHeight = '1.2';
+          }
+          // Hide extra dotted lines when breakdown spans multiple lines so A4 stays clean
+          document.querySelectorAll('.est-allowance-dots').forEach((el, idx) => {
+            if (allowLineCount >= 3 || (allowLineCount === 2 && idx === 1)) el.style.display = 'none';
+          });
+          document.querySelectorAll('.est-rent-dots').forEach((el, idx) => {
+            if (rentLineCount >= 3 || (rentLineCount === 2 && idx === 1)) el.style.display = 'none';
+          });
 
           document.getElementById('est-amount-vehicle').textContent = parseFloat(displayVehicle).toLocaleString('en-US', { minimumFractionDigits: 2 });
           document.getElementById('est-amount-allowance').textContent = parseFloat(displayAllowance).toLocaleString('en-US', { minimumFractionDigits: 2 });
@@ -1178,7 +1255,7 @@
           
           document.getElementById('est-remark-vehicle').textContent = '-';
           document.getElementById('est-remark-allowance').textContent = '-';
-          document.getElementById('est-remark-rent').textContent = '-';
+          document.getElementById('est-remark-rent').textContent = rentRemark;
           
           let otherText = '';
           if (govCarCost > 0) {

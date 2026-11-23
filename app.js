@@ -203,6 +203,8 @@ async function enterModule(pageId, adminOnly) {
     loadUserManagementPage();
   } else if (pageId === 'admin-settings-page') {
     loadAdminSettingsPage();
+  } else if (pageId === 'travel-rates-settings-page') {
+    loadTravelRatesSettingsPage();
   }
 }
 
@@ -392,7 +394,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const targetPage = urlParams.get('page');
     if (targetPage) {
-      const isAdminPage = ['approval-page', 'user-management-page', 'admin-settings-page'].includes(targetPage);
+      const isAdminPage = ['approval-page', 'user-management-page', 'admin-settings-page', 'travel-rates-settings-page'].includes(targetPage);
       enterModule(targetPage, isAdminPage);
     } else {
       loadDashboardData();
@@ -873,7 +875,8 @@ function buildNavigation() {
         { text: 'พิจารณาอนุมัติการลา', icon: '⚖️', page: 'approval-page', action: loadApprovalPage },
         { text: 'รายงานสรุปการลา', icon: '📊', page: 'report-page', action: loadReportPage },
         { text: 'จัดการผู้ใช้งาน', icon: '⚙️', page: 'user-management-page', action: loadUserManagementPage },
-        { text: 'ตั้งค่าปีงบประมาณ', icon: '🔧', page: 'admin-settings-page', action: loadAdminSettingsPage }
+        { text: 'ตั้งค่าปีงบประมาณ', icon: '🔧', page: 'admin-settings-page', action: loadAdminSettingsPage },
+        { text: 'ตั้งค่าเบี้ยเลี้ยง/ค่าที่พัก', icon: '💰', page: 'travel-rates-settings-page', action: loadTravelRatesSettingsPage }
       );
     }
   }
@@ -886,7 +889,7 @@ function buildNavigation() {
   }
 
   sidebarItems.forEach(item => {
-    const isAdminOnly = ['attendance-page', 'approval-page', 'report-page', 'user-management-page', 'admin-settings-page'].includes(item.page);
+    const isAdminOnly = ['attendance-page', 'approval-page', 'report-page', 'user-management-page', 'admin-settings-page', 'travel-rates-settings-page'].includes(item.page);
     const dLink = document.createElement('a');
     dLink.innerHTML = `<span style="font-size: 1.15rem; width: 24px; text-align: center;">${item.icon}</span> <span>${item.text}</span>`;
     dLink.className = 'nav-link';
@@ -905,7 +908,7 @@ function buildNavigation() {
   // Mobile Nav fallback if present
   if (mobileNav) {
     menuItems.forEach(item => {
-      const isAdminOnly = ['attendance-page', 'approval-page', 'report-page', 'user-management-page', 'admin-settings-page'].includes(item.page);
+      const isAdminOnly = ['attendance-page', 'approval-page', 'report-page', 'user-management-page', 'admin-settings-page', 'travel-rates-settings-page'].includes(item.page);
       const mLink = document.createElement('a');
       mLink.innerHTML = `<span style="font-size: 1.15rem; width: 24px; text-align: center;">${item.icon}</span> <span>${item.text}</span>`;
       mLink.className = 'nav-link';
@@ -942,7 +945,7 @@ function buildNavigation() {
       
       // Add same navigation items into user dropdown for convenience
       menuItems.slice(1).forEach(item => {
-        const isAdminOnly = ['attendance-page', 'approval-page', 'report-page', 'user-management-page', 'admin-settings-page'].includes(item.page);
+        const isAdminOnly = ['attendance-page', 'approval-page', 'report-page', 'user-management-page', 'admin-settings-page', 'travel-rates-settings-page'].includes(item.page);
         const dropLink = document.createElement('button');
         dropLink.className = 'user-dropdown-item';
         dropLink.innerHTML = `<span style="margin-right: 8px;">${item.icon}</span> ${item.text}`;
@@ -3927,7 +3930,7 @@ function syncAllowanceDaysToRange() {
         blankRow.value = dateStr;
       } else {
         if (typeof addAllowanceDay === 'function') {
-          addAllowanceDay(240, dateStr);
+          addAllowanceDay('1', dateStr);
         }
       }
     }
@@ -3953,9 +3956,13 @@ function calculateTravelDays() {
       const diffTime = Math.abs(eDate - sDate);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
       
+      const nightsCount = Math.max(0, diffDays - 1);
       if (daysInput) daysInput.value = diffDays;
       if (allowanceDays) allowanceDays.value = diffDays;
-      if (rentDays) rentDays.value = Math.max(0, diffDays - 1);
+      if (rentDays) rentDays.value = nightsCount;
+      if (typeof onGlobalRentNightsChange === 'function') {
+        onGlobalRentNightsChange(nightsCount);
+      }
       
       // Auto sync daily allowance rows
       syncAllowanceDaysToRange();
@@ -4104,6 +4111,7 @@ function populateTravelQuickSelect() {
       opt.value = u.userId;
       opt.setAttribute('data-name', u.fullName);
       opt.setAttribute('data-position', u.position || '');
+      opt.setAttribute('data-staff-type', u.staffType || '');
       opt.textContent = `${u.fullName}${posStr}`;
       sel.appendChild(opt);
     });
@@ -4116,6 +4124,7 @@ window.onQuickSelectStaff = (selectElem) => {
   const opt = selectElem.options[selectElem.selectedIndex];
   const name = opt.getAttribute('data-name') || '';
   const pos = opt.getAttribute('data-position') || '';
+  const staffType = opt.getAttribute('data-staff-type') || '';
 
   // Check if currentUser themselves
   if (currentUser && (String(currentUser.userId) === String(userId) || (currentUser.fullName && currentUser.fullName.trim() === name.trim()))) {
@@ -4148,7 +4157,8 @@ window.onQuickSelectStaff = (selectElem) => {
     return;
   }
 
-  window.addTravelerRow(name, pos);
+  const cat = inferTravelerCategory(pos, staffType);
+  window.addTravelerRow(name, pos, cat);
   selectElem.value = '';
 };
 
@@ -4156,33 +4166,79 @@ window.onTravelerNameInput = (inputElem) => {
   const row = inputElem.closest('.travel-traveler-row');
   if (!row) return;
   const posInput = row.querySelector('.traveler-position');
+  const catSelect = row.querySelector('.traveler-category');
   const val = (inputElem.value || '').trim();
   if (!val || !_allStaffCache) return;
   
   const matched = _allStaffCache.find(u => u && u.fullName && u.fullName.trim() === val);
-  if (matched && posInput) {
-    posInput.value = matched.position || '';
+  if (matched) {
+    if (posInput) posInput.value = matched.position || '';
+    if (catSelect) {
+      catSelect.value = inferTravelerCategory(matched.position || '', matched.staffType || '');
+      syncTravelExpenseGroups();
+    }
   }
 };
 
-window.addTravelerRow = (name = '', position = '') => {
+window.onTravelerPositionInput = (inputElem) => {
+  const row = inputElem.closest('.travel-traveler-row');
+  if (!row) return;
+  const catSelect = row.querySelector('.traveler-category');
+  if (!catSelect || catSelect.dataset.manualCat === '1') return;
+  const posVal = (inputElem.value || '').trim();
+  if (!posVal) return;
+  const inferred = inferTravelerCategory(posVal, '');
+  if (catSelect.value !== inferred) {
+    catSelect.value = inferred;
+    syncTravelExpenseGroups();
+  }
+};
+
+window.onTravelerCategoryChange = (selectElem) => {
+  selectElem.dataset.manualCat = '1';
+  const row = selectElem.closest('.travel-traveler-row');
+  if (row) {
+    const posInput = row.querySelector('.traveler-position');
+    const catInfo = TRAVEL_POSITION_CATEGORIES.find(x => x.key === selectElem.value);
+    const defaultPositions = TRAVEL_POSITION_CATEGORIES.map(x => x.defaultPosition).concat(TRAVEL_POSITION_CATEGORIES.map(x => x.label));
+    if (posInput && catInfo && (!posInput.value.trim() || defaultPositions.includes(posInput.value.trim()))) {
+      posInput.value = catInfo.defaultPosition;
+    }
+  }
+  syncTravelExpenseGroups();
+};
+
+window.onTravelerCategoryChanged = () => {
+  syncTravelExpenseGroups();
+};
+
+window.addTravelerRow = (name = '', position = '', category = '', focusName = false) => {
   const container = document.getElementById('travel-accompanied-list');
   if (!container) return;
   
+  const resolvedCat = category || (position ? inferTravelerCategory(position, '') : 'teacher');
+  const catOptionsHtml = TRAVEL_POSITION_CATEGORIES.map(cat =>
+    `<option value="${cat.key}" ${cat.key === resolvedCat ? 'selected' : ''}>${escapeHtml(cat.label)}</option>`
+  ).join('');
+
   const div = document.createElement('div');
   div.className = 'travel-traveler-row';
-  div.style.display = 'flex';
-  div.style.gap = '10px';
-  div.style.alignItems = 'center';
-  div.style.marginTop = '8px';
+  div.style.cssText = 'display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:6px; background:#fff; padding:8px; border:1px solid #e2e8f0; border-radius:7px;';
   
   div.innerHTML = `
-    <input type="text" list="travel-staff-datalist" class="form-input traveler-name" placeholder="ชื่อ-นามสกุล (พิมพ์เอง หรือเลือกจากรายชื่อ)..." value="${escapeHtml(name)}" oninput="onTravelerNameInput(this)" autocomplete="off" style="flex-grow: 1;">
-    <input type="text" class="form-input traveler-position" placeholder="ตำแหน่ง..." value="${escapeHtml(position)}" style="width: 220px;">
-    <button type="button" class="btn btn-outline btn-sm" onclick="removeTravelerRow(this)" style="padding: 10px; border-color:var(--danger); color:var(--danger); border-radius:6px; min-width:40px;" title="ลบผู้ร่วมเดินทาง">❌</button>
+    <input type="text" list="travel-staff-datalist" class="form-input traveler-name" placeholder="ชื่อ-นามสกุล (พิมพ์เอง หรือเลือกจากรายชื่อ)..." value="${escapeHtml(name)}" oninput="onTravelerNameInput(this)" autocomplete="off" style="flex: 2 1 200px; font-size:0.88rem; padding:7px 10px;">
+    <input type="text" class="form-input traveler-position" placeholder="ระบุตำแหน่ง (เช่น ครู, นักเรียน ปวช.2, พนักงานขับรถ)..." value="${escapeHtml(position)}" oninput="onTravelerPositionInput(this)" style="flex: 1.3 1 170px; font-size:0.88rem; padding:7px 10px;">
+    <select class="form-input traveler-category" onchange="onTravelerCategoryChange(this)" ${category ? 'data-manual-cat="1"' : ''} title="ประเภทตำแหน่งสำหรับคำนวณเบี้ยเลี้ยงและค่าที่พัก" style="flex: 1.4 1 190px; font-size:0.84rem; padding:7px 8px; background:#f8fafc; border-color:#cbd5e1;">
+      ${catOptionsHtml}
+    </select>
+    <button type="button" class="btn btn-outline btn-sm" onclick="removeTravelerRow(this)" style="padding: 7px 10px; border-color:var(--danger); color:var(--danger); border-radius:6px; min-width:38px;" title="ลบผู้ร่วมเดินทาง">❌</button>
   `;
   container.appendChild(div);
   updateTravelersCount();
+  if (focusName) {
+    const nameEl = div.querySelector('.traveler-name');
+    if (nameEl) nameEl.focus();
+  }
 };
 
 window.removeTravelerRow = (button) => {
@@ -4212,7 +4268,7 @@ window.openStaffSelectionModal = async () => {
     
     return `
       <label class="staff-modal-item" style="display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid #f1f5f9; cursor:${isMe ? 'not-allowed' : 'pointer'}; background:${isChecked ? '#f0fdf4' : '#ffffff'}; transition: background 0.15s ease;">
-        <input type="checkbox" class="staff-modal-checkbox" value="${u.userId}" data-name="${escapeHtml(u.fullName)}" data-position="${escapeHtml(u.position || '')}" ${isChecked ? 'checked' : ''} ${disabledAttr} style="width:18px; height:18px; accent-color:#0284c7; cursor:pointer;" onchange="this.closest('.staff-modal-item').style.background = this.checked ? '#f0fdf4' : '#ffffff';">
+        <input type="checkbox" class="staff-modal-checkbox" value="${u.userId}" data-name="${escapeHtml(u.fullName)}" data-position="${escapeHtml(u.position || '')}" data-staff-type="${escapeHtml(u.staffType || '')}" ${isChecked ? 'checked' : ''} ${disabledAttr} style="width:18px; height:18px; accent-color:#0284c7; cursor:pointer;" onchange="this.closest('.staff-modal-item').style.background = this.checked ? '#f0fdf4' : '#ffffff';">
         <div style="text-align:left; flex:1;">
           <div style="font-weight:600; color:#1e293b; font-size:0.9rem;">${escapeHtml(u.fullName)} ${badgeText}</div>
           <div style="font-size:0.8rem; color:#64748b; margin-top:2px;">${escapeHtml(u.position || 'บุคลากร')} ${u.staffType ? `• ${escapeHtml(u.staffType)}` : ''}</div>
@@ -4253,7 +4309,8 @@ window.openStaffSelectionModal = async () => {
           selectedStaff.push({
             userId: cb.value,
             name: cb.getAttribute('data-name'),
-            position: cb.getAttribute('data-position')
+            position: cb.getAttribute('data-position'),
+            staffType: cb.getAttribute('data-staff-type') || ''
           });
         }
       });
@@ -4264,13 +4321,14 @@ window.openStaffSelectionModal = async () => {
   if (result.isConfirmed && result.value) {
     const selectedList = result.value;
     
-    // Preserve any existing manually typed rows that don't match any staff
+    // Preserve any existing manually typed rows (students, drivers, etc.) that don't match any staff
     const manualRows = [];
     document.querySelectorAll('.travel-traveler-row').forEach(row => {
       const name = row.querySelector('.traveler-name')?.value?.trim();
       const pos = row.querySelector('.traveler-position')?.value?.trim();
-      if (name && !_allStaffCache.some(u => u.fullName === name)) {
-        manualRows.push({ name, position: pos });
+      const cat = row.querySelector('.traveler-category')?.value || '';
+      if ((name || pos) && !_allStaffCache.some(u => u.fullName === name)) {
+        manualRows.push({ name: name || '', position: pos || '', category: cat });
       }
     });
 
@@ -4278,10 +4336,11 @@ window.openStaffSelectionModal = async () => {
     if (container) {
       container.innerHTML = '';
       selectedList.forEach(s => {
-        window.addTravelerRow(s.name, s.position);
+        const cat = inferTravelerCategory(s.position, s.staffType);
+        window.addTravelerRow(s.name, s.position, cat);
       });
       manualRows.forEach(m => {
-        window.addTravelerRow(m.name, m.position);
+        window.addTravelerRow(m.name, m.position, m.category);
       });
       updateTravelersCount();
     }
@@ -4323,7 +4382,7 @@ function updateTravelersCount() {
   const peopRent = document.getElementById('travel-people-rent');
   if (peopAllow) peopAllow.value = totalPeople;
   if (peopRent) peopRent.value = totalPeople;
-  calculateExpenses();
+  syncTravelExpenseGroups();
 }
 
 // ============================================================
@@ -4730,47 +4789,324 @@ window.toggleLoanForm = () => {
 };
 
 // ============================================================
-// PER-DAY ALLOWANCE SYSTEM
+// TRAVEL EXPENSE RATES & POSITION-AWARE GROUP CALCULATOR
+// ============================================================
+const TRAVEL_POSITION_CATEGORIES = [
+  { key: 'executive', label: 'ผู้บริหาร', defaultPosition: 'ผู้บริหาร', hint: 'ผู้อำนวยการ, รองผู้อำนวยการ' },
+  { key: 'teacher',   label: 'ข้าราชการครู/พนักงานราชการครู/ครูพิเศษสอน', defaultPosition: 'ครู', hint: 'ข้าราชการครู, พนักงานราชการครู, ครูพิเศษสอน, ครูอัตราจ้าง' },
+  { key: 'student',   label: 'นักเรียน/นักศึกษา', defaultPosition: 'นักเรียน/นักศึกษา', hint: 'นักเรียน ปวช., นักศึกษา ปวส.' },
+  { key: 'driver',    label: 'พนักงานขับรถ', defaultPosition: 'พนักงานขับรถ', hint: 'พนักงานขับรถยนต์ราชการ / พขร.' },
+  { key: 'staff',     label: 'เจ้าหน้าที่', defaultPosition: 'เจ้าหน้าที่', hint: 'เจ้าหน้าที่ธุรการ, นักวิชาการ, พนักงานราชการ(สายสนับสนุน), ลูกจ้าง' }
+];
+
+const DEFAULT_TRAVEL_EXPENSE_RATES = {
+  executive: { label: 'ผู้บริหาร', allowanceRate: 270, lodgingLumpSum: 1200, lodgingActualMax: 2200 },
+  teacher:   { label: 'ข้าราชการครู/พนักงานราชการครู/ครูพิเศษสอน', allowanceRate: 240, lodgingLumpSum: 800, lodgingActualMax: 1500 },
+  student:   { label: 'นักเรียน/นักศึกษา', allowanceRate: 150, lodgingLumpSum: 500, lodgingActualMax: 600 },
+  driver:    { label: 'พนักงานขับรถ', allowanceRate: 240, lodgingLumpSum: 800, lodgingActualMax: 1500 },
+  staff:     { label: 'เจ้าหน้าที่', allowanceRate: 240, lodgingLumpSum: 800, lodgingActualMax: 1500 }
+};
+
+function getTravelExpenseRates() {
+  let parsed = {};
+  if (settings && settings.travel_expense_rates) {
+    try {
+      parsed = typeof settings.travel_expense_rates === 'string'
+        ? JSON.parse(settings.travel_expense_rates)
+        : settings.travel_expense_rates;
+    } catch (e) { parsed = {}; }
+  }
+  const result = {};
+  TRAVEL_POSITION_CATEGORIES.forEach(cat => {
+    const def = DEFAULT_TRAVEL_EXPENSE_RATES[cat.key];
+    const src = (parsed && parsed[cat.key]) || {};
+    result[cat.key] = {
+      label: cat.label,
+      allowanceRate: Number.isFinite(parseFloat(src.allowanceRate)) ? parseFloat(src.allowanceRate) : def.allowanceRate,
+      lodgingLumpSum: Number.isFinite(parseFloat(src.lodgingLumpSum)) ? parseFloat(src.lodgingLumpSum) : def.lodgingLumpSum,
+      lodgingActualMax: Number.isFinite(parseFloat(src.lodgingActualMax)) ? parseFloat(src.lodgingActualMax) : def.lodgingActualMax
+    };
+  });
+  return result;
+}
+
+function getTravelCategoryLabel(catKey) {
+  const found = TRAVEL_POSITION_CATEGORIES.find(c => c.key === catKey);
+  return found ? found.label : 'ข้าราชการครู/พนักงานราชการครู/ครูพิเศษสอน';
+}
+
+function inferTravelerCategory(position = '', staffType = '') {
+  const pos = String(position || '').trim();
+  const st = String(staffType || '').trim();
+  const combined = (pos + ' ' + st).toLowerCase();
+
+  if (pos.includes('ผู้อำนวยการ') || pos.includes('ผู้บริหาร') || pos.includes('ผอ.')) return 'executive';
+  if (pos.includes('นักเรียน') || pos.includes('นักศึกษา') || pos.includes('นศ.') || pos.includes('นร.') || pos.includes('ปวช') || pos.includes('ปวส')) return 'student';
+  if (pos.includes('ขับรถ') || pos.includes('พขร') || combined.includes('driver')) return 'driver';
+  if (pos.includes('ครู') || pos.includes('อาจารย์') || pos.includes('ผู้สอน') || st.includes('ครู')) return 'teacher';
+  if (pos.includes('เจ้าหน้าที่') || pos.includes('ธุรการ') || pos.includes('นักวิชาการ') || pos.includes('นักจัดการ') || pos.includes('ลูกจ้าง') || pos.includes('จ้างเหมา') || pos.includes('พนักงานราชการ')) return 'staff';
+  if (st.includes('ข้าราชการ')) return 'teacher';
+  return 'teacher';
+}
+
+function round2(n) {
+  return Math.round((parseFloat(n) || 0) * 100) / 100;
+}
+
+function fmtBahtShort(n) {
+  const v = round2(n);
+  return Number.isInteger(v) ? v.toLocaleString('th-TH') : v.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function calcAllowanceRateForRatio(fullRate, ratio, customRate = 0) {
+  const r = parseFloat(fullRate) || 0;
+  if (ratio === '1') return round2(r);
+  if (ratio === '2/3') return round2((r * 2) / 3);
+  if (ratio === '1/3') return round2(r / 3);
+  if (ratio === '0') return 0;
+  if (ratio === 'custom') return round2(parseFloat(customRate) || 0);
+  return round2(r);
+}
+
+function getTab1CategoryCounts() {
+  const counts = {};
+  const reqCat = document.getElementById('travel-requester-category')?.value || 'teacher';
+  counts[reqCat] = (counts[reqCat] || 0) + 1;
+  document.querySelectorAll('.travel-traveler-row').forEach(row => {
+    const cat = row.querySelector('.traveler-category')?.value || 'teacher';
+    counts[cat] = (counts[cat] || 0) + 1;
+  });
+  return counts;
+}
+
+// Sync both Allowance Groups and Lodging Groups from Tab 1 travelers
+window.syncTravelExpenseGroups = (resetOverrides = false) => {
+  syncAllowanceGroups(resetOverrides);
+  syncRentGroups(resetOverrides);
+  calcAllAllowanceDays();
+};
+
+function syncAllowanceGroups(resetOverrides = false) {
+  const tbody = document.getElementById('allowance-groups-container');
+  if (!tbody) return;
+
+  // Snapshot existing rate overrides
+  const prevState = {};
+  if (!resetOverrides) {
+    tbody.querySelectorAll('.allow-group-row').forEach(tr => {
+      const cat = tr.dataset.category;
+      prevState[cat] = {
+        rate: parseFloat(tr.querySelector('.allow-group-rate')?.value)
+      };
+    });
+  }
+
+  const counts = getTab1CategoryCounts();
+  const rates = getTravelExpenseRates();
+  tbody.innerHTML = '';
+
+  TRAVEL_POSITION_CATEGORIES.forEach(cat => {
+    const count = counts[cat.key] || 0;
+    if (count <= 0) return;
+    const cfgRate = rates[cat.key].allowanceRate;
+    const rateVal = (!resetOverrides && prevState[cat.key] && Number.isFinite(prevState[cat.key].rate)) ? prevState[cat.key].rate : cfgRate;
+    const r23 = round2((rateVal * 2) / 3);
+    const r13 = round2(rateVal / 3);
+
+    const tr = document.createElement('tr');
+    tr.className = 'allow-group-row';
+    tr.dataset.category = cat.key;
+    tr.style.borderTop = '1px solid #e2e8f0';
+    tr.innerHTML = `
+      <td style="padding:7px 10px; font-weight:600; color:#1e293b;">${escapeHtml(cat.label)}</td>
+      <td style="padding:6px 8px; text-align:center;">
+        <input type="number" class="form-input form-input-sm allow-group-count" value="${count}" min="0" style="width:68px; text-align:center; padding:4px 6px; font-size:0.82rem;" oninput="calcAllAllowanceDays()">
+      </td>
+      <td style="padding:6px 8px; text-align:center;">
+        <input type="number" class="form-input form-input-sm allow-group-rate" value="${rateVal}" min="0" step="1" style="width:88px; text-align:center; padding:4px 6px; font-size:0.82rem;" oninput="calcAllAllowanceDays()">
+      </td>
+      <td style="padding:6px 8px; text-align:center; font-size:0.75rem; color:#64748b;">
+        <span class="allow-group-frac-hint">${fmtBahtShort(r23)} | ${fmtBahtShort(r13)}</span>
+      </td>
+      <td style="padding:6px 10px; text-align:right; font-weight:700; color:#0f766e;">
+        <span class="allow-group-sub">0.00</span>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function syncRentGroups(resetOverrides = false) {
+  const tbody = document.getElementById('rent-groups-container');
+  if (!tbody) return;
+
+  const prevState = {};
+  if (!resetOverrides) {
+    tbody.querySelectorAll('.rent-group-row').forEach(tr => {
+      const cat = tr.dataset.category;
+      prevState[cat] = {
+        mode: tr.querySelector('.rent-group-mode')?.value,
+        nights: parseFloat(tr.querySelector('.rent-group-nights')?.value),
+        rate: parseFloat(tr.querySelector('.rent-group-rate')?.value)
+      };
+    });
+  }
+
+  const counts = getTab1CategoryCounts();
+  const rates = getTravelExpenseRates();
+  const globalMode = document.querySelector('input[name="travel-rent-mode"]:checked')?.value || 'lump_sum';
+  const globalNights = parseFloat(document.getElementById('travel-days-rent')?.value) || 0;
+
+  tbody.innerHTML = '';
+  TRAVEL_POSITION_CATEGORIES.forEach(cat => {
+    const count = counts[cat.key] || 0;
+    if (count <= 0) return;
+    const cfg = rates[cat.key];
+    const prev = (!resetOverrides && prevState[cat.key]) ? prevState[cat.key] : null;
+    const mode = (prev && prev.mode) ? prev.mode : globalMode;
+    const nights = (prev && Number.isFinite(prev.nights)) ? prev.nights : globalNights;
+    const rateVal = (prev && Number.isFinite(prev.rate))
+      ? (mode === 'lump_sum' ? cfg.lodgingLumpSum : prev.rate)
+      : (mode === 'lump_sum' ? cfg.lodgingLumpSum : cfg.lodgingActualMax);
+
+    const tr = document.createElement('tr');
+    tr.className = 'rent-group-row';
+    tr.dataset.category = cat.key;
+    tr.style.borderTop = '1px solid #e2e8f0';
+    tr.innerHTML = `
+      <td style="padding:8px 10px; font-weight:600; color:#1e293b;">${escapeHtml(cat.label)}</td>
+      <td style="padding:6px 8px;">
+        <select class="form-input form-input-sm rent-group-mode" style="font-size:0.8rem; padding:5px 6px; background:#fff;" onchange="onRentGroupModeChange(this)">
+          <option value="lump_sum" ${mode === 'lump_sum' ? 'selected' : ''}>🏷️ เหมาจ่าย</option>
+          <option value="actual" ${mode === 'actual' ? 'selected' : ''}>🧾 จ่ายตามจริง</option>
+        </select>
+      </td>
+      <td style="padding:6px 8px; text-align:center;">
+        <input type="number" class="form-input form-input-sm rent-group-people" value="${count}" min="0" style="width:68px; text-align:center; padding:4px 6px; font-size:0.82rem;" oninput="calculateExpenses()">
+      </td>
+      <td style="padding:6px 8px; text-align:center;">
+        <input type="number" class="form-input form-input-sm rent-group-nights" value="${nights}" min="0" style="width:68px; text-align:center; padding:4px 6px; font-size:0.82rem;" oninput="calculateExpenses()">
+      </td>
+      <td style="padding:6px 8px; text-align:center;">
+        <input type="number" class="form-input form-input-sm rent-group-rate" value="${rateVal}" min="0" ${mode === 'lump_sum' ? 'readonly' : ''} style="width:100px; text-align:center; padding:4px 6px; font-size:0.82rem; ${mode === 'lump_sum' ? 'background:#f1f5f9; color:#334155;' : ''}" oninput="calculateExpenses()">
+        <div class="rent-group-rate-hint" style="font-size:0.7rem; color:#64748b; margin-top:2px;"></div>
+      </td>
+      <td style="padding:6px 10px; text-align:right; font-weight:700; color:#0f766e;">
+        <span class="rent-group-sub">0.00</span>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+window.onGlobalRentModeChange = (mode) => {
+  const rates = getTravelExpenseRates();
+  document.querySelectorAll('#rent-groups-container .rent-group-row').forEach(tr => {
+    const cat = tr.dataset.category;
+    const cfg = rates[cat] || DEFAULT_TRAVEL_EXPENSE_RATES.teacher;
+    const modeSel = tr.querySelector('.rent-group-mode');
+    const rateInp = tr.querySelector('.rent-group-rate');
+    if (modeSel) modeSel.value = mode;
+    if (rateInp) {
+      if (mode === 'lump_sum') {
+        rateInp.value = cfg.lodgingLumpSum;
+        rateInp.setAttribute('readonly', true);
+        rateInp.style.background = '#f1f5f9';
+      } else {
+        rateInp.value = cfg.lodgingActualMax;
+        rateInp.removeAttribute('readonly');
+        rateInp.style.background = '#ffffff';
+      }
+    }
+  });
+  calculateExpenses();
+};
+
+window.onGlobalRentNightsChange = (nightsVal) => {
+  const n = Math.max(0, parseFloat(nightsVal) || 0);
+  document.querySelectorAll('#rent-groups-container .rent-group-row .rent-group-nights').forEach(inp => {
+    inp.value = n;
+  });
+  calculateExpenses();
+};
+
+window.onRentGroupModeChange = (selectElem) => {
+  const tr = selectElem.closest('.rent-group-row');
+  if (!tr) return;
+  const cat = tr.dataset.category;
+  const cfg = getTravelExpenseRates()[cat] || DEFAULT_TRAVEL_EXPENSE_RATES.teacher;
+  const mode = selectElem.value;
+  const rateInp = tr.querySelector('.rent-group-rate');
+  if (rateInp) {
+    if (mode === 'lump_sum') {
+      rateInp.value = cfg.lodgingLumpSum;
+      rateInp.setAttribute('readonly', true);
+      rateInp.style.background = '#f1f5f9';
+    } else {
+      rateInp.value = cfg.lodgingActualMax;
+      rateInp.removeAttribute('readonly');
+      rateInp.style.background = '#ffffff';
+    }
+  }
+  calculateExpenses();
+};
+
+// ============================================================
+// PER-DAY ALLOWANCE SYSTEM (MULTI-GROUP)
 // ============================================================
 let _allowanceDayCounter = 0;
 
-// Preset rate labels
-const ALLOW_RATE_OPTIONS = `
-  <option value="240">เต็ม (100%) — 240 บาท/วัน</option>
-  <option value="160">2/3 — 160 บาท/วัน</option>
-  <option value="80">1/3 — 80 บาท/วัน</option>
-  <option value="custom">กำหนดเอง</option>
+const ALLOW_RATIO_OPTIONS = `
+  <option value="1">เต็มวัน (100% ตามอัตราตำแหน่ง)</option>
+  <option value="2/3">2/3 วัน (หักอาหาร 1 มื้อ)</option>
+  <option value="1/3">1/3 วัน (หักอาหาร 2 มื้อ)</option>
+  <option value="0">ไม่เบิกเบี้ยเลี้ยงวันนี้ (0%)</option>
+  <option value="custom">กำหนดเอง (บาท/คน เท่ากันทุกตำแหน่ง)</option>
 `;
 
-window.addAllowanceDay = (defaultRate = 240, defaultDate = '') => {
+function normalizeAllowanceRatioArg(defaultRatioOrRate, customRateVal = null) {
+  if (['1', '2/3', '1/3', '0', 'custom'].includes(String(defaultRatioOrRate))) {
+    return { ratio: String(defaultRatioOrRate), customRate: customRateVal !== null ? customRateVal : 0 };
+  }
+  const num = parseFloat(defaultRatioOrRate);
+  if (isNaN(num) || num === 240) return { ratio: '1', customRate: 0 };
+  if (num === 160) return { ratio: '2/3', customRate: 0 };
+  if (num === 80) return { ratio: '1/3', customRate: 0 };
+  if (num === 0) return { ratio: '0', customRate: 0 };
+  return { ratio: 'custom', customRate: num };
+}
+
+window.addAllowanceDay = (defaultRatioOrRate = '1', defaultDate = '', customRateVal = null) => {
   const container = document.getElementById('allowance-days-container');
   if (!container) return;
   const id = ++_allowanceDayCounter;
+  const { ratio, customRate } = normalizeAllowanceRatioArg(defaultRatioOrRate, customRateVal);
+  const isCustom = ratio === 'custom';
 
   const row = document.createElement('div');
   row.id = `aday-${id}`;
-  row.style.cssText = 'display:grid; grid-template-columns:150px 1fr 80px 90px 32px; gap:8px; align-items:center; background:#fff; border:1px solid #e2e8f0; border-radius:7px; padding:6px 8px;';
-  const isCustom = ![240, 160, 80].includes(defaultRate);
-  const selectedRate = isCustom ? 'custom' : defaultRate;
+  row.style.cssText = 'display:grid; grid-template-columns:145px 1fr 110px 105px 32px; gap:8px; align-items:center; background:#fff; border:1px solid #e2e8f0; border-radius:7px; padding:6px 8px;';
   row.innerHTML = `
     <input type="date" class="form-input form-input-sm aday-date" value="${defaultDate}"
       style="font-size:0.78rem; padding:4px 6px;">
-    <select class="form-input form-input-sm aday-rate-select" style="font-size:0.78rem; padding:4px 6px;"
+    <select class="form-input form-input-sm aday-ratio-select" style="font-size:0.78rem; padding:4px 6px;"
       onchange="onAllowanceRateChange(${id})">
-      ${ALLOW_RATE_OPTIONS}
+      ${ALLOW_RATIO_OPTIONS}
     </select>
-    <input type="number" class="form-input form-input-sm aday-rate-val" value="${defaultRate}"
-      min="0" style="font-size:0.78rem; padding:4px 6px; text-align:center;"
-      ${isCustom ? '' : 'readonly'} oninput="calcAllAllowanceDays()">
+    <div style="text-align:center;">
+      <span class="aday-rate-display" style="display:${isCustom ? 'none' : 'inline-block'}; font-size:0.76rem; color:#475569; font-weight:600;">-</span>
+      <input type="number" class="form-input form-input-sm aday-rate-val" value="${isCustom ? customRate : ''}"
+        min="0" placeholder="บาท/คน" style="display:${isCustom ? 'block' : 'none'}; font-size:0.78rem; padding:4px 6px; text-align:center; width:100%;"
+        oninput="calcAllAllowanceDays()">
+    </div>
     <span id="aday-sub-${id}" style="text-align:right; font-weight:600; color:#0f766e; font-size:0.82rem;">0.00</span>
     <button type="button" onclick="removeAllowanceDay(${id})"
       style="background:none; border:none; color:#ef4444; font-size:1rem; cursor:pointer; padding:0; line-height:1;">✕</button>
   `;
   container.appendChild(row);
 
-  // Set select to correct value
-  const sel = row.querySelector('.aday-rate-select');
-  sel.value = String(selectedRate);
+  const sel = row.querySelector('.aday-ratio-select');
+  if (sel) sel.value = ratio;
 
   calcAllAllowanceDays();
 };
@@ -4782,51 +5118,224 @@ window.removeAllowanceDay = (id) => {
 };
 
 window.onAllowanceRateChange = (id) => {
-  const row   = document.getElementById(`aday-${id}`);
+  const row = document.getElementById(`aday-${id}`);
   if (!row) return;
-  const sel   = row.querySelector('.aday-rate-select');
+  const sel = row.querySelector('.aday-ratio-select');
   const input = row.querySelector('.aday-rate-val');
+  const disp = row.querySelector('.aday-rate-display');
   if (sel.value === 'custom') {
-    input.removeAttribute('readonly');
-    input.value = '';
-    input.focus();
+    if (disp) disp.style.display = 'none';
+    if (input) {
+      input.style.display = 'block';
+      input.focus();
+    }
   } else {
-    input.setAttribute('readonly', true);
-    input.value = sel.value;
+    if (disp) disp.style.display = 'inline-block';
+    if (input) input.style.display = 'none';
   }
   calcAllAllowanceDays();
 };
 
-window.calcAllAllowanceDays = () => {
-  const people = parseFloat(document.getElementById('travel-people-allowance')?.value) || 1;
-  let grand = 0;
-  document.querySelectorAll('[id^="aday-"]').forEach(row => {
-    if (!row.id.startsWith('aday-') || row.id.includes('sub')) return;
-    const rateVal = parseFloat(row.querySelector('.aday-rate-val')?.value) || 0;
-    const sub     = rateVal * people;
-    grand        += sub;
-    const subEl   = row.querySelector('[id^="aday-sub-"]');
-    if (subEl) subEl.textContent = sub.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function collectAllowanceCalculation() {
+  const groupRows = document.querySelectorAll('#allowance-groups-container .allow-group-row');
+  const groups = [];
+  groupRows.forEach(tr => {
+    const cat = tr.dataset.category;
+    const people = Math.max(0, parseFloat(tr.querySelector('.allow-group-count')?.value) || 0);
+    const fullRate = Math.max(0, parseFloat(tr.querySelector('.allow-group-rate')?.value) || 0);
+    groups.push({
+      tr,
+      category: cat,
+      label: getTravelCategoryLabel(cat),
+      people,
+      fullRate,
+      rateBuckets: {}, // rate -> count of days
+      total: 0
+    });
   });
+
+  const dayRows = [];
+  document.querySelectorAll('#allowance-days-container > div[id^="aday-"]').forEach(row => {
+    if (!row.id.startsWith('aday-') || row.id.includes('sub')) return;
+    const ratio = row.querySelector('.aday-ratio-select')?.value || '1';
+    const customRate = parseFloat(row.querySelector('.aday-rate-val')?.value) || 0;
+    const dateVal = row.querySelector('.aday-date')?.value || '';
+    dayRows.push({ row, ratio, customRate, date: dateVal, subtotal: 0 });
+  });
+
+  let grandAllowance = 0;
+  let activeDayCount = 0;
+
+  dayRows.forEach(d => {
+    if (d.ratio !== '0') activeDayCount++;
+    let daySub = 0;
+    const activeRates = [];
+    groups.forEach(g => {
+      const r = calcAllowanceRateForRatio(g.fullRate, d.ratio, d.customRate);
+      if (g.people > 0 && r > 0) {
+        const sub = round2(g.people * r);
+        daySub = round2(daySub + sub);
+        g.total = round2(g.total + sub);
+        const rKey = String(r);
+        g.rateBuckets[rKey] = (g.rateBuckets[rKey] || 0) + 1;
+        activeRates.push(r);
+      } else if (g.people > 0) {
+        activeRates.push(0);
+      }
+    });
+    d.subtotal = daySub;
+    d.activeRates = activeRates;
+    grandAllowance = round2(grandAllowance + daySub);
+  });
+
+  const totalPeople = groups.reduce((s, g) => s + g.people, 0);
+  const breakdown = groups.map(g => {
+    const parts = Object.keys(g.rateBuckets)
+      .sort((a, b) => parseFloat(b) - parseFloat(a))
+      .map(r => `${fmtBahtShort(r)} บ. × ${g.rateBuckets[r]} วัน`);
+    return {
+      category: g.category,
+      label: g.label,
+      people: g.people,
+      fullRate: g.fullRate,
+      daySummary: parts.join(' + '),
+      total: g.total,
+      perPerson: g.people > 0 ? round2(g.total / g.people) : 0
+    };
+  });
+
+  return { groups, dayRows, grandAllowance, activeDayCount, totalPeople, breakdown };
+}
+
+window.calcAllAllowanceDays = () => {
+  const calc = collectAllowanceCalculation();
+
+  // Update group row UI
+  calc.groups.forEach(g => {
+    const fracEl = g.tr.querySelector('.allow-group-frac-hint');
+    if (fracEl) {
+      fracEl.textContent = `${fmtBahtShort((g.fullRate * 2) / 3)} | ${fmtBahtShort(g.fullRate / 3)}`;
+    }
+    const subEl = g.tr.querySelector('.allow-group-sub');
+    if (subEl) subEl.textContent = g.total.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  });
+
+  // Update day rows UI
+  calc.dayRows.forEach(d => {
+    const dispEl = d.row.querySelector('.aday-rate-display');
+    if (dispEl && d.ratio !== 'custom') {
+      const uniq = [...new Set(d.activeRates)];
+      if (uniq.length === 0) {
+        dispEl.textContent = '0 บ.';
+      } else if (uniq.length === 1) {
+        dispEl.textContent = `${fmtBahtShort(uniq[0])} บ./คน`;
+      } else {
+        const minR = Math.min(...uniq);
+        const maxR = Math.max(...uniq);
+        dispEl.textContent = `${fmtBahtShort(minR)}–${fmtBahtShort(maxR)} บ.`;
+      }
+    }
+    const subEl = d.row.querySelector('[id^="aday-sub-"]');
+    if (subEl) subEl.textContent = d.subtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  });
+
+  const peopInp = document.getElementById('travel-people-allowance');
+  const peopLbl = document.getElementById('travel-people-allowance-label');
+  if (peopInp) peopInp.value = calc.totalPeople;
+  if (peopLbl) peopLbl.textContent = calc.totalPeople;
+
+  const daysHid = document.getElementById('travel-days-allowance');
+  const rateHid = document.getElementById('travel-rate-allowance');
+  if (daysHid) daysHid.value = calc.activeDayCount;
+  if (rateHid) rateHid.value = calc.groups.length > 0 ? calc.groups[0].fullRate : 0;
+
   const txt = document.getElementById('travel-total-allowance-txt');
-  if (txt) txt.textContent = grand.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (txt) txt.textContent = calc.grandAllowance.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   calculateExpenses();
 };
 
-// Quick-fill: set all rows to the given rate
-window.fillAllowanceRate = (rate) => {
-  document.querySelectorAll('[id^="aday-"]').forEach(row => {
+window.fillAllowanceRatio = (ratio) => {
+  document.querySelectorAll('#allowance-days-container > div[id^="aday-"]').forEach(row => {
     if (!row.id.startsWith('aday-') || row.id.includes('sub')) return;
-    const sel   = row.querySelector('.aday-rate-select');
+    const sel = row.querySelector('.aday-ratio-select');
     const input = row.querySelector('.aday-rate-val');
-    if (sel) sel.value = String(rate);
-    if (input) { input.value = rate; input.setAttribute('readonly', true); }
+    const disp = row.querySelector('.aday-rate-display');
+    if (sel) sel.value = String(ratio);
+    if (ratio === 'custom') {
+      if (disp) disp.style.display = 'none';
+      if (input) input.style.display = 'block';
+    } else {
+      if (disp) disp.style.display = 'inline-block';
+      if (input) input.style.display = 'none';
+    }
   });
   calcAllAllowanceDays();
 };
 
-// Calculate expenses
+// Backward-compatible alias
+window.fillAllowanceRate = (rate) => {
+  const { ratio } = normalizeAllowanceRatioArg(rate);
+  window.fillAllowanceRatio(ratio);
+};
 
+function collectRentCalculation() {
+  const rates = getTravelExpenseRates();
+  const breakdown = [];
+  let totalRent = 0;
+  let totalPeople = 0;
+  const modesSet = new Set();
+
+  document.querySelectorAll('#rent-groups-container .rent-group-row').forEach(tr => {
+    const cat = tr.dataset.category;
+    const cfg = rates[cat] || DEFAULT_TRAVEL_EXPENSE_RATES.teacher;
+    const mode = tr.querySelector('.rent-group-mode')?.value || 'lump_sum';
+    const people = Math.max(0, parseFloat(tr.querySelector('.rent-group-people')?.value) || 0);
+    const nights = Math.max(0, parseFloat(tr.querySelector('.rent-group-nights')?.value) || 0);
+    const rate = Math.max(0, parseFloat(tr.querySelector('.rent-group-rate')?.value) || 0);
+    const sub = round2(people * nights * rate);
+
+    const subEl = tr.querySelector('.rent-group-sub');
+    if (subEl) subEl.textContent = sub.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const hintEl = tr.querySelector('.rent-group-rate-hint');
+    if (hintEl) {
+      if (mode === 'lump_sum') {
+        hintEl.style.color = '#0f766e';
+        hintEl.textContent = `เหมาจ่ายตามตั้งค่า (${fmtBahtShort(cfg.lodgingLumpSum)} บ./คืน)`;
+      } else if (rate > cfg.lodgingActualMax) {
+        hintEl.style.color = '#dc2626';
+        hintEl.textContent = `⚠️ เกินเพดานสูงสุด (${fmtBahtShort(cfg.lodgingActualMax)} บ./คืน)`;
+      } else {
+        hintEl.style.color = '#0369a1';
+        hintEl.textContent = `จ่ายตามจริง สูงสุดไม่เกิน ${fmtBahtShort(cfg.lodgingActualMax)} บ./คืน`;
+      }
+    }
+
+    if (people > 0 && nights > 0) modesSet.add(mode);
+    totalRent = round2(totalRent + sub);
+    totalPeople += people;
+    breakdown.push({
+      category: cat,
+      label: getTravelCategoryLabel(cat),
+      mode,
+      modeLabel: mode === 'actual' ? 'จ่ายตามจริง' : 'เหมาจ่าย',
+      people,
+      nights,
+      rate,
+      maxRate: mode === 'actual' ? cfg.lodgingActualMax : cfg.lodgingLumpSum,
+      total: sub,
+      perPerson: people > 0 ? round2(sub / people) : 0
+    });
+  });
+
+  let overallMode = document.querySelector('input[name="travel-rent-mode"]:checked')?.value || 'lump_sum';
+  if (modesSet.size > 1) overallMode = 'mixed';
+  else if (modesSet.size === 1) overallMode = [...modesSet][0];
+
+  return { totalRent, totalPeople, overallMode, breakdown };
+}
+
+// Calculate expenses
 window.calculateExpenses = () => {
   // 1. Vehicle costs from multi-leg system
   const routeTotal = parseFloat(document.getElementById('travel-legs-grand')?.value) || 0;
@@ -4836,19 +5345,22 @@ window.calculateExpenses = () => {
     document.getElementById('travel-total-allowance-txt')?.textContent?.replace(/,/g, '')
   ) || 0;
 
-  // 3. Rent
-  const rateRent = parseFloat(document.getElementById('travel-rate-rent').value) || 0;
-  const daysRent = parseFloat(document.getElementById('travel-days-rent').value) || 0;
-  const peopleRent = parseFloat(document.getElementById('travel-people-rent').value) || 0;
-  const totalRent = rateRent * daysRent * peopleRent;
+  // 3. Rent — calculate across all position groups
+  const rentCalc = collectRentCalculation();
+  const totalRent = rentCalc.totalRent;
   const rentTxt = document.getElementById('travel-total-rent-txt');
   if (rentTxt) rentTxt.textContent = totalRent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const peopRentHid = document.getElementById('travel-people-rent');
+  const rateRentHid = document.getElementById('travel-rate-rent');
+  if (peopRentHid) peopRentHid.value = rentCalc.totalPeople;
+  if (rateRentHid) rateRentHid.value = rentCalc.breakdown.length > 0 ? rentCalc.breakdown[0].rate : 0;
   
   // 4. Other costs
-  const otherCost = parseFloat(document.getElementById('travel-other-cost').value) || 0;
+  const otherCost = parseFloat(document.getElementById('travel-other-cost')?.value) || 0;
   
   // 5. Grand total
-  const grandTotal = routeTotal + totalAllow + totalRent + otherCost;
+  const grandTotal = round2(routeTotal + totalAllow + totalRent + otherCost);
   const grandTxt = document.getElementById('travel-grand-total-txt');
   if (grandTxt) grandTxt.textContent = grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   
@@ -4956,6 +5468,19 @@ async function initTravelPage() {
   
   const reqName = document.getElementById('travel-requester-name');
   if (reqName) reqName.value = currentUser.fullName;
+
+  const reqCatSelect = document.getElementById('travel-requester-category');
+  if (reqCatSelect) {
+    reqCatSelect.value = inferTravelerCategory(currentUser.position || '', currentUser.staffType || '');
+  }
+
+  // Ensure latest travel expense rates are loaded from settings
+  if (!settings || !settings.travel_expense_rates) {
+    try {
+      const sRes = await fetch(`${API_BASE_URL}/api/settings`);
+      if (sRes.ok) settings = await sRes.json();
+    } catch (e) {}
+  }
   
   const accList = document.getElementById('travel-accompanied-list');
   if (accList) accList.innerHTML = '';
@@ -4978,14 +5503,22 @@ async function initTravelPage() {
   // Add first leg by default
   addTravelLeg();
 
+  // Reset rent mode to lump_sum and nights to 0
+  const lumpRadio = document.querySelector('input[name="travel-rent-mode"][value="lump_sum"]');
+  if (lumpRadio) lumpRadio.checked = true;
+  const rentDaysInp = document.getElementById('travel-days-rent');
+  if (rentDaysInp) rentDaysInp.value = 0;
+
   // Reset allowance days container
   const adaysContainer = document.getElementById('allowance-days-container');
   if (adaysContainer) adaysContainer.innerHTML = '';
   _allowanceDayCounter = 0;
   const allowTxt = document.getElementById('travel-total-allowance-txt');
   if (allowTxt) allowTxt.textContent = '0.00';
-  // Add one default day
-  addAllowanceDay(240, '');
+
+  // Sync position groups before adding default allowance day
+  syncTravelExpenseGroups(true);
+  addAllowanceDay('1', '');
 
   // Reset tabs
   switchTravelTab('travel-tab-memo');
@@ -5419,16 +5952,36 @@ window.openEditTravelForm = async (travelId) => {
       if (typeof toggleExpenseFields === 'function') toggleExpenseFields();
     }
 
+    // Restore requester category
+    const reqCatEl = document.getElementById('travel-requester-category');
+    if (reqCatEl) {
+      reqCatEl.value = details.requesterCategory || inferTravelerCategory(t.requesterPosition || (currentUser && currentUser.position) || '', (currentUser && currentUser.staffType) || '');
+    }
+
     // Populate Travelers list
     const accContainer = document.getElementById('travel-accompanied-list');
     if (accContainer) {
       accContainer.innerHTML = '';
       if (details.travelers && Array.isArray(details.travelers) && details.travelers.length > 0) {
         details.travelers.forEach(tr => {
-          window.addTravelerRow(tr.name || '', tr.position || '');
+          const trCat = tr.category || inferTravelerCategory(tr.position || '', '');
+          window.addTravelerRow(tr.name || '', tr.position || '', trCat);
         });
       }
-      updateTravelersCount();
+      syncTravelExpenseGroups(true);
+    }
+
+    // Restore allowance group overrides if saved
+    if (details.allowance && Array.isArray(details.allowance.breakdown)) {
+      details.allowance.breakdown.forEach(b => {
+        const tr = document.querySelector(`#allowance-groups-container .allow-group-row[data-category="${b.category}"]`);
+        if (tr) {
+          const cntInp = tr.querySelector('.allow-group-count');
+          const rateInp = tr.querySelector('.allow-group-rate');
+          if (cntInp && b.people !== undefined) cntInp.value = b.people;
+          if (rateInp && b.fullRate !== undefined) rateInp.value = b.fullRate;
+        }
+      });
     }
 
     // Populate Multi-leg vehicle transport
@@ -5452,22 +6005,71 @@ window.openEditTravelForm = async (travelId) => {
       adaysContainer.innerHTML = '';
       _allowanceDayCounter = 0;
       if (details.allowanceDaysList && details.allowanceDaysList.length > 0) {
-        details.allowanceDaysList.forEach(ad => window.addAllowanceDay(ad.rate, ad.date));
+        details.allowanceDaysList.forEach(ad => {
+          if (ad.ratio) {
+            window.addAllowanceDay(ad.ratio, ad.date || '', ad.customRate || ad.rate || 0);
+          } else {
+            window.addAllowanceDay(ad.rate, ad.date || '');
+          }
+        });
       } else {
-        window.addAllowanceDay(240, '');
+        window.addAllowanceDay('1', '');
       }
     }
 
     // Populate Rent and Other
     if (details.rent) {
-      if (document.getElementById('travel-days-rent')) document.getElementById('travel-days-rent').value = details.rent.days || 0;
-      if (document.getElementById('travel-rate-rent')) document.getElementById('travel-rate-rent').value = details.rent.rate || 0;
+      const rMode = details.rent.mode === 'actual' ? 'actual' : 'lump_sum';
+      const rRadio = document.querySelector(`input[name="travel-rent-mode"][value="${rMode}"]`);
+      if (rRadio) rRadio.checked = true;
+      const rDays = details.rent.days || 0;
+      if (document.getElementById('travel-days-rent')) document.getElementById('travel-days-rent').value = rDays;
+      if (Array.isArray(details.rent.breakdown) && details.rent.breakdown.length > 0) {
+        details.rent.breakdown.forEach(b => {
+          const tr = document.querySelector(`#rent-groups-container .rent-group-row[data-category="${b.category}"]`);
+          if (tr) {
+            const modeSel = tr.querySelector('.rent-group-mode');
+            const peopInp = tr.querySelector('.rent-group-people');
+            const nightInp = tr.querySelector('.rent-group-nights');
+            const rateInp = tr.querySelector('.rent-group-rate');
+            if (modeSel && b.mode) modeSel.value = b.mode;
+            if (peopInp && b.people !== undefined) peopInp.value = b.people;
+            if (nightInp && b.nights !== undefined) nightInp.value = b.nights;
+            if (rateInp && b.rate !== undefined) {
+              rateInp.value = b.rate;
+              if (b.mode === 'actual') {
+                rateInp.removeAttribute('readonly');
+                rateInp.style.background = '#ffffff';
+              } else {
+                rateInp.setAttribute('readonly', true);
+                rateInp.style.background = '#f1f5f9';
+              }
+            }
+          }
+        });
+      } else {
+        // Legacy travel record without breakdown
+        onGlobalRentNightsChange(rDays);
+        const legacyRate = parseFloat(details.rent.rate) || 0;
+        if (legacyRate > 0) {
+          const cfgRates = getTravelExpenseRates();
+          document.querySelectorAll('#rent-groups-container .rent-group-row').forEach(tr => {
+            const cat = tr.dataset.category;
+            const modeSel = tr.querySelector('.rent-group-mode');
+            const rateInp = tr.querySelector('.rent-group-rate');
+            if (cfgRates[cat] && legacyRate !== cfgRates[cat].lodgingLumpSum) {
+              if (modeSel) modeSel.value = 'actual';
+              if (rateInp) { rateInp.removeAttribute('readonly'); rateInp.style.background = '#ffffff'; rateInp.value = legacyRate; }
+            }
+          });
+        }
+      }
     }
     if (document.getElementById('travel-other-cost')) document.getElementById('travel-other-cost').value = details.otherCost || 0;
     if (document.getElementById('travel-other-detail')) document.getElementById('travel-other-detail').value = details.otherDetail || '';
 
     // Calculate estimation totals
-    window.calculateExpenses();
+    window.calcAllAllowanceDays();
 
     // Populate Tab 3: Loan
     const hasLoanCheck = document.getElementById('travel-has-loan');
@@ -5589,25 +6191,33 @@ async function handleTravelSubmit(e) {
     budget = allow + rent + fuel + other;
   }
   
+  const requesterCategory = document.getElementById('travel-requester-category')?.value || 'teacher';
   const travelers = [];
   document.querySelectorAll('.travel-traveler-row').forEach(row => {
     const nameInput = row.querySelector('.traveler-name');
     const posInput = row.querySelector('.traveler-position');
+    const catSelect = row.querySelector('.traveler-category');
     if (nameInput && nameInput.value.trim()) {
+      const catKey = catSelect ? catSelect.value : inferTravelerCategory(posInput?.value || '', '');
+      const catInfo = TRAVEL_POSITION_CATEGORIES.find(x => x.key === catKey);
       travelers.push({
         name: nameInput.value.trim(),
-        position: posInput ? posInput.value.trim() : ''
+        position: (posInput && posInput.value.trim()) ? posInput.value.trim() : (catInfo ? catInfo.defaultPosition : ''),
+        category: catKey
       });
     }
   });
 
-  const allowanceDaysList = [];
-  document.querySelectorAll('#allowance-days-container > div[id^="aday-"]').forEach(row => {
-    if (!row.id.startsWith('aday-') || row.id.includes('sub')) return;
-    const rateVal = parseFloat(row.querySelector('.aday-rate-val')?.value) || 0;
-    const dateVal = row.querySelector('.aday-date')?.value || '';
-    allowanceDaysList.push({ rate: rateVal, date: dateVal });
-  });
+  const allowCalc = collectAllowanceCalculation();
+  const rentCalc = collectRentCalculation();
+
+  const allowanceDaysList = allowCalc.dayRows.map(d => ({
+    date: d.date,
+    ratio: d.ratio,
+    customRate: d.customRate,
+    rate: d.ratio === 'custom' ? d.customRate : (d.activeRates.length === 1 ? d.activeRates[0] : 0),
+    subtotal: d.subtotal
+  }));
 
   // Collect vehicle transport data from multi-leg system
   const routes = [];
@@ -5666,6 +6276,7 @@ async function handleTravelSubmit(e) {
     expenseType,
     docDate: document.getElementById('travel-doc-date')?.value || '',
     requesterName: document.getElementById('travel-requester-name')?.value || '',
+    requesterCategory,
     department: document.getElementById('travel-department')?.value || '',
     purposeDetail: document.getElementById('travel-purpose-detail')?.value || '',
     refDoc: document.getElementById('travel-ref-doc')?.value || '',
@@ -5682,14 +6293,18 @@ async function handleTravelSubmit(e) {
     otherCost: parseFloat(document.getElementById('travel-other-cost')?.value) || 0,
     otherDetail: document.getElementById('travel-other-detail')?.value || '',
     allowance: {
-      days: parseFloat(document.getElementById('travel-days-allowance')?.value) || 0,
-      rate: parseFloat(document.getElementById('travel-rate-allowance')?.value) || 0,
-      total: parseFloat(document.getElementById('travel-total-allowance-txt')?.textContent?.replace(/,/g,'')) || 0
+      days: allowCalc.activeDayCount,
+      rate: allowCalc.groups.length > 0 ? allowCalc.groups[0].fullRate : 0,
+      total: allowCalc.grandAllowance,
+      breakdown: allowCalc.breakdown
     },
     rent: {
+      mode: rentCalc.overallMode,
       days: parseFloat(document.getElementById('travel-days-rent')?.value) || 0,
-      rate: parseFloat(document.getElementById('travel-rate-rent')?.value) || 0,
-      total: parseFloat(document.getElementById('travel-total-rent-txt')?.textContent?.replace(/,/g,'')) || 0
+      rate: rentCalc.breakdown.length > 0 ? rentCalc.breakdown[0].rate : 0,
+      people: rentCalc.totalPeople,
+      total: rentCalc.totalRent,
+      breakdown: rentCalc.breakdown
     },
     hasLoan,
     loan: {
@@ -6025,22 +6640,51 @@ window.openClearanceModal = (reportId, travelId, budget) => {
     const displayVehicle = reqDetails.vehicleData ? Math.max(0, parseFloat(reqDetails.vehicleData.routeTotal || 0) - govCarCost) : 0;
     const displayOther = (parseFloat(reqDetails.otherCost) || 0) + govCarCost;
     
-    accAllow = displayAllowance / pCount;
-    accRent = displayRent / pCount;
+    const allowByCat = {};
+    if (reqDetails.allowance && Array.isArray(reqDetails.allowance.breakdown)) {
+      reqDetails.allowance.breakdown.forEach(b => {
+        allowByCat[b.category] = b.perPerson !== undefined ? b.perPerson : (b.people > 0 ? round2(b.total / b.people) : 0);
+      });
+    }
+    const rentByCat = {};
+    if (reqDetails.rent && Array.isArray(reqDetails.rent.breakdown)) {
+      reqDetails.rent.breakdown.forEach(b => {
+        rentByCat[b.category] = b.perPerson !== undefined ? b.perPerson : (b.people > 0 ? round2(b.total / b.people) : 0);
+      });
+    }
+
+    const hasAllowBreakdown = Object.keys(allowByCat).length > 0;
+    const hasRentBreakdown = Object.keys(rentByCat).length > 0;
+
+    accAllow = round2(displayAllowance / pCount);
+    accRent = round2(displayRent / pCount);
     
-    mainAllow = accAllow;
-    mainRent = accRent;
+    const reqCat = reqDetails.requesterCategory || inferTravelerCategory((currentUser && currentUser.position) || '', (currentUser && currentUser.staffType) || '');
+    mainAllow = hasAllowBreakdown ? (allowByCat[reqCat] ?? accAllow) : accAllow;
+    mainRent = hasRentBreakdown ? (rentByCat[reqCat] ?? accRent) : accRent;
     mainVehicle = displayVehicle;
     mainOther = displayOther;
+
+    // 1. Add main reporter
+    addTravelerClearanceRow(reporterName, 'ผู้รายงาน', mainAllow, mainRent, mainVehicle, mainOther);
+    
+    // 2. Add accompanying travelers using each person's position category
+    travelers.forEach(t => {
+      const tCat = t.category || inferTravelerCategory(t.position || '', '');
+      const tAllow = hasAllowBreakdown ? (allowByCat[tCat] ?? accAllow) : accAllow;
+      const tRent = hasRentBreakdown ? (rentByCat[tCat] ?? accRent) : accRent;
+      const tPos = t.position || getTravelCategoryLabel(tCat);
+      addTravelerClearanceRow(t.name, tPos, tAllow, tRent, 0, 0);
+    });
+  } else {
+    // 1. Add main reporter
+    addTravelerClearanceRow(reporterName, 'ผู้รายงาน', 0, 0, 0, 0);
+    // 2. Add accompanying travelers
+    travelers.forEach(t => {
+      const tCat = t.category || inferTravelerCategory(t.position || '', '');
+      addTravelerClearanceRow(t.name, t.position || getTravelCategoryLabel(tCat), 0, 0, 0, 0);
+    });
   }
-  
-  // 1. Add main reporter
-  addTravelerClearanceRow(reporterName, 'ผู้รายงาน', mainAllow, mainRent, mainVehicle, mainOther);
-  
-  // 2. Add accompanying travelers
-  travelers.forEach(t => {
-    addTravelerClearanceRow(t.name, t.position || 'ครู', accAllow, accRent, 0, 0);
-  });
   
   recalculateClearanceTotals();
   document.getElementById('clearance-modal').classList.remove('hidden');
@@ -6948,6 +7592,117 @@ window.renderFiscalYearsList = renderFiscalYearsList;
 window.addFiscalYearSetting = addFiscalYearSetting;
 window.removeFiscalYearSetting = removeFiscalYearSetting;
 window.saveAdminSettings = saveAdminSettings;
+
+// ============================================================
+// ADMIN SETTINGS: TRAVEL ALLOWANCE & LODGING RATES BY POSITION
+// ============================================================
+async function loadTravelRatesSettingsPage() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/settings`);
+    if (res.ok) settings = await res.json();
+  } catch (e) {}
+  renderTravelRatesSettingsTable(getTravelExpenseRates());
+}
+
+function renderTravelRatesSettingsTable(ratesObj) {
+  const tbody = document.getElementById('travel-rates-settings-body');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  TRAVEL_POSITION_CATEGORIES.forEach(cat => {
+    const r = ratesObj[cat.key] || DEFAULT_TRAVEL_EXPENSE_RATES[cat.key];
+    const r23 = round2((r.allowanceRate * 2) / 3);
+    const r13 = round2(r.allowanceRate / 3);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="padding:14px 16px;">
+        <div style="font-weight:700; color:#1e293b; font-size:0.95rem;">${escapeHtml(cat.label)}</div>
+        <div style="font-size:0.78rem; color:#64748b; margin-top:2px;">${escapeHtml(cat.hint)}</div>
+      </td>
+      <td style="padding:12px 16px; text-align:center;">
+        <input type="number" id="rate-allow-${cat.key}" class="form-input" value="${r.allowanceRate}" min="0" step="1"
+          style="width:120px; text-align:center; font-weight:600; margin:0 auto;"
+          oninput="onTravelRateSettingAllowanceInput('${cat.key}')">
+        <div id="rate-allow-hint-${cat.key}" style="font-size:0.74rem; color:#64748b; margin-top:4px;">2/3 = ${fmtBahtShort(r23)}฿ | 1/3 = ${fmtBahtShort(r13)}฿</div>
+      </td>
+      <td style="padding:12px 16px; text-align:center;">
+        <input type="number" id="rate-lump-${cat.key}" class="form-input" value="${r.lodgingLumpSum}" min="0" step="1"
+          style="width:130px; text-align:center; font-weight:600; margin:0 auto;">
+        <div style="font-size:0.74rem; color:#0f766e; margin-top:4px;">แบบเหมาจ่าย</div>
+      </td>
+      <td style="padding:12px 16px; text-align:center;">
+        <input type="number" id="rate-actual-${cat.key}" class="form-input" value="${r.lodgingActualMax}" min="0" step="1"
+          style="width:130px; text-align:center; font-weight:600; margin:0 auto;">
+        <div style="font-size:0.74rem; color:#0369a1; margin-top:4px;">จ่ายตามจริง (ไม่เกิน)</div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+window.onTravelRateSettingAllowanceInput = (catKey) => {
+  const val = Math.max(0, parseFloat(document.getElementById(`rate-allow-${catKey}`)?.value) || 0);
+  const hintEl = document.getElementById(`rate-allow-hint-${catKey}`);
+  if (hintEl) {
+    hintEl.textContent = `2/3 = ${fmtBahtShort((val * 2) / 3)}฿ | 1/3 = ${fmtBahtShort(val / 3)}฿`;
+  }
+};
+
+window.resetDefaultTravelRates = async () => {
+  const res = await Swal.fire({
+    icon: 'question',
+    title: 'คืนค่าเริ่มต้น?',
+    text: 'ต้องการรีเซ็ตอัตราค่าเบี้ยเลี้ยงและค่าที่พักกลับเป็นค่าเริ่มต้นหรือไม่ (กดบันทึกเพื่อยืนยันลงฐานข้อมูล)',
+    showCancelButton: true,
+    confirmButtonText: 'ยืนยัน',
+    cancelButtonText: 'ยกเลิก'
+  });
+  if (res.isConfirmed) {
+    renderTravelRatesSettingsTable(DEFAULT_TRAVEL_EXPENSE_RATES);
+  }
+};
+
+window.saveTravelRatesSettings = async () => {
+  const payload = {};
+  for (const cat of TRAVEL_POSITION_CATEGORIES) {
+    const allowVal = parseFloat(document.getElementById(`rate-allow-${cat.key}`)?.value);
+    const lumpVal = parseFloat(document.getElementById(`rate-lump-${cat.key}`)?.value);
+    const actualVal = parseFloat(document.getElementById(`rate-actual-${cat.key}`)?.value);
+    if (isNaN(allowVal) || allowVal < 0 || isNaN(lumpVal) || lumpVal < 0 || isNaN(actualVal) || actualVal < 0) {
+      Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่ถูกต้อง', text: `กรุณาระบุตัวเลขที่ถูกต้อง (>= 0) สำหรับตำแหน่ง: ${cat.label}` });
+      return;
+    }
+    payload[cat.key] = {
+      label: cat.label,
+      allowanceRate: allowVal,
+      lodgingLumpSum: lumpVal,
+      lodgingActualMax: actualVal
+    };
+  }
+
+  showLoading('กำลังบันทึกการตั้งค่าเบี้ยเลี้ยงและค่าที่พัก...');
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ travel_expense_rates: JSON.stringify(payload) })
+    });
+    const d = await res.json();
+    Swal.close();
+    if (d && d.success) {
+      if (!settings) settings = {};
+      settings.travel_expense_rates = JSON.stringify(payload);
+      Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: 'บันทึกอัตราเบี้ยเลี้ยงและค่าที่พักเรียบร้อยแล้ว' });
+    } else {
+      showError(d.message || 'บันทึกไม่สำเร็จ');
+    }
+  } catch (err) {
+    Swal.close();
+    showError('เกิดข้อผิดพลาด: ' + err.message);
+  }
+};
+
+window.loadTravelRatesSettingsPage = loadTravelRatesSettingsPage;
 window.approveTravel = approveTravel;
 window.registerActivity = registerActivity;
 window.viewParticipants = viewParticipants;
