@@ -1678,13 +1678,11 @@ app.get('/api/dashboard', async (req, res) => {
       let govCount = 0, personalCount = 0, publicCount = 0;
       vehicleStats.forEach(item => {
         const type = item.vehicleType || '';
-        if (type.includes('gov') || type.includes('ราชการ')) {
-          govCount += item.count;
-        } else if (type.includes('personal') || type.includes('ส่วนตัว')) {
-          personalCount += item.count;
-        } else {
-          publicCount += item.count;
-        }
+        const isGov = type.includes('gov') || type.includes('ราชการ');
+        const isPersonal = type.includes('personal') || type.includes('ส่วนตัว');
+        if (isGov) govCount += item.count;
+        if (isPersonal) personalCount += item.count;
+        if (!isGov && !isPersonal) publicCount += item.count;
       });
       travelVehicleDataVal = {
         labels: ['รถราชการ/วิทยาลัย', 'รถส่วนตัว', 'รถโดยสาร/อื่นๆ'],
@@ -1921,13 +1919,11 @@ app.get('/api/dashboard', async (req, res) => {
       let govCount = 0, personalCount = 0, publicCount = 0;
       vehicleStats.forEach(item => {
         const type = item.vehicleType || '';
-        if (type.includes('gov') || type.includes('ราชการ')) {
-          govCount += parseFloat(item.count) || 0;
-        } else if (type.includes('personal') || type.includes('ส่วนตัว')) {
-          personalCount += parseFloat(item.count) || 0;
-        } else {
-          publicCount += parseFloat(item.count) || 0;
-        }
+        const isGov = type.includes('gov') || type.includes('ราชการ');
+        const isPersonal = type.includes('personal') || type.includes('ส่วนตัว');
+        if (isGov) govCount += parseFloat(item.count) || 0;
+        if (isPersonal) personalCount += parseFloat(item.count) || 0;
+        if (!isGov && !isPersonal) publicCount += parseFloat(item.count) || 0;
       });
       travelVehicleDataVal = {
         labels: ['รถราชการ/วิทยาลัย', 'รถส่วนตัว', 'รถโดยสาร/อื่นๆ'],
@@ -2099,6 +2095,9 @@ app.get('/api/settings', async (req, res) => {
     rows.forEach(r => settingsObj[r.settingKey] = r.settingValue);
     if (!settingsObj.travel_expense_rates) {
       settingsObj.travel_expense_rates = JSON.stringify(DEFAULT_TRAVEL_EXPENSE_RATES);
+    }
+    if (!settingsObj.personal_car_rate_per_km) {
+      settingsObj.personal_car_rate_per_km = '4';
     }
     res.json(settingsObj);
   } catch (err) {

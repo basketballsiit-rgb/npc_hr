@@ -994,20 +994,36 @@
         const resolvedBudget = parseFloat(t.budget) > 0 ? parseFloat(t.budget) : estTotalBudget;
         document.getElementById('memo-estimated-budget').textContent = (details.expenseType === 'claim') ? resolvedBudget.toLocaleString() : '................';
         
-        // Checkboxes for vehicle
-        const vType = t.vehicleType || 'public';
-        setCheckbox('chk-use-car', vType === 'gov' || vType === 'personal');
-        setCheckbox('chk-car-gov', vType === 'gov');
-        setCheckbox('chk-car-personal', vType === 'personal');
+        // Checkboxes for vehicle (supports mixed gov + personal cars)
+        const vType = String(t.vehicleType || 'public');
+        const vTypesArr = Array.isArray(details.vehicleTypes) ? details.vehicleTypes : [];
+        const useGovCar = vTypesArr.includes('gov') || vType.includes('gov');
+        const usePersonalCar = vTypesArr.includes('personal') || vType.includes('personal');
+        setCheckbox('chk-use-car', useGovCar || usePersonalCar);
+        setCheckbox('chk-car-gov', useGovCar);
+        setCheckbox('chk-car-personal', usePersonalCar);
         
         // Dynamically set label of chk-vehicle
-        const isGovCar = (vType === 'gov');
-        document.getElementById('memo-vehicle-label').textContent = isGovCar ? 'ค่าน้ำมันเชื้อเพลิง' : 'ค่าพาหนะ';
+        document.getElementById('memo-vehicle-label').textContent = (useGovCar && !usePersonalCar) ? 'ค่าน้ำมันเชื้อเพลิง' : 'ค่าพาหนะ';
         
-        setFieldVal('memo-plate-gov', vType === 'gov' ? details.vehiclePlate : '');
-        setFieldVal('memo-plate-personal', vType === 'personal' ? details.vehiclePlate : '');
-        setFieldVal('memo-driver', vType === 'gov' ? details.vehicleDriver : '');
-        setFieldVal('memo-supervisor', vType === 'gov' ? details.vehicleSupervisor : '');
+        const govPlateDisplay = useGovCar ? (details.govVehiclePlate || (!usePersonalCar ? details.vehiclePlate : '') || '') : '';
+        let personalPlateDisplay = '';
+        if (usePersonalCar) {
+          if (Array.isArray(details.personalCars) && details.personalCars.length > 0) {
+            personalPlateDisplay = details.personalCars.map(car => {
+              const pl = (car.plate || '').trim();
+              const ow = (car.owner || '').trim();
+              if (pl && ow) return `${pl} (${ow})`;
+              return pl || ow;
+            }).filter(Boolean).join(', ');
+          } else {
+            personalPlateDisplay = details.vehiclePlate || '';
+          }
+        }
+        setFieldVal('memo-plate-gov', govPlateDisplay);
+        setFieldVal('memo-plate-personal', personalPlateDisplay);
+        setFieldVal('memo-driver', useGovCar ? details.vehicleDriver : '');
+        setFieldVal('memo-supervisor', useGovCar ? details.vehicleSupervisor : '');
         
         // Director approval state
         setCheckbox('chk-dir-approve', t.status === 'อนุมัติ');
@@ -1086,12 +1102,23 @@
           setFieldVal(`est-pos-${i}`, posVal, '..........................................................................');
         }
 
-        // Render 5 routes paths
+        // Render 5 routes paths (with personal car plate/owner or college car label)
         const routes = details.routes || [];
         for (let i = 1; i <= 5; i++) {
           const r = routes[i - 1];
           const fromVal = r ? r.from : '';
-          const toVal = r ? r.to : '';
+          let toVal = r ? r.to : '';
+          if (r && r.vehicle === 'personal_car') {
+            const metaParts = [];
+            if (r.plate) metaParts.push(r.plate);
+            if (r.owner) metaParts.push(r.owner);
+            if (r.km) metaParts.push(`${r.km}${r.roundtrip ? '×2' : ''} กม.`);
+            if (metaParts.length > 0) {
+              toVal = `${toVal} (รถส่วนตัว: ${metaParts.join(' / ')})`;
+            }
+          } else if (r && r.vehicle === 'gov_car' && usePersonalCar) {
+            toVal = `${toVal} (รถวิทยาลัย)`;
+          }
           setFieldVal(`est-route-from-${i}`, fromVal, '........................................');
           setFieldVal(`est-route-to-${i}`, toVal, '........................................');
         }

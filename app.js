@@ -4021,26 +4021,9 @@ window.switchTravelTab = (tabId) => {
     // 1. Sync daily allowance rows to range
     syncAllowanceDaysToRange();
 
-    // 2. Auto-select first leg vehicle type from Tab 1 radio selection if unselected
-    const vehicleTypeRadio = document.querySelector('input[name="travel-vehicle-type"]:checked');
-    if (vehicleTypeRadio) {
-      const firstLegSelect = document.querySelector('#tleg-1 .leg-vehicle-select');
-      if (firstLegSelect && !firstLegSelect.value) {
-        let defaultVal = '';
-        if (vehicleTypeRadio.value === 'gov') {
-          defaultVal = 'gov_car';
-        } else if (vehicleTypeRadio.value === 'personal') {
-          defaultVal = 'personal_car';
-        } else {
-          defaultVal = 'bus';
-        }
-        if (defaultVal) {
-          firstLegSelect.value = defaultVal;
-          if (typeof onLegVehicleChange === 'function') {
-            onLegVehicleChange(1);
-          }
-        }
-      }
+    // 2. Auto-sync vehicle legs & personal car owner/plate from Tab 1
+    if (typeof syncVehicleLegsFromTab1 === 'function') {
+      syncVehicleLegsFromTab1(false);
     }
   }
 
@@ -4177,6 +4160,9 @@ window.onTravelerNameInput = (inputElem) => {
       catSelect.value = inferTravelerCategory(matched.position || '', matched.staffType || '');
       syncTravelExpenseGroups();
     }
+  }
+  if (typeof refreshPersonalCarOwnerDropdowns === 'function') {
+    refreshPersonalCarOwnerDropdowns();
   }
 };
 
@@ -4383,6 +4369,9 @@ function updateTravelersCount() {
   if (peopAllow) peopAllow.value = totalPeople;
   if (peopRent) peopRent.value = totalPeople;
   syncTravelExpenseGroups();
+  if (typeof refreshPersonalCarOwnerDropdowns === 'function') {
+    refreshPersonalCarOwnerDropdowns();
+  }
 }
 
 // ============================================================
@@ -4456,6 +4445,17 @@ window.addTravelLeg = (legData = null) => {
           if (legData.priceGo !== undefined && cardEl.querySelector('.leg-price-go')) cardEl.querySelector('.leg-price-go').value = legData.priceGo;
           if (legData.priceBack !== undefined && cardEl.querySelector('.leg-price-back')) cardEl.querySelector('.leg-price-back').value = legData.priceBack;
           if (legData.note && cardEl.querySelector('.leg-note')) cardEl.querySelector('.leg-note').value = legData.note;
+          if (legData.owner && cardEl.querySelector('.leg-owner')) {
+            const ownerSel = cardEl.querySelector('.leg-owner');
+            if (![...ownerSel.options].some(o => o.value === legData.owner)) {
+              const opt = document.createElement('option');
+              opt.value = legData.owner;
+              opt.textContent = legData.owner;
+              ownerSel.appendChild(opt);
+            }
+            ownerSel.value = legData.owner;
+          }
+          if (legData.plate && cardEl.querySelector('.leg-plate')) cardEl.querySelector('.leg-plate').value = legData.plate;
           if (legData.km !== undefined && cardEl.querySelector('.leg-km')) cardEl.querySelector('.leg-km').value = legData.km;
           if (legData.roundtrip !== undefined && cardEl.querySelector('.leg-roundtrip')) cardEl.querySelector('.leg-roundtrip').checked = !!legData.roundtrip;
           if (legData.mode) setLegMode(id, legData.mode);
@@ -4584,21 +4584,35 @@ window.onLegVehicleChange = (id) => {
         </div>
       </div>`;
 
-  // Group D: personal_car — km calc only
+  // Group D: personal_car — owner, plate & km calc (configurable rate)
   } else if (type === 'personal_car') {
+    const kmRate = getPersonalCarRatePerKm();
+    const ownerOptions = buildTravelerOwnerOptionsHtml('');
+    const tab1Cars = collectTab1PersonalCars();
+    const defaultCar = tab1Cars.length > 0 ? tab1Cars[0] : null;
     fieldsEl.innerHTML = `
+      <div style="display:grid; grid-template-columns:1.3fr 1fr; gap:12px; margin-bottom:10px; background:#fffbeb; border:1px solid #fde68a; padding:10px; border-radius:7px;">
+        <div><label style="font-size:0.78rem;font-weight:600;color:#92400e;">👤 เจ้าของรถส่วนตัว / ผู้ขอเบิกค่าชดเชย</label>
+          <select class="form-input form-input-sm leg-owner" style="background:#fff;" onchange="onLegPersonalOwnerChange(${id})">${ownerOptions}</select></div>
+        <div><label style="font-size:0.78rem;font-weight:600;color:#92400e;">🚘 เลขทะเบียนรถส่วนตัว</label>
+          <input type="text" class="form-input form-input-sm leg-plate" placeholder="เช่น กข 1234 น่าน" value="${escapeHtml(defaultCar ? defaultCar.plate : '')}"></div>
+      </div>
       <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:10px;">
         <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">ต้นทาง</label>
           <input type="text" class="form-input form-input-sm leg-from" placeholder="เช่น น่าน"></div>
         <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">ปลายทาง</label>
           <input type="text" class="form-input form-input-sm leg-to" placeholder="เช่น เชียงใหม่"></div>
-        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">ระยะทางรวม (กม.)</label>
+        <div><label style="font-size:0.78rem;font-weight:600;color:#64748b;">ระยะทางเที่ยวเดียว (กม.)</label>
           <input type="number" class="form-input form-input-sm leg-km" placeholder="0" min="0" oninput="calcLegCost(${id})"></div>
       </div>
       <div style="font-size:0.8rem;color:#64748b;">
-        อัตรา 4 บาท/กม. &nbsp;
+        อัตรา <strong style="color:#0f766e;">${kmRate} บาท/กม.</strong> &nbsp;
         <label><input type="checkbox" class="leg-roundtrip" checked onchange="calcLegCost(${id})"> คิดไป-กลับ (×2)</label>
       </div>`;
+    if (defaultCar && defaultCar.owner) {
+      const oSel = fieldsEl.querySelector('.leg-owner');
+      if (oSel) oSel.value = defaultCar.owner;
+    }
 
   } else {
     fieldsEl.innerHTML = '<span style="color:#94a3b8;font-size:0.85rem;">← กรุณาเลือกพาหนะก่อน</span>';
@@ -4654,7 +4668,8 @@ window.calcLegCost = (id) => {
   } else if (type === 'personal_car') {
     const km  = parseFloat(card.querySelector('.leg-km')?.value) || 0;
     const rt  = card.querySelector('.leg-roundtrip')?.checked;
-    total     = km * 4 * (rt ? 2 : 1);
+    const kmRate = getPersonalCarRatePerKm();
+    total     = round2(km * kmRate * (rt ? 2 : 1));
   }
 
   valEl.value = total;
@@ -4706,27 +4721,291 @@ let _vehicleMode = 'calc';
 let ticketLegCounter = 0;
 
 
-// Toggle extra vehicle fields
+// ============================================================
+// MIXED VEHICLE SELECTION & PERSONAL CARS OWNER/PLATE SYSTEM
+// ============================================================
+function getPersonalCarRatePerKm() {
+  const raw = settings && settings.personal_car_rate_per_km;
+  const val = parseFloat(raw);
+  return (!isNaN(val) && val >= 0) ? val : 4;
+}
+window.getPersonalCarRatePerKm = getPersonalCarRatePerKm;
+
+function getAllTravelerNamesList() {
+  const list = [];
+  const reqName = (document.getElementById('travel-requester-name')?.value || (currentUser && currentUser.fullName) || '').trim();
+  if (reqName) {
+    list.push({ name: reqName, label: `${reqName} (ผู้ยื่นคำขอ)` });
+  }
+  document.querySelectorAll('.travel-traveler-row').forEach(row => {
+    const name = (row.querySelector('.traveler-name')?.value || '').trim();
+    const pos = (row.querySelector('.traveler-position')?.value || '').trim();
+    if (name && !list.some(x => x.name === name)) {
+      list.push({ name, label: pos ? `${name} (${pos})` : name });
+    }
+  });
+  return list;
+}
+
+function buildTravelerOwnerOptionsHtml(selectedName = '') {
+  const list = getAllTravelerNamesList();
+  let html = '<option value="">-- เลือกเจ้าของรถจากผู้เดินทาง --</option>';
+  let hasSelected = false;
+  list.forEach(item => {
+    const sel = item.name === selectedName ? 'selected' : '';
+    if (sel) hasSelected = true;
+    html += `<option value="${escapeHtml(item.name)}" ${sel}>${escapeHtml(item.label)}</option>`;
+  });
+  if (selectedName && !hasSelected) {
+    html += `<option value="${escapeHtml(selectedName)}" selected>${escapeHtml(selectedName)}</option>`;
+  }
+  return html;
+}
+
+window.getSelectedVehicleTypes = () => {
+  const usePublic = !!document.getElementById('travel-vtype-public')?.checked;
+  const useGov = !!document.getElementById('travel-vtype-gov')?.checked;
+  const usePersonal = !!document.getElementById('travel-vtype-personal')?.checked;
+  const vehicleTypes = [];
+  if (useGov) vehicleTypes.push('gov');
+  if (usePersonal) vehicleTypes.push('personal');
+  if (vehicleTypes.length === 0) vehicleTypes.push('public');
+  let vehicleType = 'public';
+  if (useGov && usePersonal) vehicleType = 'gov+personal';
+  else if (useGov) vehicleType = 'gov';
+  else if (usePersonal) vehicleType = 'personal';
+  return { usePublic, useGov, usePersonal, vehicleType, vehicleTypes };
+};
+
+window.onVehicleCheckboxChange = (changedVal) => {
+  const cbPublic = document.getElementById('travel-vtype-public');
+  const cbGov = document.getElementById('travel-vtype-gov');
+  const cbPersonal = document.getElementById('travel-vtype-personal');
+  if (!cbPublic || !cbGov || !cbPersonal) return;
+
+  if (changedVal === 'public' && cbPublic.checked) {
+    cbGov.checked = false;
+    cbPersonal.checked = false;
+  } else if ((changedVal === 'gov' && cbGov.checked) || (changedVal === 'personal' && cbPersonal.checked)) {
+    cbPublic.checked = false;
+  }
+
+  if (!cbPublic.checked && !cbGov.checked && !cbPersonal.checked) {
+    cbPublic.checked = true;
+  }
+  toggleVehicleFields();
+};
+
 window.toggleVehicleFields = () => {
-  const type = document.querySelector('input[name="travel-vehicle-type"]:checked').value;
+  const { useGov, usePersonal } = getSelectedVehicleTypes();
   const extra = document.getElementById('travel-vehicle-extra-fields');
-  if (extra) {
-    if (type === 'personal') {
-      extra.style.display = 'grid';
-      const plateGroup = document.getElementById('travel-vehicle-plate')?.closest('.form-group');
-      const driverGroup = document.getElementById('travel-vehicle-driver')?.closest('.form-group');
-      const supervisorGroup = document.getElementById('travel-vehicle-supervisor')?.closest('.form-group');
-      if (plateGroup) plateGroup.style.display = 'block';
-      if (driverGroup) driverGroup.style.display = 'none';
-      if (supervisorGroup) supervisorGroup.style.display = 'none';
+  const govPanel = document.getElementById('travel-gov-car-panel');
+  const personalPanel = document.getElementById('travel-personal-cars-panel');
+
+  if (extra) extra.style.display = (useGov || usePersonal) ? 'flex' : 'none';
+  if (govPanel) govPanel.style.display = useGov ? 'block' : 'none';
+  if (personalPanel) personalPanel.style.display = usePersonal ? 'block' : 'none';
+
+  if (usePersonal) {
+    const listEl = document.getElementById('travel-personal-cars-list');
+    if (listEl && listEl.querySelectorAll('.personal-car-row').length === 0) {
+      const reqName = (document.getElementById('travel-requester-name')?.value || (currentUser && currentUser.fullName) || '').trim();
+      addPersonalCarRow(reqName, '');
+    }
+  }
+  updateVehicleAssignmentSummary();
+};
+
+window.addPersonalCarRow = (owner = '', plate = '') => {
+  const listEl = document.getElementById('travel-personal-cars-list');
+  if (!listEl) return;
+  const row = document.createElement('div');
+  row.className = 'personal-car-row';
+  row.style.cssText = 'display:flex; flex-wrap:wrap; gap:8px; align-items:center; background:#fff; padding:8px; border:1px solid #fde68a; border-radius:7px;';
+  row.innerHTML = `
+    <select class="form-input form-input-sm personal-car-owner" style="flex: 1.5 1 210px; font-size:0.85rem; padding:6px 8px; background:#fff;" onchange="onPersonalCarChange()">
+      ${buildTravelerOwnerOptionsHtml(owner)}
+    </select>
+    <input type="text" class="form-input form-input-sm personal-car-plate" placeholder="เลขทะเบียนรถส่วนตัว เช่น กข 1234 น่าน" value="${escapeHtml(plate)}" style="flex: 1 1 170px; font-size:0.85rem; padding:6px 10px;" oninput="onPersonalCarChange()">
+    <button type="button" class="btn btn-outline btn-xs" onclick="removePersonalCarRow(this)" style="padding:6px 9px; border-color:var(--danger); color:var(--danger); border-radius:6px;" title="ลบรถส่วนตัวคันนี้">❌</button>
+  `;
+  listEl.appendChild(row);
+  updateVehicleAssignmentSummary();
+};
+
+window.removePersonalCarRow = (btn) => {
+  const row = btn.closest('.personal-car-row');
+  if (row) row.remove();
+  updateVehicleAssignmentSummary();
+};
+
+window.onPersonalCarChange = () => {
+  updateVehicleAssignmentSummary();
+};
+
+function collectTab1PersonalCars() {
+  const cars = [];
+  document.querySelectorAll('#travel-personal-cars-list .personal-car-row').forEach(row => {
+    const owner = (row.querySelector('.personal-car-owner')?.value || '').trim();
+    const plate = (row.querySelector('.personal-car-plate')?.value || '').trim();
+    if (owner || plate) {
+      cars.push({ owner, plate });
+    }
+  });
+  return cars;
+}
+
+window.refreshPersonalCarOwnerDropdowns = () => {
+  document.querySelectorAll('.personal-car-owner, .leg-owner').forEach(sel => {
+    const prev = sel.value;
+    sel.innerHTML = buildTravelerOwnerOptionsHtml(prev);
+    if (prev) sel.value = prev;
+  });
+  updateVehicleAssignmentSummary();
+};
+
+window.updateVehicleAssignmentSummary = () => {
+  const box = document.getElementById('travel-vehicle-assignment-summary');
+  const compatPlate = document.getElementById('travel-vehicle-plate');
+  const { useGov, usePersonal } = getSelectedVehicleTypes();
+  const govPlate = (document.getElementById('travel-gov-vehicle-plate')?.value || '').trim();
+  const personalCars = usePersonal ? collectTab1PersonalCars() : [];
+
+  // Keep hidden backward-compat plate field synced
+  if (compatPlate) {
+    if (usePersonal && personalCars.length > 0) {
+      compatPlate.value = personalCars.map(c => c.plate).filter(Boolean).join(', ');
+    } else if (useGov) {
+      compatPlate.value = govPlate;
     } else {
-      extra.style.display = 'none';
-      const plateInput = document.getElementById('travel-vehicle-plate');
-      const driverInput = document.getElementById('travel-vehicle-driver');
-      const supervisorInput = document.getElementById('travel-vehicle-supervisor');
-      if (plateInput) plateInput.value = '';
-      if (driverInput) driverInput.value = '';
-      if (supervisorInput) supervisorInput.value = '';
+      compatPlate.value = '';
+    }
+  }
+
+  if (!box) return;
+  if (!useGov && !usePersonal) {
+    box.style.display = 'none';
+    return;
+  }
+
+  const allTravelers = getAllTravelerNamesList();
+  const personalOwners = new Set(personalCars.map(c => c.owner).filter(Boolean));
+  const remainingTravelers = allTravelers.filter(t => !personalOwners.has(t.name));
+
+  const lines = [];
+  if (usePersonal) {
+    if (personalCars.length > 0) {
+      const carDesc = personalCars.map(c => `${c.owner || '(ยังไม่เลือกชื่อ)'}${c.plate ? ` [${c.plate}]` : ''}`).join(', ');
+      lines.push(`<div>🚗 <strong>เดินทางด้วยรถส่วนตัว (${personalCars.length} คัน):</strong> ${escapeHtml(carDesc)}</div>`);
+    } else {
+      lines.push(`<div>🚗 <strong>รถส่วนตัว:</strong> กรุณาระบุชื่อเจ้าของรถและเลขทะเบียนด้านบน</div>`);
+    }
+  }
+  if (useGov) {
+    if (remainingTravelers.length > 0) {
+      const remNames = remainingTravelers.map(t => t.name).join(', ');
+      lines.push(`<div>🚌 <strong>เดินทางด้วยรถของทางราชการ (${remainingTravelers.length} คน):</strong> ${escapeHtml(remNames)}</div>`);
+    } else {
+      lines.push(`<div>🚌 <strong>รถยนต์ราชการ (รถวิทยาลัย):</strong> ใช้ร่วมในการเดินทาง${govPlate ? ` [${escapeHtml(govPlate)}]` : ''}</div>`);
+    }
+  } else if (usePersonal && remainingTravelers.length > 0) {
+    lines.push(`<div style="color:#64748b;">ℹ️ ผู้เดินทางที่เหลืออีก ${remainingTravelers.length} คน หากนั่งรถวิทยาลัย กรุณาติ๊ก "ขออนุญาตใช้รถยนต์ราชการ" ร่วมด้วย</div>`);
+  }
+
+  box.innerHTML = lines.join('');
+  box.style.display = 'block';
+};
+
+window.onLegPersonalOwnerChange = (id) => {
+  const card = document.getElementById(`tleg-${id}`);
+  if (!card) return;
+  const owner = card.querySelector('.leg-owner')?.value || '';
+  const plateInp = card.querySelector('.leg-plate');
+  if (!owner || !plateInp) return;
+  const matchedCar = collectTab1PersonalCars().find(c => c.owner === owner);
+  if (matchedCar && matchedCar.plate) {
+    plateInp.value = matchedCar.plate;
+  }
+};
+
+window.syncVehicleLegsFromTab1 = (forceAddMissing = false) => {
+  refreshPersonalCarOwnerDropdowns();
+  const { useGov, usePersonal } = getSelectedVehicleTypes();
+  const personalCars = usePersonal ? collectTab1PersonalCars() : [];
+  const dest = (document.getElementById('travel-destination')?.value || '').trim();
+  const legCards = document.querySelectorAll('#travel-legs-container > div[id^="tleg-"]');
+
+  // Case A: Only 1 blank unselected leg — initialize automatically from Tab 1
+  if (legCards.length === 1) {
+    const firstId = legCards[0].id.replace('tleg-', '');
+    const firstSelect = legCards[0].querySelector('.leg-vehicle-select');
+    if (firstSelect && !firstSelect.value) {
+      if (useGov && usePersonal) {
+        firstSelect.value = 'gov_car';
+        onLegVehicleChange(firstId);
+        const fromEl = legCards[0].querySelector('.leg-from');
+        const toEl = legCards[0].querySelector('.leg-to');
+        if (fromEl && !fromEl.value) fromEl.value = 'น่าน';
+        if (toEl && !toEl.value && dest) toEl.value = dest;
+        if (personalCars.length > 0) {
+          personalCars.forEach(car => {
+            addTravelLeg({ type: 'personal_car', owner: car.owner, plate: car.plate, from: 'น่าน', to: dest, roundtrip: true });
+          });
+        } else {
+          addTravelLeg({ type: 'personal_car', from: 'น่าน', to: dest, roundtrip: true });
+        }
+      } else if (useGov) {
+        firstSelect.value = 'gov_car';
+        onLegVehicleChange(firstId);
+      } else if (usePersonal) {
+        firstSelect.value = 'personal_car';
+        onLegVehicleChange(firstId);
+        if (personalCars.length > 0) {
+          const c0 = personalCars[0];
+          const oSel = legCards[0].querySelector('.leg-owner');
+          const pInp = legCards[0].querySelector('.leg-plate');
+          if (oSel && c0.owner) oSel.value = c0.owner;
+          if (pInp && c0.plate) pInp.value = c0.plate;
+          personalCars.slice(1).forEach(car => {
+            addTravelLeg({ type: 'personal_car', owner: car.owner, plate: car.plate, from: 'น่าน', to: dest, roundtrip: true });
+          });
+        }
+      } else {
+        firstSelect.value = 'bus';
+        onLegVehicleChange(firstId);
+      }
+      return;
+    }
+  }
+
+  // Case B: Existing legs — optionally add missing gov/personal legs when user clicks sync
+  if (forceAddMissing) {
+    let hasGovLeg = false;
+    const existingPersonalKeys = new Set();
+    legCards.forEach(card => {
+      const type = card.querySelector('.leg-vehicle-select')?.value;
+      if (type === 'gov_car') hasGovLeg = true;
+      if (type === 'personal_car') {
+        const o = (card.querySelector('.leg-owner')?.value || '').trim();
+        const pl = (card.querySelector('.leg-plate')?.value || '').trim();
+        existingPersonalKeys.add(`${o}|${pl}`);
+        // Sync plate if owner matches Tab 1 car
+        const matched = personalCars.find(c => c.owner && c.owner === o);
+        if (matched && matched.plate && !pl) {
+          const pEl = card.querySelector('.leg-plate');
+          if (pEl) pEl.value = matched.plate;
+        }
+      }
+    });
+    if (useGov && !hasGovLeg) {
+      addTravelLeg({ type: 'gov_car', from: 'น่าน', to: dest, roundtrip: true });
+    }
+    if (usePersonal) {
+      personalCars.forEach(car => {
+        if (!existingPersonalKeys.has(`${car.owner}|${car.plate}`)) {
+          addTravelLeg({ type: 'personal_car', owner: car.owner, plate: car.plate, from: 'น่าน', to: dest, roundtrip: true });
+        }
+      });
     }
   }
 };
@@ -5485,6 +5764,19 @@ async function initTravelPage() {
   const accList = document.getElementById('travel-accompanied-list');
   if (accList) accList.innerHTML = '';
 
+  // Reset vehicle checkboxes & personal cars list
+  const cbPub = document.getElementById('travel-vtype-public');
+  const cbGov = document.getElementById('travel-vtype-gov');
+  const cbPer = document.getElementById('travel-vtype-personal');
+  if (cbPub) cbPub.checked = true;
+  if (cbGov) cbGov.checked = false;
+  if (cbPer) cbPer.checked = false;
+  const pCarsList = document.getElementById('travel-personal-cars-list');
+  if (pCarsList) pCarsList.innerHTML = '';
+  const govPlateInp = document.getElementById('travel-gov-vehicle-plate');
+  if (govPlateInp) govPlateInp.value = '';
+  toggleVehicleFields();
+
   // Load staff cache, populate quick select and datalist
   loadStaffCache().then(() => {
     populateTravelQuickSelect();
@@ -5936,13 +6228,8 @@ window.openEditTravelForm = async (travelId) => {
     if (document.getElementById('travel-ref-date')) document.getElementById('travel-ref-date').value = details.refDate || '';
     if (document.getElementById('travel-delegate-name')) document.getElementById('travel-delegate-name').value = details.delegateName || '';
     if (document.getElementById('travel-delegate-pos')) document.getElementById('travel-delegate-pos').value = details.delegatePos || '';
-    if (document.getElementById('travel-vehicle-plate')) document.getElementById('travel-vehicle-plate').value = details.vehiclePlate || '';
     if (document.getElementById('travel-vehicle-driver')) document.getElementById('travel-vehicle-driver').value = details.vehicleDriver || '';
     if (document.getElementById('travel-vehicle-supervisor')) document.getElementById('travel-vehicle-supervisor').value = details.vehicleSupervisor || '';
-
-    // Vehicle type radio
-    const vRadio = document.querySelector(`input[name="travel-vehicle-type"][value="${t.vehicleType || 'public'}"]`);
-    if (vRadio) vRadio.checked = true;
 
     // Expense type radio
     const expType = details.expenseType || 'claim';
@@ -5958,7 +6245,7 @@ window.openEditTravelForm = async (travelId) => {
       reqCatEl.value = details.requesterCategory || inferTravelerCategory(t.requesterPosition || (currentUser && currentUser.position) || '', (currentUser && currentUser.staffType) || '');
     }
 
-    // Populate Travelers list
+    // Populate Travelers list FIRST so personal car owner dropdowns include all travelers
     const accContainer = document.getElementById('travel-accompanied-list');
     if (accContainer) {
       accContainer.innerHTML = '';
@@ -5970,6 +6257,33 @@ window.openEditTravelForm = async (travelId) => {
       }
       syncTravelExpenseGroups(true);
     }
+
+    // Restore mixed vehicle checkboxes & personal cars list
+    const vTypeStr = String(t.vehicleType || 'public');
+    const vTypesArr = Array.isArray(details.vehicleTypes) ? details.vehicleTypes : [];
+    const isGovEdit = vTypesArr.includes('gov') || vTypeStr.includes('gov');
+    const isPersEdit = vTypesArr.includes('personal') || vTypeStr.includes('personal');
+    const cbPubEdit = document.getElementById('travel-vtype-public');
+    const cbGovEdit = document.getElementById('travel-vtype-gov');
+    const cbPerEdit = document.getElementById('travel-vtype-personal');
+    if (cbPubEdit) cbPubEdit.checked = !isGovEdit && !isPersEdit;
+    if (cbGovEdit) cbGovEdit.checked = isGovEdit;
+    if (cbPerEdit) cbPerEdit.checked = isPersEdit;
+    if (document.getElementById('travel-gov-vehicle-plate')) {
+      document.getElementById('travel-gov-vehicle-plate').value = details.govVehiclePlate || (isGovEdit && !isPersEdit ? (details.vehiclePlate || '') : '');
+    }
+    const pCarsEditEl = document.getElementById('travel-personal-cars-list');
+    if (pCarsEditEl) {
+      pCarsEditEl.innerHTML = '';
+      if (isPersEdit) {
+        if (Array.isArray(details.personalCars) && details.personalCars.length > 0) {
+          details.personalCars.forEach(car => addPersonalCarRow(car.owner || '', car.plate || ''));
+        } else if (details.vehiclePlate) {
+          addPersonalCarRow(details.requesterName || t.fullName || '', details.vehiclePlate);
+        }
+      }
+    }
+    toggleVehicleFields();
 
     // Restore allowance group overrides if saved
     if (details.allowance && Array.isArray(details.allowance.breakdown)) {
@@ -6171,8 +6485,10 @@ async function handleTravelSubmit(e) {
     return;
   }
 
-  const vehicleRadio = document.querySelector('input[name="travel-vehicle-type"]:checked');
-  const vehicleType = vehicleRadio ? vehicleRadio.value : 'public';
+  const vState = getSelectedVehicleTypes();
+  const vehicleType = vState.vehicleType;
+  const personalCars = vState.usePersonal ? collectTab1PersonalCars() : [];
+  const govVehiclePlate = vState.useGov ? (document.getElementById('travel-gov-vehicle-plate')?.value?.trim() || '') : '';
   
   const hasLoan = document.getElementById('travel-has-loan')?.checked || false;
   const expenseType = document.querySelector('input[name="travel-expense-type"]:checked')?.value || 'claim';
@@ -6256,15 +6572,28 @@ async function handleTravelSubmit(e) {
         legData.loanAmount = parseFloat(card.querySelector('.leg-loan-amount')?.value) || 0;
       }
     } else if (type === 'personal_car') {
+      legData.owner     = card.querySelector('.leg-owner')?.value || '';
+      legData.plate     = card.querySelector('.leg-plate')?.value?.trim() || '';
       legData.from      = card.querySelector('.leg-from')?.value || '';
       legData.to        = card.querySelector('.leg-to')?.value   || '';
       legData.km        = parseFloat(card.querySelector('.leg-km')?.value) || 0;
       legData.roundtrip = card.querySelector('.leg-roundtrip')?.checked;
+      legData.kmRate    = getPersonalCarRatePerKm();
     }
 
     vehicleLegs.push(legData);
     if (legData.from || legData.to) {
-      routes.push({ from: legData.from || '', to: legData.to || '', vehicle: type, cost });
+      routes.push({
+        from: legData.from || '',
+        to: legData.to || '',
+        vehicle: type,
+        owner: legData.owner || '',
+        plate: legData.plate || '',
+        km: legData.km || 0,
+        roundtrip: !!legData.roundtrip,
+        kmRate: legData.kmRate || 0,
+        cost
+      });
     }
   });
   const vehicleData = {
@@ -6283,9 +6612,12 @@ async function handleTravelSubmit(e) {
     refDate: document.getElementById('travel-ref-date')?.value || '',
     delegateName: document.getElementById('travel-delegate-name')?.value || '',
     delegatePos: document.getElementById('travel-delegate-pos')?.value || '',
-    vehiclePlate: document.getElementById('travel-vehicle-plate')?.value || '',
-    vehicleDriver: document.getElementById('travel-vehicle-driver')?.value || '',
-    vehicleSupervisor: document.getElementById('travel-vehicle-supervisor')?.value || '',
+    vehicleTypes: vState.vehicleTypes,
+    govVehiclePlate,
+    personalCars,
+    vehiclePlate: (vState.usePersonal && personalCars.length > 0) ? personalCars.map(c => c.plate).filter(Boolean).join(', ') : govVehiclePlate,
+    vehicleDriver: vState.useGov ? (document.getElementById('travel-vehicle-driver')?.value || '') : '',
+    vehicleSupervisor: vState.useGov ? (document.getElementById('travel-vehicle-supervisor')?.value || '') : '',
     travelers,
     allowanceDaysList,
     routes,
@@ -6625,19 +6957,42 @@ window.openClearanceModal = (reportId, travelId, budget) => {
   if (reqDetails && (reqDetails.expenseType === 'claim' || reqDetails.expenseType === 'project-claim')) {
     const pCount = 1 + (reqDetails.travelers ? reqDetails.travelers.length : 0);
     
-    // Calculate govCarCost
+    // Calculate govCarCost & personal car compensation per owner
     let govCarCost = 0;
+    let assignedPersonalVehicleTotal = 0;
+    const vehicleByOwner = {};
+    const allKnownNames = new Set([reporterName.trim(), ...travelers.map(t => (t.name || '').trim())]);
+    let firstPersonalLeg = null;
+
     if (reqDetails.vehicleData && reqDetails.vehicleData.legs) {
       reqDetails.vehicleData.legs.forEach(leg => {
         if (leg.type === 'gov_car') {
           govCarCost += parseFloat(leg.cost) || 0;
+        } else if (leg.type === 'personal_car') {
+          if (!firstPersonalLeg) firstPersonalLeg = leg;
+          const ownerName = (leg.owner || '').trim();
+          const legCost = parseFloat(leg.cost) || 0;
+          if (ownerName && allKnownNames.has(ownerName) && legCost > 0) {
+            vehicleByOwner[ownerName] = round2((vehicleByOwner[ownerName] || 0) + legCost);
+            assignedPersonalVehicleTotal = round2(assignedPersonalVehicleTotal + legCost);
+          }
         }
       });
+    }
+
+    // Pre-fill personal car subform plate & km if available
+    if (firstPersonalLeg) {
+      if (firstPersonalLeg.plate) document.getElementById('clearance-fuel-plate').value = firstPersonalLeg.plate;
+      if (firstPersonalLeg.km) {
+        const totalKm = (parseFloat(firstPersonalLeg.km) || 0) * (firstPersonalLeg.roundtrip ? 2 : 1);
+        document.getElementById('clearance-fuel-km').value = totalKm;
+      }
     }
     
     const displayAllowance = reqDetails.allowance ? parseFloat(reqDetails.allowance.total || 0) : 0;
     const displayRent = reqDetails.rent ? parseFloat(reqDetails.rent.total || 0) : 0;
     const displayVehicle = reqDetails.vehicleData ? Math.max(0, parseFloat(reqDetails.vehicleData.routeTotal || 0) - govCarCost) : 0;
+    const unassignedVehicle = Math.max(0, round2(displayVehicle - assignedPersonalVehicleTotal));
     const displayOther = (parseFloat(reqDetails.otherCost) || 0) + govCarCost;
     
     const allowByCat = {};
@@ -6662,19 +7017,20 @@ window.openClearanceModal = (reportId, travelId, budget) => {
     const reqCat = reqDetails.requesterCategory || inferTravelerCategory((currentUser && currentUser.position) || '', (currentUser && currentUser.staffType) || '');
     mainAllow = hasAllowBreakdown ? (allowByCat[reqCat] ?? accAllow) : accAllow;
     mainRent = hasRentBreakdown ? (rentByCat[reqCat] ?? accRent) : accRent;
-    mainVehicle = displayVehicle;
+    mainVehicle = round2(unassignedVehicle + (vehicleByOwner[reporterName.trim()] || 0));
     mainOther = displayOther;
 
     // 1. Add main reporter
     addTravelerClearanceRow(reporterName, 'ผู้รายงาน', mainAllow, mainRent, mainVehicle, mainOther);
     
-    // 2. Add accompanying travelers using each person's position category
+    // 2. Add accompanying travelers using each person's position category + personal car compensation
     travelers.forEach(t => {
       const tCat = t.category || inferTravelerCategory(t.position || '', '');
       const tAllow = hasAllowBreakdown ? (allowByCat[tCat] ?? accAllow) : accAllow;
       const tRent = hasRentBreakdown ? (rentByCat[tCat] ?? accRent) : accRent;
+      const tVeh = vehicleByOwner[(t.name || '').trim()] || 0;
       const tPos = t.position || getTravelCategoryLabel(tCat);
-      addTravelerClearanceRow(t.name, tPos, tAllow, tRent, 0, 0);
+      addTravelerClearanceRow(t.name, tPos, tAllow, tRent, tVeh, 0);
     });
   } else {
     // 1. Add main reporter
@@ -6741,7 +7097,7 @@ window.recalculateClearanceTotals = () => {
   // 4. Add fuel subform if checked
   if (document.getElementById('chk-doc-fuel').checked) {
     const km = parseFloat(document.getElementById('clearance-fuel-km').value) || 0;
-    grandSpent += (km * 4);
+    grandSpent += round2(km * getPersonalCarRatePerKm());
   }
   
   document.getElementById('clearance-total-spent').textContent = grandSpent.toFixed(2);
@@ -6811,7 +7167,7 @@ window.handleClearanceSubmit = async (e) => {
   const fuel = {
     plate: document.getElementById('clearance-fuel-plate').value.trim(),
     km: parseFloat(document.getElementById('clearance-fuel-km').value) || 0,
-    total: (parseFloat(document.getElementById('clearance-fuel-km').value) || 0) * 4
+    total: round2((parseFloat(document.getElementById('clearance-fuel-km').value) || 0) * getPersonalCarRatePerKm())
   };
   
   const details = {
@@ -7638,6 +7994,8 @@ function renderTravelRatesSettingsTable(ratesObj) {
     `;
     tbody.appendChild(tr);
   });
+  const kmRateInp = document.getElementById('rate-personal-car-km');
+  if (kmRateInp) kmRateInp.value = getPersonalCarRatePerKm();
 }
 
 window.onTravelRateSettingAllowanceInput = (catKey) => {
@@ -7652,13 +8010,15 @@ window.resetDefaultTravelRates = async () => {
   const res = await Swal.fire({
     icon: 'question',
     title: 'คืนค่าเริ่มต้น?',
-    text: 'ต้องการรีเซ็ตอัตราค่าเบี้ยเลี้ยงและค่าที่พักกลับเป็นค่าเริ่มต้นหรือไม่ (กดบันทึกเพื่อยืนยันลงฐานข้อมูล)',
+    text: 'ต้องการรีเซ็ตอัตราค่าเบี้ยเลี้ยง ค่าที่พัก และอัตรารถส่วนตัวกลับเป็นค่าเริ่มต้นหรือไม่ (กดบันทึกเพื่อยืนยันลงฐานข้อมูล)',
     showCancelButton: true,
     confirmButtonText: 'ยืนยัน',
     cancelButtonText: 'ยกเลิก'
   });
   if (res.isConfirmed) {
     renderTravelRatesSettingsTable(DEFAULT_TRAVEL_EXPENSE_RATES);
+    const kmRateInp = document.getElementById('rate-personal-car-km');
+    if (kmRateInp) kmRateInp.value = 4;
   }
 };
 
@@ -7679,20 +8039,29 @@ window.saveTravelRatesSettings = async () => {
       lodgingActualMax: actualVal
     };
   }
+  const kmRateVal = parseFloat(document.getElementById('rate-personal-car-km')?.value);
+  if (isNaN(kmRateVal) || kmRateVal < 0) {
+    Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่ถูกต้อง', text: 'กรุณาระบุอัตราค่าชดเชยรถยนต์ส่วนตัว (>= 0 บาท/กม.)' });
+    return;
+  }
 
   showLoading('กำลังบันทึกการตั้งค่าเบี้ยเลี้ยงและค่าที่พัก...');
   try {
     const res = await fetch(`${API_BASE_URL}/api/settings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ travel_expense_rates: JSON.stringify(payload) })
+      body: JSON.stringify({
+        travel_expense_rates: JSON.stringify(payload),
+        personal_car_rate_per_km: String(kmRateVal)
+      })
     });
     const d = await res.json();
     Swal.close();
     if (d && d.success) {
       if (!settings) settings = {};
       settings.travel_expense_rates = JSON.stringify(payload);
-      Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: 'บันทึกอัตราเบี้ยเลี้ยงและค่าที่พักเรียบร้อยแล้ว' });
+      settings.personal_car_rate_per_km = String(kmRateVal);
+      Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: 'บันทึกอัตราเบี้ยเลี้ยง ค่าที่พัก และอัตรารถส่วนตัวเรียบร้อยแล้ว' });
     } else {
       showError(d.message || 'บันทึกไม่สำเร็จ');
     }
