@@ -60,7 +60,7 @@
       width: 210mm;
       min-height: 297mm;
       margin: 0 auto;
-      padding: 5mm 15mm 5mm 20mm; /* Top 25mm, Right 15mm, Bottom 20mm, Left 30mm */
+      padding: 15mm 18mm 12mm 22mm; /* Balanced A4 Saraban margins: Top 15mm, Right 18mm, Bottom 12mm, Left 22mm */
       box-sizing: border-box;
       position: relative;
       background: #ffffff;
@@ -119,7 +119,13 @@
     /* Print settings */
     @media print {
       #page-memo {
-        padding: 4mm 15mm 4mm 20mm !important;
+        padding: 15mm 18mm 12mm 22mm !important;
+      }
+      #page-loan {
+        padding: 12mm 15mm 10mm 20mm !important;
+      }
+      #page-estimation {
+        padding: 12mm 15mm 12mm 20mm !important;
       }
       #page-memo,
       #page-memo div,
@@ -128,8 +134,8 @@
       #page-memo table,
       #page-memo td,
       #page-memo th {
-        font-size: 15.1pt !important;
-        line-height: 1.15 !important;
+        font-size: 14.8pt !important;
+        line-height: 1.13 !important;
       }
       #page-memo .memo-title-centered {
         font-size: 18pt !important;
@@ -139,12 +145,13 @@
       #page-memo #memo-approvals-section td,
       #page-memo #memo-approvals-section span {
         font-size: 13.5pt !important;
+        line-height: 1.12 !important;
       }
       #page-memo hr {
         margin: 2px 0 !important;
       }
       #page-memo table {
-        margin-top: 2px !important;
+        margin-top: 4px !important;
       }
       @page {
         size: A4;
@@ -157,10 +164,11 @@
         margin: 0;
       }
       .a4-page {
-        width: 100%;
+        width: 210mm;
         height: auto;
-        padding: 5mm 15mm 5mm 20mm !important;
-        margin: 0;
+        min-height: 0;
+        padding: 15mm 18mm 12mm 22mm !important;
+        margin: 0 auto;
         box-shadow: none;
       }
       .no-print {
@@ -315,7 +323,7 @@
       
       <hr style="border: none; border-bottom: 2px solid #000; margin: 0 0 5px 0;">
       
-      <div class="doc-line" style="margin-bottom: 15px; font-size: 16pt;">
+      <div class="doc-line" style="margin-bottom: 8px; font-size: 16pt;">
         <span class="bold" style="font-size: 16pt;">เรียน</span> ผู้อำนวยการวิทยาลัยสารพัดช่างน่าน
       </div>
 
@@ -468,8 +476,8 @@
     </div>
 
     <!-- PAGE 3: สัญญายืมเงิน (Optional) -->
-    <div class="a4-page page-break hidden" id="page-loan" style="padding: 10mm 15mm 10mm 20mm; font-size: 16pt; line-height: 1.25; box-sizing: border-box;">
-      <div style="border: 1.5px solid black; min-height: 272mm; box-sizing: border-box; overflow: hidden; padding-bottom: 10px;">
+    <div class="a4-page page-break hidden" id="page-loan" style="padding: 12mm 15mm 10mm 20mm; font-size: 16pt; line-height: 1.25; box-sizing: border-box;">
+      <div style="border: 1.5px solid black; min-height: 268mm; box-sizing: border-box; overflow: hidden; padding-bottom: 8px;">
           <!-- Top Title Box -->
           <table style="width: 100%; border-collapse: collapse; border: none; border-bottom: 1.5px solid black; font-size: 16pt; margin: 0;">
             <tr>
